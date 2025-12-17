@@ -409,46 +409,74 @@ export class NewsService implements INewsService {
           return null;
         }
         
-        // 验证数据
+        // 验证数据 - 在生产环境中更宽松
         const validation = validateNewsItem(sanitized);
         if (!validation.isValid) {
-          console.warn(`⚠️ 数据验证失败 [${index}]`, { 
-            title: sanitized.title.substring(0, 50),
-            errors: validation.errors 
-          });
-          return null;
+          // 在生产环境中，只要有标题和内容就接受
+          const isProduction = typeof window !== 'undefined' && 
+                              window.location.hostname !== 'localhost' && 
+                              window.location.hostname !== '127.0.0.1';
+          
+          if (isProduction && sanitized.title && sanitized.content) {
+            console.log(`📝 生产环境：接受基本有效的新闻 [${index}]`, { 
+              title: sanitized.title.substring(0, 50) + '...'
+            });
+          } else {
+            console.warn(`⚠️ 数据验证失败 [${index}]`, { 
+              title: sanitized.title.substring(0, 50),
+              errors: validation.errors 
+            });
+            return null;
+          }
         }
         
-        // 检查相关性 - 更宽松的匹配
+        // 检查相关性 - 生产环境中更宽松的匹配
         const content = (sanitized.title + ' ' + sanitized.content).toLowerCase();
         const matchedKeywords = keywords.filter(keyword => 
           content.includes(keyword.toLowerCase())
         );
         const isRelevant = matchedKeywords.length > 0;
         
-        // 如果没有匹配到关键词，但是来源可靠，也保留
-        const reliableSources = ['reuters', 'bloomberg', 'cnbc', 'marketwatch', 'yahoo finance', 'financial times', 'ap news', 'associated press'];
+        // 可靠来源列表
+        const reliableSources = ['reuters', 'bloomberg', 'cnbc', 'marketwatch', 'yahoo finance', 'financial times', 'ap news', 'associated press', 'globenewswire', 'financial post'];
         const hasReliableSource = reliableSources.some(source => 
           sanitized.source.toLowerCase().includes(source)
         );
+        
+        // 检查是否包含金融相关词汇（更广泛的匹配）
+        const financialTerms = [
+          'nasdaq', 'stock', 'market', 'trading', 'investment', 'financial', 'finance',
+          'company', 'corp', 'inc', 'ltd', 'business', 'revenue', 'earnings', 'profit',
+          'shares', 'equity', 'securities', 'capital', 'fund', 'portfolio', 'analyst',
+          'price', 'value', 'growth', 'dividend', 'merger', 'acquisition', 'ipo',
+          'economic', 'economy', 'industry', 'sector', 'commercial', 'enterprise'
+        ];
+        
+        const hasFinancialTerms = financialTerms.some(term => 
+          content.includes(term.toLowerCase())
+        );
+        
+        // 生产环境中的宽松过滤策略
+        const isProduction = typeof window !== 'undefined' && 
+                            window.location.hostname !== 'localhost' && 
+                            window.location.hostname !== '127.0.0.1';
+        
+        const shouldKeep = isProduction ? 
+          // 生产环境：只要有金融相关词汇或来自可靠源就保留
+          (isRelevant || hasReliableSource || hasFinancialTerms) :
+          // 开发环境：更严格的过滤
+          (isRelevant || hasReliableSource);
         
         console.log(`📰 新闻过滤 [${index}]`, { 
           title: sanitized.title.substring(0, 50) + '...',
           source: sanitized.source,
           isRelevant,
-          matchedKeywords,
+          matchedKeywords: matchedKeywords.length,
           hasReliableSource,
-          willKeep: isRelevant || hasReliableSource || config.app.environment === 'development'
+          hasFinancialTerms,
+          isProduction,
+          willKeep: shouldKeep
         });
-        
-        // 更宽松的过滤策略：只要包含NASDAQ相关词汇或来自可靠源就保留
-        const shouldKeep = isRelevant || hasReliableSource || 
-                          content.includes('nasdaq') || 
-                          content.includes('stock') || 
-                          content.includes('market') ||
-                          content.includes('trading') ||
-                          content.includes('investment') ||
-                          content.includes('financial');
         
         return shouldKeep ? sanitized : null;
       })
@@ -470,12 +498,17 @@ export class NewsService implements INewsService {
     const keywords = {
       gold: [
         'gold', 'precious metals', 'XAUUSD', 'bullion', 'gold price', 'gold market',
-        'metal', 'commodity', 'inflation', 'dollar', 'fed', 'interest rate'
+        'metal', 'commodity', 'inflation', 'dollar', 'fed', 'interest rate',
+        'silver', 'platinum', 'mining', 'jewelry', 'central bank', 'reserve'
       ],
       nasdaq: [
         'nasdaq', 'tech', 'technology', 'stock', 'NDX', 'apple', 'microsoft', 
         'google', 'amazon', 'tesla', 'nvidia', 'meta', 'AI', 'artificial intelligence',
-        'software', 'chip', 'semiconductor', 'earnings', 'market', 'trading'
+        'software', 'chip', 'semiconductor', 'earnings', 'market', 'trading',
+        'biotech', 'pharmaceutical', 'healthcare', 'fintech', 'startup', 'ipo',
+        'venture', 'investment', 'fund', 'analyst', 'upgrade', 'downgrade',
+        'revenue', 'profit', 'growth', 'innovation', 'digital', 'cloud',
+        'cybersecurity', 'data', 'platform', 'enterprise', 'consumer'
       ]
     };
     

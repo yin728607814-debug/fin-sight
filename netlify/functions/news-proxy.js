@@ -66,6 +66,11 @@ exports.handler = async (event, context) => {
     const { q, language = 'en', sortBy = 'publishedAt', pageSize = 20, from } = event.queryStringParameters || {};
     
     console.log('📥 收到请求参数:', { q, language, sortBy, pageSize, from });
+    console.log('🌐 请求来源:', {
+      origin: event.headers.origin,
+      referer: event.headers.referer,
+      userAgent: event.headers['user-agent']
+    });
     
     if (!q) {
       console.error('❌ 缺少查询参数 q');
@@ -118,7 +123,9 @@ exports.handler = async (event, context) => {
             console.log('📡 News API响应:', {
               status: jsonData.status,
               totalResults: jsonData.totalResults,
-              articlesCount: jsonData.articles?.length || 0
+              articlesCount: jsonData.articles?.length || 0,
+              firstArticleTitle: jsonData.articles?.[0]?.title?.substring(0, 100),
+              sampleSources: jsonData.articles?.slice(0, 3).map(a => a.source?.name)
             });
             resolve({
               statusCode: res.statusCode,
