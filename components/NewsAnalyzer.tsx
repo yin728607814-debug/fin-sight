@@ -160,8 +160,12 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* 演示数据提示 */}
+      {/* 演示数据提示 - 只在本地开发环境显示 */}
       {typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1' ||
+        window.location.port === '3001'
+      ) && (
         <DemoDataNotice />
       )}
       

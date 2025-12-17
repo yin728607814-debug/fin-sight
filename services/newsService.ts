@@ -108,10 +108,13 @@ export class NewsService implements INewsService {
       return cached;
     }
 
-    // 检测浏览器环境 - 在浏览器中直接使用演示数据
-    const isBrowser = typeof window !== 'undefined';
-    if (isBrowser) {
-      console.warn('🌐 检测到浏览器环境');
+    // 检测是否为本地开发环境
+    const isLocalDev = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.port === '3001';
+    
+    if (isLocalDev) {
+      console.warn('🌐 检测到本地开发环境');
       console.warn('📰 News API不支持浏览器直接调用（CORS限制）');
       console.warn('🎭 使用演示数据进行展示');
       console.warn('💡 部署到生产环境后将使用真实数据');
@@ -243,12 +246,21 @@ export class NewsService implements INewsService {
     
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
-        const isBrowser = typeof window !== 'undefined';
+        const isLocalDev = typeof window !== 'undefined' && (
+          window.location.hostname === 'localhost' || 
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port === '3001'
+        );
+        
         let response: AxiosResponse<NewsAPIResponse>;
 
-        if (isBrowser) {
-          // 浏览器环境：使用代理，不传递apiKey参数（代理会处理）
-          response = await axios.get(this.config.baseURL, {
+        if (isLocalDev) {
+          // 本地开发环境：这里不应该被调用，因为本地开发直接返回演示数据
+          throw new Error('本地开发环境不应该调用真实API');
+        } else if (typeof window !== 'undefined') {
+          // 生产环境浏览器：使用Netlify函数代理
+          console.log('🌐 生产环境：使用Netlify函数代理调用News API');
+          response = await axios.get('/.netlify/functions/news-proxy', {
             params: params, // 不包含apiKey，由代理处理
             timeout: this.config.timeout
           });
