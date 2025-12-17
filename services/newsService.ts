@@ -677,14 +677,25 @@ export class NewsService implements INewsService {
       return newsItems;
     }
 
-    console.log('🌐 开始翻译新闻为中文...');
+    console.log('🌐 开始翻译新闻为中文...', { 
+      itemCount: newsItems.length,
+      hasGeminiKey: !!config.apiKeys.gemini,
+      geminiKeyPrefix: config.apiKeys.gemini ? config.apiKeys.gemini.substring(0, 10) + '...' : 'none'
+    });
     
     const translatedItems: NewsItem[] = [];
     
-    for (const item of newsItems) {
+    // 限制翻译数量以避免API限制和超时
+    const itemsToTranslate = newsItems.slice(0, 5);
+    console.log(`🔢 限制翻译数量为 ${itemsToTranslate.length} 条新闻`);
+    
+    for (let i = 0; i < itemsToTranslate.length; i++) {
+      const item = itemsToTranslate[i];
       try {
+        console.log(`🌐 翻译第 ${i + 1}/${itemsToTranslate.length} 条新闻: ${item.title.substring(0, 50)}...`);
+        
         const translatedTitle = await this.translateText(item.title);
-        const translatedContent = await this.translateText(item.content);
+        const translatedContent = await this.translateText(item.content.substring(0, 500)); // 限制内容长度
         
         translatedItems.push({
           ...item,
@@ -692,15 +703,29 @@ export class NewsService implements INewsService {
           content: translatedContent
         });
         
-        // 避免API限制，每次翻译后稍作延迟
-        await this.sleep(200);
+        console.log(`✅ 翻译完成: ${translatedTitle.substring(0, 50)}...`);
+        
+        // 避免API限制，每次翻译后延迟
+        if (i < itemsToTranslate.length - 1) {
+          await this.sleep(1000);
+        }
         
       } catch (error) {
-        console.warn('翻译失败，保留原文', { title: item.title.substring(0, 50), error });
+        console.warn(`❌ 翻译第 ${i + 1} 条新闻失败，保留原文`, { 
+          title: item.title.substring(0, 50), 
+          error: error.message 
+        });
         translatedItems.push(item);
       }
     }
     
+    // 添加剩余未翻译的新闻
+    if (newsItems.length > 5) {
+      translatedItems.push(...newsItems.slice(5));
+      console.log(`📝 添加剩余 ${newsItems.length - 5} 条未翻译新闻`);
+    }
+    
+    console.log(`🎉 翻译完成，总计 ${translatedItems.length} 条新闻`);
     return translatedItems;
   }
 
@@ -711,12 +736,14 @@ export class NewsService implements INewsService {
     if (!text || text.length === 0) return text;
     
     try {
+      console.log('🔄 调用Gemini翻译API...', { textLength: text.length });
+      
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.apiKeys.gemini}`,
         {
           contents: [{
             parts: [{
-              text: `请将以下英文翻译成中文，保持原意和专业性：\n\n${text}`
+              text: `请将以下英文翻译成中文，保持原意和专业性，只返回翻译结果：\n\n${text}`
             }]
           }]
         },
@@ -724,15 +751,29 @@ export class NewsService implements INewsService {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 15000
         }
       );
 
+      console.log('📡 Gemini API响应状态:', response.status);
+      
       const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      return translatedText || text;
+      
+      if (translatedText && translatedText.trim().length > 0) {
+        console.log('✅ 翻译成功');
+        return translatedText.trim();
+      } else {
+        console.warn('⚠️ 翻译响应为空，保留原文');
+        return text;
+      }
       
     } catch (error) {
-      console.warn('翻译API调用失败', error);
+      console.error('❌ 翻译API调用失败:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return text;
     }
   }
