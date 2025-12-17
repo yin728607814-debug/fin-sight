@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+.git
+.next
+.nuxt
+.vscode
+*.log
+package-lock.json
+yarn.lock
