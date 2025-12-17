@@ -441,12 +441,16 @@ export class NewsService implements INewsService {
           willKeep: isRelevant || hasReliableSource || config.app.environment === 'development'
         });
         
-        // 开发环境下保留所有新闻，生产环境下只保留相关的
-        if (config.app.environment === 'development') {
-          return sanitized; // 开发环境下返回所有新闻
-        }
+        // 更宽松的过滤策略：只要包含NASDAQ相关词汇或来自可靠源就保留
+        const shouldKeep = isRelevant || hasReliableSource || 
+                          content.includes('nasdaq') || 
+                          content.includes('stock') || 
+                          content.includes('market') ||
+                          content.includes('trading') ||
+                          content.includes('investment') ||
+                          content.includes('financial');
         
-        return (isRelevant || hasReliableSource) ? sanitized : null;
+        return shouldKeep ? sanitized : null;
       })
       .filter((item): item is NewsItem => item !== null)
       .sort((a, b) => b.relevanceScore - a.relevanceScore); // 按相关性排序
