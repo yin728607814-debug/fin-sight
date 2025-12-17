@@ -36,7 +36,14 @@ exports.handler = async (event, context) => {
     // 从环境变量获取API密钥
     const apiKey = process.env.NEWS_API_KEY || process.env.VITE_NEWS_API_KEY;
     
+    console.log('🔑 检查API密钥:', {
+      hasNewsApiKey: !!process.env.NEWS_API_KEY,
+      hasViteNewsApiKey: !!process.env.VITE_NEWS_API_KEY,
+      finalApiKey: apiKey ? apiKey.substring(0, 8) + '...' : 'none'
+    });
+    
     if (!apiKey) {
+      console.error('❌ API密钥未配置');
       return {
         statusCode: 500,
         headers: {
@@ -45,7 +52,12 @@ exports.handler = async (event, context) => {
         },
         body: JSON.stringify({ 
           status: 'error',
-          message: 'News API key not configured' 
+          message: 'News API key not configured',
+          debug: {
+            hasNewsApiKey: !!process.env.NEWS_API_KEY,
+            hasViteNewsApiKey: !!process.env.VITE_NEWS_API_KEY,
+            allEnvKeys: Object.keys(process.env).filter(key => key.includes('NEWS') || key.includes('API'))
+          }
         })
       };
     }
@@ -53,7 +65,10 @@ exports.handler = async (event, context) => {
     // 从查询参数构建News API请求
     const { q, language = 'en', sortBy = 'publishedAt', pageSize = 20, from } = event.queryStringParameters || {};
     
+    console.log('📥 收到请求参数:', { q, language, sortBy, pageSize, from });
+    
     if (!q) {
+      console.error('❌ 缺少查询参数 q');
       return {
         statusCode: 400,
         headers: {
@@ -100,11 +115,17 @@ exports.handler = async (event, context) => {
         res.on('end', () => {
           try {
             const jsonData = JSON.parse(data);
+            console.log('📡 News API响应:', {
+              status: jsonData.status,
+              totalResults: jsonData.totalResults,
+              articlesCount: jsonData.articles?.length || 0
+            });
             resolve({
               statusCode: res.statusCode,
               data: jsonData
             });
           } catch (error) {
+            console.error('❌ JSON解析失败:', error.message);
             reject(new Error(`Failed to parse JSON: ${error.message}`));
           }
         });

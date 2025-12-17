@@ -96,4 +96,7 @@ if (config.app.environment === 'development') {
       '\n请检查 .env 文件或环境变量设置'
     );
   }
+} else {
+  // 生产环境中，API密钥由Netlify函数处理，前端不需要访问
+  console.log('🌐 生产环境：API密钥由服务器端处理');
 }
