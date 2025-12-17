@@ -101,6 +101,7 @@ exports.handler = async (event, context) => {
     }
 
     const url = `https://newsapi.org/v2/everything?${params.toString()}`;
+    console.log('🌐 完整请求URL:', url.replace(apiKey, 'API_KEY_HIDDEN'));
 
     // 发起请求到News API
     const response = await new Promise((resolve, reject) => {

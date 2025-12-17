@@ -142,8 +142,8 @@ export class NewsService implements INewsService {
             q: query,
             language: 'en',
             sortBy: 'publishedAt',
-            pageSize: Math.min(limit, 100), // API限制
-            from: new Date(Date.now() - 7 * 24 * 60 * 1000).toISOString() // 过去7天
+            pageSize: Math.min(limit, 100) // API限制
+            // 移除时间限制，获取更多结果
           });
 
           console.log('📡 API响应状态', { 
@@ -230,9 +230,10 @@ export class NewsService implements INewsService {
    * 构建搜索查询
    */
   private buildSearchQuery(assetType: AssetType): string {
+    // 使用更简单的查询，避免复杂的OR语句
     const queries = {
-      gold: 'gold OR "gold price" OR "precious metals" OR XAUUSD OR "gold market"',
-      nasdaq: 'NASDAQ OR "NASDAQ 100" OR "tech stocks" OR "US stocks" OR NDX OR "technology index"'
+      gold: 'gold',
+      nasdaq: 'stock market'  // 使用更通用的词汇
     };
     
     return queries[assetType] || assetType;
