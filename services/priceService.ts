@@ -20,6 +20,7 @@ import {
 import { validatePriceData, validateAssetInfo, sanitizePriceData, sanitizeAssetInfo } from '../utils/validation';
 import { getFiveDayRange, isDataExpired } from '../utils/helpers';
 import { logInfo, logError } from './logger';
+import { config } from '../config/env';
 
 /**
  * 价格API配置
@@ -90,13 +91,13 @@ export class PriceService implements IPriceService {
   private readonly PRICE_CACHE_DURATION = 15 * 60 * 1000; // 15分钟缓存
   private readonly ASSET_CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
-  constructor(config?: Partial<PriceAPIConfig>) {
+  constructor(apiConfig?: Partial<PriceAPIConfig>) {
     this.config = {
-      baseURL: process.env.VITE_ALPHA_VANTAGE_URL || 'https://www.alphavantage.co/query',
-      apiKey: process.env.VITE_ALPHA_VANTAGE_API_KEY || 'demo',
+      baseURL: 'https://www.alphavantage.co/query',
+      apiKey: config.apiKeys.alphaVantage,
       timeout: 15000,
       maxRetries: 3,
-      ...config
+      ...apiConfig
     };
     
     this.errorHandler = ErrorHandler.getInstance();
@@ -250,16 +251,30 @@ export class PriceService implements IPriceService {
     
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
-        const response = await axios.get(this.config.baseURL, {
-          params: {
-            ...params,
-            apikey: this.config.apiKey
-          },
-          timeout: this.config.timeout,
-          headers: {
-            'User-Agent': 'Investment-News-Analyzer/1.0'
-          }
-        });
+        // 检测是否在浏览器环境中
+        const isBrowser = typeof window !== 'undefined';
+        let response: AxiosResponse<unknown>;
+
+        if (isBrowser) {
+          // 浏览器环境：使用Netlify函数代理
+          console.log('🌐 使用Netlify函数代理调用Alpha Vantage API');
+          response = await axios.get('/.netlify/functions/price-proxy', {
+            params: params, // 不包含apiKey，由代理处理
+            timeout: this.config.timeout
+          });
+        } else {
+          // 服务器环境：直接调用API
+          response = await axios.get(this.config.baseURL, {
+            params: {
+              ...params,
+              apikey: this.config.apiKey
+            },
+            timeout: this.config.timeout,
+            headers: {
+              'User-Agent': 'Investment-News-Analyzer/1.0'
+            }
+          });
+        }
 
         // 检查API错误响应
         if (response.data['Error Message']) {

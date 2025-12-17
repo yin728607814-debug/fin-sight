@@ -159,23 +159,29 @@ export class NewsService implements INewsService {
           const validatedNews = this.validateAndFilterNews(newsItems, assetType);
           console.log('✅ 验证过滤结果', { 最终数量: validatedNews.length });
           
+          // 翻译新闻为中文
+          const translatedNews = await this.translateNews(validatedNews);
+          console.log('🌐 新闻翻译完成', { 翻译数量: translatedNews.length });
+          
           // 缓存结果
-          this.setCache(cacheKey, validatedNews);
+          this.setCache(cacheKey, translatedNews);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
             原始数量: newsItems.length, 
             验证后数量: validatedNews.length,
-            返回数量: Math.min(validatedNews.length, limit)
+            翻译后数量: translatedNews.length,
+            返回数量: Math.min(translatedNews.length, limit)
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
             total: newsItems.length, 
-            validated: validatedNews.length 
+            validated: validatedNews.length,
+            translated: translatedNews.length
           });
           
-          return validatedNews.slice(0, limit);
+          return translatedNews.slice(0, limit);
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
@@ -660,6 +666,75 @@ export class NewsService implements INewsService {
            this.config.apiKey.includes('demo') || 
            this.config.apiKey.includes('placeholder') || 
            this.config.apiKey.includes('your_');
+  }
+
+  /**
+   * 翻译新闻为中文
+   */
+  private async translateNews(newsItems: NewsItem[]): Promise<NewsItem[]> {
+    if (!config.apiKeys.gemini) {
+      console.warn('⚠️ 未配置Gemini API密钥，跳过翻译');
+      return newsItems;
+    }
+
+    console.log('🌐 开始翻译新闻为中文...');
+    
+    const translatedItems: NewsItem[] = [];
+    
+    for (const item of newsItems) {
+      try {
+        const translatedTitle = await this.translateText(item.title);
+        const translatedContent = await this.translateText(item.content);
+        
+        translatedItems.push({
+          ...item,
+          title: translatedTitle,
+          content: translatedContent
+        });
+        
+        // 避免API限制，每次翻译后稍作延迟
+        await this.sleep(200);
+        
+      } catch (error) {
+        console.warn('翻译失败，保留原文', { title: item.title.substring(0, 50), error });
+        translatedItems.push(item);
+      }
+    }
+    
+    return translatedItems;
+  }
+
+  /**
+   * 翻译单个文本
+   */
+  private async translateText(text: string): Promise<string> {
+    if (!text || text.length === 0) return text;
+    
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.apiKeys.gemini}`,
+        {
+          contents: [{
+            parts: [{
+              text: `请将以下英文翻译成中文，保持原意和专业性：\n\n${text}`
+            }]
+          }]
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+
+      const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      return translatedText || text;
+      
+    } catch (error) {
+      console.warn('翻译API调用失败', error);
+      return text;
+    }
   }
 
   /**
