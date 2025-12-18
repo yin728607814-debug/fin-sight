@@ -736,39 +736,31 @@ export class NewsService implements INewsService {
     if (!text || text.length === 0) return text;
     
     try {
-      console.log('🔄 调用Gemini翻译API...', { textLength: text.length });
+      console.log('🔄 调用翻译代理...', { textLength: text.length });
       
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.apiKeys.gemini}`,
-        {
-          contents: [{
-            parts: [{
-              text: `请将以下英文翻译成中文，保持原意和专业性，只返回翻译结果：\n\n${text}`
-            }]
-          }]
+      const response = await axios.post('/.netlify/functions/translate', {
+        text: text
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
         },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          timeout: 15000
-        }
-      );
+        timeout: 20000
+      });
 
-      console.log('📡 Gemini API响应状态:', response.status);
+      console.log('📡 翻译代理响应状态:', response.status);
       
-      const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const translatedText = response.data?.translatedText;
       
-      if (translatedText && translatedText.trim().length > 0) {
+      if (translatedText && translatedText.trim().length > 0 && translatedText !== text) {
         console.log('✅ 翻译成功');
         return translatedText.trim();
       } else {
-        console.warn('⚠️ 翻译响应为空，保留原文');
+        console.warn('⚠️ 翻译响应无效，保留原文');
         return text;
       }
       
     } catch (error) {
-      console.error('❌ 翻译API调用失败:', {
+      console.error('❌ 翻译代理调用失败:', {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
