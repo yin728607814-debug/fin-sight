@@ -57,6 +57,7 @@ exports.handler = async (event, _context) => {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
           'Referer': 'https://finance.sina.com.cn/',
           'Accept': 'application/json'
+          // 不要Accept-Encoding，避免gzip压缩问题
         },
         timeout: 25000  // 增加到25秒
       };
