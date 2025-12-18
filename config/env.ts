@@ -85,9 +85,17 @@ export function validateConfig(): { isValid: boolean; missingKeys: string[] } {
 }
 
 /**
- * 开发环境下的配置检查
+ * 环境检查
  */
-if (config.app.environment === 'development') {
+const isProduction = typeof window !== 'undefined' && 
+                    window.location.hostname !== 'localhost' && 
+                    window.location.hostname !== '127.0.0.1';
+
+if (isProduction) {
+  // 生产环境中，API密钥由Netlify函数处理，前端不需要访问
+  console.log('🌐 生产环境：API密钥由服务器端Netlify函数处理');
+} else if (config.app.environment === 'development') {
+  // 开发环境下的配置检查
   const validation = validateConfig();
   if (!validation.isValid) {
     console.warn(
@@ -96,7 +104,4 @@ if (config.app.environment === 'development') {
       '\n请检查 .env 文件或环境变量设置'
     );
   }
-} else {
-  // 生产环境中，API密钥由Netlify函数处理，前端不需要访问
-  console.log('🌐 生产环境：API密钥由服务器端处理');
 }
