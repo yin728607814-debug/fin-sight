@@ -710,9 +710,10 @@ export class NewsService implements INewsService {
         
         console.log(`✅ 翻译完成: ${translatedTitle.substring(0, 50)}...`);
         
-        // 避免API限制，每次翻译后延迟
+        // 避免API限制，每次翻译后延迟（增加到3秒）
         if (i < itemsToTranslate.length - 1) {
-          await this.sleep(1000);
+          console.log('⏳ 等待3秒避免API速率限制...');
+          await this.sleep(3000);
         }
         
       } catch (error) {
@@ -735,44 +736,62 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 翻译单个文本
+   * 翻译单个文本（带重试机制）
    */
-  private async translateText(text: string): Promise<string> {
+  private async translateText(text: string, maxRetries: number = 3): Promise<string> {
     if (!text || text.length === 0) return text;
     
-    try {
-      console.log('🔄 调用翻译代理...', { textLength: text.length });
-      
-      const response = await axios.post('/.netlify/functions/translate', {
-        text: text
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 20000
-      });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log('🔄 调用翻译代理...', { textLength: text.length, attempt });
+        
+        const response = await axios.post('/.netlify/functions/translate', {
+          text: text
+        }, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000 // 增加超时时间到30秒
+        });
 
-      console.log('📡 翻译代理响应状态:', response.status);
-      
-      const translatedText = response.data?.translatedText;
-      
-      if (translatedText && translatedText.trim().length > 0 && translatedText !== text) {
-        console.log('✅ 翻译成功');
-        return translatedText.trim();
-      } else {
-        console.warn('⚠️ 翻译响应无效，保留原文');
+        console.log('📡 翻译代理响应状态:', response.status);
+        
+        const translatedText = response.data?.translatedText;
+        
+        if (translatedText && translatedText.trim().length > 0 && translatedText !== text) {
+          console.log('✅ 翻译成功');
+          return translatedText.trim();
+        } else {
+          console.warn('⚠️ 翻译响应无效，保留原文');
+          return text;
+        }
+        
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+        const isRateLimitError = error.response?.status === 500 || error.response?.status === 429;
+        
+        console.error('❌ 翻译代理调用失败:', {
+          message: error.message,
+          status: error.response?.status,
+          attempt,
+          maxRetries,
+          isRateLimitError
+        });
+        
+        // 如果是速率限制错误且不是最后一次尝试，等待后重试
+        if (isRateLimitError && !isLastAttempt) {
+          const delay = attempt * 2000; // 递增延迟：2秒、4秒、6秒
+          console.log(`⏳ 等待 ${delay}ms 后重试...`);
+          await this.sleep(delay);
+          continue;
+        }
+        
+        // 最后一次尝试失败或非速率限制错误，返回原文
         return text;
       }
-      
-    } catch (error) {
-      console.error('❌ 翻译代理调用失败:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      });
-      return text;
     }
+    
+    return text;
   }
 
   /**
