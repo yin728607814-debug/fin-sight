@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Chart Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>NASDAQ Price Chart Test</h1>
+    <div style="width: 800px; height: 400px;">
+        <canvas id="priceChart"></canvas>
+    </div>
+
+    <script>
+        // Test price data
+        const testData = [
+            { date: '2025-12-13', close: 625.58 },
+            { date: '2025-12-16', close: 611.75 },
+            { date: '2025-12-17', close: 600.41 }
+        ];
+
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: testData.map(d => d.date),
+                datasets: [{
+                    label: 'NASDAQ 100 Price',
+                    data: testData.map(d => d.close),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'NASDAQ 100 - 3天价格趋势'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+
+        // Test API call
+        fetch('https://shimmering-biscuit-0fb71e.netlify.app/.netlify/functions/price-proxy?function=TIME_SERIES_DAILY&symbol=QQQ&outputsize=compact')
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+                if (data['Time Series (Daily)']) {
+                    const timeSeries = data['Time Series (Daily)'];
+                    const dates = Object.keys(timeSeries).slice(0, 5).reverse();
+                    const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
+                    
+                    chart.data.labels = dates;
+                    chart.data.datasets[0].data = prices;
+                    chart.update();
+                    
+                    document.getElementById('status').innerHTML = `
+                        <p style="color: green;">✅ API working! Loaded ${dates.length} data points</p>
+                        <p>Latest price: $${prices[prices.length - 1]}</p>
+                    `;
+                } else {
+                    document.getElementById('status').innerHTML = '<p style="color: red;">❌ API response format error</p>';
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                document.getElementById('status').innerHTML = `<p style="color: red;">❌ API call failed: ${error.message}</p>`;
+            });
+    </script>
+
+    <div id="status">
+        <p>🔄 Testing API...</p>
+    </div>
+</body>
+</html>
