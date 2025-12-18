@@ -156,24 +156,27 @@ export class NewsService implements INewsService {
           const newsItems = this.transformAPIResponse(response.data);
           console.log('🔄 数据转换结果', { 转换后数量: newsItems.length });
           
-          // 移除过滤，直接返回所有新闻（新浪财经的新闻都是财经相关）
-          console.log('⚡ 跳过过滤和翻译，直接显示所有新浪财经新闻');
+          // 根据关键词过滤相关新闻
+          const filteredNews = this.filterNewsByKeywords(newsItems, assetType);
+          console.log('✅ 关键词过滤结果', { 
+            原始数量: newsItems.length,
+            过滤后数量: filteredNews.length 
+          });
           
           // 缓存结果
-          this.setCache(cacheKey, newsItems);
+          this.setCache(cacheKey, filteredNews);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
-            总数量: newsItems.length,
-            返回数量: newsItems.length
+            总数量: filteredNews.length
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
-            total: newsItems.length
+            total: filteredNews.length
           });
           
-          return newsItems;
+          return filteredNews;
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
@@ -512,6 +515,20 @@ export class NewsService implements INewsService {
     });
 
     return processedItems;
+  }
+
+  /**
+   * 根据关键词过滤新闻
+   */
+  private filterNewsByKeywords(newsItems: NewsItem[], assetType: AssetType): NewsItem[] {
+    const keywords = this.getAssetKeywords(assetType);
+    
+    return newsItems.filter(item => {
+      const content = (item.title + ' ' + item.content).toLowerCase();
+      
+      // 检查是否包含任何关键词
+      return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+    });
   }
 
   /**

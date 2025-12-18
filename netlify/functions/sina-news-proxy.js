@@ -24,13 +24,14 @@ exports.handler = async (event, _context) => {
     const { category = 'finance', num = '50' } = event.queryStringParameters || {};
     
     // 新浪财经分类配置
-    // 参考：https://finance.sina.com.cn/
+    // 使用财经要闻(lid=2509)，因为它包含最相关的财经新闻
+    // 前端会根据关键词进行过滤
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
-      'stock': { pageid: '153', lid: '2510', name: '股票新闻' },
-      'usstock': { pageid: '153', lid: '2511', name: '美股专栏' },
-      'nasdaq': { pageid: '153', lid: '2511', name: '美股专栏' },
-      'gold': { pageid: '155', lid: '1686', name: '黄金资讯' }  // 黄金频道专栏
+      'stock': { pageid: '153', lid: '2509', name: '财经要闻' },
+      'usstock': { pageid: '153', lid: '2509', name: '财经要闻' },
+      'nasdaq': { pageid: '153', lid: '2509', name: '财经要闻' },
+      'gold': { pageid: '153', lid: '2509', name: '财经要闻' }
     };
     
     const config = categoryConfig[category] || categoryConfig['finance'];
