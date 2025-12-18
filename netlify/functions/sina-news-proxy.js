@@ -25,7 +25,7 @@ exports.handler = async (event, _context) => {
     
     // 新浪财经分类配置
     // 经过测试，财经要闻(lid=2509)是最可靠的分类
-    // 包含股票、美股、黄金等各类财经新闻，通过关键词过滤实现分类
+    // 获取所有财经新闻，前端通过关键词过滤实现分类
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
       'stock': { pageid: '153', lid: '2509', name: '财经要闻' },
