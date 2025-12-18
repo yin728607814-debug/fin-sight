@@ -60,22 +60,43 @@
         async function testTranslate() {
             log('🔄 测试翻译API...');
             try {
+                const testText = 'Apple Inc. reported strong quarterly earnings.';
+                log(`📝 原文: ${testText}`);
+                
                 const response = await fetch('/.netlify/functions/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: 'Apple Inc. reported strong quarterly earnings.' })
+                    body: JSON.stringify({ text: testText })
                 });
+                
+                log(`📊 HTTP状态: ${response.status}`);
+                
                 const data = await response.json();
+                log(`📦 完整响应: ${JSON.stringify(data, null, 2)}`);
                 
                 if (data.error) {
                     log(`❌ 翻译API错误: ${data.error}`);
-                } else {
+                    if (data.details) {
+                        log(`🔍 错误详情: ${data.details}`);
+                    }
+                } else if (data.translatedText) {
                     log(`✅ 翻译API: 状态=${response.status}`);
-                    log(`📝 原文: Apple Inc. reported strong quarterly earnings.`);
-                    log(`🌐 译文: ${data.translatedText || '翻译失败'}`);
+                    log(`🌐 译文: ${data.translatedText}`);
+                    
+                    // 检查是否真的翻译了
+                    if (data.translatedText === testText) {
+                        log(`⚠️ 警告: 译文与原文相同，翻译可能未生效`, true);
+                    } else if (data.translatedText.includes('Apple Inc.')) {
+                        log(`⚠️ 警告: 译文仍包含英文，可能翻译不完整`, true);
+                    } else {
+                        log(`✅ 翻译成功！文本已转换为中文`);
+                    }
+                } else {
+                    log(`❌ 响应格式错误: 缺少translatedText字段`, true);
                 }
             } catch (error) {
-                log(`❌ 翻译API失败: ${error.message}`);
+                log(`❌ 翻译API失败: ${error.message}`, true);
+                console.error('详细错误:', error);
             }
         }
         
