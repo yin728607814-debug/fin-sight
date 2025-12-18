@@ -36,7 +36,7 @@ exports.handler = async (event, _context) => {
         }]
       });
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
 
       const response = await new Promise((resolve, reject) => {
         const urlObj = new URL(url);
