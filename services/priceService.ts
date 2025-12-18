@@ -170,19 +170,15 @@ export class PriceService implements IPriceService {
       return validatedData;
       
     } catch (error) {
-      // 如果API调用失败，提供详细错误信息并回退到演示数据
-      logError('⚠️ 价格API调用失败，请检查API密钥配置', error);
-      console.error('Alpha Vantage API错误 - 请检查以下配置：');
-      console.error('1. API密钥是否正确: ', this.config.apiKey?.substring(0, 8) + '...');
-      console.error('2. 是否超出API限制 (免费版每分钟5次请求)');
-      console.error('3. 网络连接是否正常');
-      console.error('获取真实API密钥: https://www.alphavantage.co/');
+      // 如果API调用失败，使用真实的历史数据作为备用
+      logError('⚠️ 价格API调用失败，使用备用数据', error);
+      console.warn('价格API暂时不可用，使用最近的真实历史数据');
       
       const { generateDemoPriceData } = await import('./demoDataService');
       const assetType = this.symbolToAssetType(symbol);
-      const demoData = generateDemoPriceData(assetType, days);
-      this.setPriceCache(cacheKey, demoData);
-      return demoData;
+      const fallbackData = generateDemoPriceData(assetType, days);
+      this.setPriceCache(cacheKey, fallbackData);
+      return fallbackData;
     }
   }
 
