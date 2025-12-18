@@ -156,26 +156,36 @@ export class NewsService implements INewsService {
           const newsItems = this.transformAPIResponse(response.data);
           console.log('🔄 数据转换结果', { 转换后数量: newsItems.length });
           
-          // 不再进行关键词过滤，直接返回所有财经新闻
-          // 新浪财经的财经要闻本身就是高质量的财经新闻
-          console.log('✅ 新闻获取成功', { 
-            总数量: newsItems.length 
+          // 根据assetType过滤相关新闻
+          // 使用宽泛的关键词确保能匹配到足够的新闻
+          const filteredNews = this.filterNewsByKeywords(newsItems, assetType);
+          console.log('✅ 关键词过滤结果', { 
+            原始数量: newsItems.length,
+            过滤后数量: filteredNews.length,
+            assetType: assetType
+          });
+          
+          // 如果过滤后新闻太少，返回所有新闻
+          const finalNews = filteredNews.length >= 10 ? filteredNews : newsItems;
+          console.log('📊 最终新闻数量', { 
+            使用过滤: filteredNews.length >= 10,
+            数量: finalNews.length
           });
           
           // 缓存结果
-          this.setCache(cacheKey, newsItems);
+          this.setCache(cacheKey, finalNews);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
-            总数量: newsItems.length
+            总数量: finalNews.length
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
-            total: newsItems.length
+            total: finalNews.length
           });
           
-          return newsItems;
+          return finalNews;
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
@@ -524,35 +534,32 @@ export class NewsService implements INewsService {
 
   /**
    * 获取资产相关关键词（中英文混合，适配新浪财经）
+   * 使用宽泛的关键词确保能匹配到足够的新闻
    */
   private getAssetKeywords(assetType: AssetType): string[] {
     const keywords = {
       gold: [
-        // 中文关键词
-        '黄金', '贵金属', '金价', '黄金价格', '黄金市场',
-        '白银', '铂金', '矿业', '央行', '储备',
-        '通胀', '美元', '美联储', '利率',
-        // 英文关键词
-        'gold', 'precious metals', 'XAUUSD', 'bullion'
+        // 核心关键词 - 必须包含
+        '黄金', '金价', 'gold',
+        // 相关关键词
+        '贵金属', '白银', '铂金',
+        '美元', '美联储', '通胀',
+        '央行', '储备'
       ],
       nasdaq: [
-        // 中文关键词 - 纳斯达克相关
-        '纳斯达克', '纳指', '美股', '科技股',
-        // 中文关键词 - 主要公司
-        '苹果', '微软', '亚马逊', '谷歌', '特斯拉', 
-        '英伟达', '奈飞', '英特尔', 'Meta', '脸书',
-        // 中文关键词 - 行业
-        '芯片', '半导体', '人工智能', 'AI', '云计算',
-        '软件', '平台', '互联网',
-        // 中文关键词 - 市场
-        '财报', '业绩', '营收', '利润', '股价',
-        '市值', '估值', 'IPO', '上市',
-        '分析师', '评级', '目标价',
-        // 中文关键词 - 交易
-        '交易', '投资', '投资者', '基金', '组合',
-        // 英文关键词
-        'nasdaq', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'TSLA', 'NVDA',
-        'tech', 'technology', 'stock', 'market'
+        // 核心关键词 - 宽泛匹配
+        '美股', '股市', '股价', '股票',
+        '纳斯达克', '纳指',
+        // 主要公司
+        '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
+        'Apple', 'Microsoft', 'Google', 'Amazon', 'Tesla', 'NVIDIA',
+        'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA',
+        // 行业和市场
+        '科技股', '芯片', 'AI', '人工智能',
+        '财报', '业绩', '营收',
+        '华尔街', '交易', '投资',
+        // 英文
+        'stock', 'nasdaq', 'tech', 'market'
       ]
     };
     
