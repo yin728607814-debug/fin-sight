@@ -159,29 +159,28 @@ export class NewsService implements INewsService {
           const validatedNews = this.validateAndFilterNews(newsItems, assetType);
           console.log('✅ 验证过滤结果', { 最终数量: validatedNews.length });
           
-          // 翻译新闻为中文
-          const translatedNews = await this.translateNews(validatedNews);
-          console.log('🌐 新闻翻译完成', { 翻译数量: translatedNews.length });
+          // 暂时禁用翻译以提高加载速度
+          // const translatedNews = await this.translateNews(validatedNews);
+          // console.log('🌐 新闻翻译完成', { 翻译数量: translatedNews.length });
+          console.log('⚡ 跳过翻译以提高加载速度');
           
           // 缓存结果
-          this.setCache(cacheKey, translatedNews);
+          this.setCache(cacheKey, validatedNews);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
             原始数量: newsItems.length, 
             验证后数量: validatedNews.length,
-            翻译后数量: translatedNews.length,
-            返回数量: Math.min(translatedNews.length, limit)
+            返回数量: Math.min(validatedNews.length, limit)
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
             total: newsItems.length, 
-            validated: validatedNews.length,
-            translated: translatedNews.length
+            validated: validatedNews.length
           });
           
-          return translatedNews.slice(0, limit);
+          return validatedNews.slice(0, limit);
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
@@ -236,10 +235,10 @@ export class NewsService implements INewsService {
    * 构建搜索查询
    */
   private buildSearchQuery(assetType: AssetType): string {
-    // 使用更简单的查询，避免复杂的OR语句
+    // 使用更精准的纳斯达克相关查询
     const queries = {
-      gold: 'gold',
-      nasdaq: 'stock market'  // 使用更通用的词汇
+      gold: 'gold price OR gold market OR precious metals',
+      nasdaq: 'NASDAQ OR "tech stocks" OR "technology stocks" OR AAPL OR MSFT OR GOOGL OR AMZN OR TSLA OR NVDA'
     };
     
     return queries[assetType] || assetType;
@@ -499,7 +498,7 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取资产相关关键词
+   * 获取资产相关关键词（更精准的纳斯达克关键词）
    */
   private getAssetKeywords(assetType: AssetType): string[] {
     const keywords = {
@@ -509,13 +508,22 @@ export class NewsService implements INewsService {
         'silver', 'platinum', 'mining', 'jewelry', 'central bank', 'reserve'
       ],
       nasdaq: [
-        'nasdaq', 'tech', 'technology', 'stock', 'NDX', 'apple', 'microsoft', 
-        'google', 'amazon', 'tesla', 'nvidia', 'meta', 'AI', 'artificial intelligence',
-        'software', 'chip', 'semiconductor', 'earnings', 'market', 'trading',
-        'biotech', 'pharmaceutical', 'healthcare', 'fintech', 'startup', 'ipo',
-        'venture', 'investment', 'fund', 'analyst', 'upgrade', 'downgrade',
-        'revenue', 'profit', 'growth', 'innovation', 'digital', 'cloud',
-        'cybersecurity', 'data', 'platform', 'enterprise', 'consumer'
+        // 纳斯达克指数相关
+        'nasdaq', 'nasdaq 100', 'ndx', 'qqq', 'nasdaq composite',
+        // 主要科技公司（纳斯达克权重股）
+        'apple', 'aapl', 'microsoft', 'msft', 'amazon', 'amzn', 
+        'google', 'googl', 'alphabet', 'meta', 'facebook', 'tesla', 'tsla',
+        'nvidia', 'nvda', 'netflix', 'nflx', 'intel', 'intc',
+        // 科技行业关键词
+        'tech stock', 'technology stock', 'tech sector', 'semiconductor',
+        'chip', 'ai', 'artificial intelligence', 'cloud computing',
+        'software', 'saas', 'platform',
+        // 市场相关
+        'earnings', 'revenue', 'profit', 'quarterly results',
+        'stock price', 'market cap', 'valuation', 'ipo',
+        'analyst rating', 'upgrade', 'downgrade', 'price target',
+        // 交易相关
+        'trading', 'investor', 'investment', 'portfolio', 'fund'
       ]
     };
     
