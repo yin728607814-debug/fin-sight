@@ -262,18 +262,10 @@ export class NewsService implements INewsService {
           // 生产环境浏览器：使用新浪财经代理
           console.log('🌐 生产环境：使用新浪财经API获取中文新闻');
           
-          // 根据assetType选择新浪财经专栏
-          // gold -> 'gold' (黄金专栏)
-          // nasdaq -> 'usstock' (美股专栏)
-          let category = 'finance';  // 默认财经要闻
-          
-          if (assetType === 'gold') {
-            category = 'gold';  // 黄金专栏
-            console.log('📊 使用黄金专栏新闻');
-          } else if (assetType === 'nasdaq') {
-            category = 'usstock';  // 美股专栏
-            console.log('📊 使用美股专栏新闻');
-          }
+          // 统一使用财经要闻（lid=2509）
+          // 这是经过测试最可靠且内容最丰富的分类
+          const category = 'finance';
+          console.log('📊 使用财经要闻获取新闻');
           
           response = await axios.get('/.netlify/functions/sina-news-proxy', {
             params: { 
