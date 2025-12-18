@@ -144,7 +144,7 @@ export class NewsService implements INewsService {
             sortBy: 'publishedAt',
             pageSize: Math.min(limit, 100) // API限制
             // 移除时间限制，获取更多结果
-          });
+          }, assetType);
 
           console.log('📡 API响应状态', { 
             status: response.status, 
@@ -242,7 +242,7 @@ export class NewsService implements INewsService {
   /**
    * 发起API请求（带重试机制）
    */
-  private async makeRequest(endpoint: string, params: Record<string, unknown>): Promise<AxiosResponse<NewsAPIResponse>> {
+  private async makeRequest(endpoint: string, params: Record<string, unknown>, assetType: AssetType): Promise<AxiosResponse<NewsAPIResponse>> {
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
