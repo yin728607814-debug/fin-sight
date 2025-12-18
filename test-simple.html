@@ -41,8 +41,16 @@
             try {
                 const response = await fetch('/.netlify/functions/price-proxy?function=GLOBAL_QUOTE&symbol=QQQ');
                 const data = await response.json();
-                const price = data['Global Quote']?.['05. price'];
-                log(`✅ 价格API: 状态=${response.status}, QQQ价格=${price || '无'}`);
+                
+                if (data.error) {
+                    log(`❌ 价格API错误: ${data.error}`);
+                    if (data.debug) {
+                        log(`🔍 调试信息: ${JSON.stringify(data.debug)}`);
+                    }
+                } else {
+                    const price = data['Global Quote']?.['05. price'];
+                    log(`✅ 价格API: 状态=${response.status}, QQQ价格=${price || '无'}`);
+                }
             } catch (error) {
                 log(`❌ 价格API失败: ${error.message}`);
             }
@@ -54,10 +62,17 @@
                 const response = await fetch('/.netlify/functions/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: 'Hello world' })
+                    body: JSON.stringify({ text: 'Apple Inc. reported strong quarterly earnings.' })
                 });
                 const data = await response.json();
-                log(`✅ 翻译API: 状态=${response.status}, 结果=${data.translatedText || '无'}`);
+                
+                if (data.error) {
+                    log(`❌ 翻译API错误: ${data.error}`);
+                } else {
+                    log(`✅ 翻译API: 状态=${response.status}`);
+                    log(`📝 原文: Apple Inc. reported strong quarterly earnings.`);
+                    log(`🌐 译文: ${data.translatedText || '翻译失败'}`);
+                }
             } catch (error) {
                 log(`❌ 翻译API失败: ${error.message}`);
             }
