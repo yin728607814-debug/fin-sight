@@ -17,7 +17,9 @@ export const NewsList: React.FC<NewsListProps> = ({
   loading 
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState<'time' | 'impact' | 'relevance'>('impact');
+  const [sortBy, setSortBy] = useState<'time' | 'impact' | 'relevance'>('time');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   /**
    * 切换新闻项展开状态
@@ -66,6 +68,28 @@ export const NewsList: React.FC<NewsListProps> = ({
       }
     });
   }, [news, analysis, sortBy]);
+
+  /**
+   * 分页后的新闻列表
+   */
+  const paginatedNews = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedNews.slice(startIndex, endIndex);
+  }, [sortedNews, currentPage, itemsPerPage]);
+
+  /**
+   * 总页数
+   */
+  const totalPages = Math.ceil(sortedNews.length / itemsPerPage);
+
+  /**
+   * 切换页码
+   */
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   /**
    * 格式化时间显示
@@ -165,7 +189,7 @@ export const NewsList: React.FC<NewsListProps> = ({
 
       {/* 新闻列表 */}
       <div className="space-y-3">
-        {sortedNews.map(({ news: newsItem, analysis: newsAnalysis }) => {
+        {paginatedNews.map(({ news: newsItem, analysis: newsAnalysis }) => {
           const isExpanded = expandedItems.has(newsItem.id);
           
           return (
@@ -352,6 +376,67 @@ export const NewsList: React.FC<NewsListProps> = ({
           );
         })}
       </div>
+
+      {/* 分页控件 */}
+      {totalPages > 1 && (
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-600">
+              显示 {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, sortedNews.length)} 条，共 {sortedNews.length} 条新闻
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                上一页
+              </button>
+              
+              <div className="flex items-center space-x-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const page = index + 1;
+                  // 只显示当前页附近的页码
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 2 && page <= currentPage + 2)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`px-3 py-1 text-sm rounded-md ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  } else if (
+                    page === currentPage - 3 ||
+                    page === currentPage + 3
+                  ) {
+                    return <span key={page} className="px-2 text-slate-400">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+              
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                下一页
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

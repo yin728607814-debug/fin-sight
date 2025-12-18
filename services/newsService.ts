@@ -98,7 +98,7 @@ export class NewsService implements INewsService {
   /**
    * 获取市场新闻
    */
-  async fetchMarketNews(assetType: AssetType, limit: number = 20): Promise<NewsItem[]> {
+  async fetchMarketNews(assetType: AssetType, limit: number = 50): Promise<NewsItem[]> {
     const cacheKey = `news_${assetType}_${limit}`;
     
     // 检查缓存
@@ -156,31 +156,24 @@ export class NewsService implements INewsService {
           const newsItems = this.transformAPIResponse(response.data);
           console.log('🔄 数据转换结果', { 转换后数量: newsItems.length });
           
-          const validatedNews = this.validateAndFilterNews(newsItems, assetType);
-          console.log('✅ 验证过滤结果', { 最终数量: validatedNews.length });
-          
-          // 暂时禁用翻译以提高加载速度
-          // const translatedNews = await this.translateNews(validatedNews);
-          // console.log('🌐 新闻翻译完成', { 翻译数量: translatedNews.length });
-          console.log('⚡ 跳过翻译以提高加载速度');
+          // 移除过滤，直接返回所有新闻（新浪财经的新闻都是财经相关）
+          console.log('⚡ 跳过过滤和翻译，直接显示所有新浪财经新闻');
           
           // 缓存结果
-          this.setCache(cacheKey, validatedNews);
+          this.setCache(cacheKey, newsItems);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
-            原始数量: newsItems.length, 
-            验证后数量: validatedNews.length,
-            返回数量: Math.min(validatedNews.length, limit)
+            总数量: newsItems.length,
+            返回数量: newsItems.length
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
-            total: newsItems.length, 
-            validated: validatedNews.length
+            total: newsItems.length
           });
           
-          return validatedNews.slice(0, limit);
+          return newsItems;
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
@@ -273,7 +266,7 @@ export class NewsService implements INewsService {
           response = await axios.get('/.netlify/functions/sina-news-proxy', {
             params: { 
               category: category,
-              num: params.pageSize || 20
+              num: 50  // 获取50条新闻
             },
             timeout: this.config.timeout
           });

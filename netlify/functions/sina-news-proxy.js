@@ -21,7 +21,7 @@ exports.handler = async (event, _context) => {
 
   try {
     // 获取查询参数
-    const { category = 'finance', num = '20' } = event.queryStringParameters || {};
+    const { category = 'finance', num = '50' } = event.queryStringParameters || {};
     
     // 新浪财经分类ID
     const categoryMap = {
