@@ -70,11 +70,11 @@ export class NewsService implements INewsService {
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
   constructor(apiConfig?: Partial<NewsAPIConfig>) {
-    // 检测是否在浏览器环境中，如果是则使用代理
+    // 使用新浪财经API（中文新闻，无需翻译）
     const isBrowser = typeof window !== 'undefined';
     const baseURL = isBrowser 
-      ? '/.netlify/functions/news-proxy' // 使用Netlify函数代理
-      : 'https://newsapi.org/v2'; // 服务器环境直接调用API
+      ? '/.netlify/functions/sina-news-proxy' // 使用新浪财经代理
+      : 'https://feed.mix.sina.com.cn/api/roll/get'; // 服务器环境直接调用
     
     this.config = {
       baseURL,
@@ -264,10 +264,17 @@ export class NewsService implements INewsService {
           // 本地开发环境：这里不应该被调用，因为本地开发直接返回演示数据
           throw new Error('本地开发环境不应该调用真实API');
         } else if (typeof window !== 'undefined') {
-          // 生产环境浏览器：使用Netlify函数代理
-          console.log('🌐 生产环境：使用Netlify函数代理调用News API');
-          response = await axios.get('/.netlify/functions/news-proxy', {
-            params: params, // 不包含apiKey，由代理处理
+          // 生产环境浏览器：使用新浪财经代理
+          console.log('🌐 生产环境：使用新浪财经API获取中文新闻');
+          
+          // 将assetType转换为新浪财经分类
+          const category = params.q === 'gold' || params.q?.includes('gold') ? 'finance' : 'nasdaq';
+          
+          response = await axios.get('/.netlify/functions/sina-news-proxy', {
+            params: { 
+              category: category,
+              num: params.pageSize || 20
+            },
             timeout: this.config.timeout
           });
         } else {
@@ -498,32 +505,36 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取资产相关关键词（更精准的纳斯达克关键词）
+   * 获取资产相关关键词（中英文混合，适配新浪财经）
    */
   private getAssetKeywords(assetType: AssetType): string[] {
     const keywords = {
       gold: [
-        'gold', 'precious metals', 'XAUUSD', 'bullion', 'gold price', 'gold market',
-        'metal', 'commodity', 'inflation', 'dollar', 'fed', 'interest rate',
-        'silver', 'platinum', 'mining', 'jewelry', 'central bank', 'reserve'
+        // 中文关键词
+        '黄金', '贵金属', '金价', '黄金价格', '黄金市场',
+        '白银', '铂金', '矿业', '央行', '储备',
+        '通胀', '美元', '美联储', '利率',
+        // 英文关键词
+        'gold', 'precious metals', 'XAUUSD', 'bullion'
       ],
       nasdaq: [
-        // 纳斯达克指数相关
-        'nasdaq', 'nasdaq 100', 'ndx', 'qqq', 'nasdaq composite',
-        // 主要科技公司（纳斯达克权重股）
-        'apple', 'aapl', 'microsoft', 'msft', 'amazon', 'amzn', 
-        'google', 'googl', 'alphabet', 'meta', 'facebook', 'tesla', 'tsla',
-        'nvidia', 'nvda', 'netflix', 'nflx', 'intel', 'intc',
-        // 科技行业关键词
-        'tech stock', 'technology stock', 'tech sector', 'semiconductor',
-        'chip', 'ai', 'artificial intelligence', 'cloud computing',
-        'software', 'saas', 'platform',
-        // 市场相关
-        'earnings', 'revenue', 'profit', 'quarterly results',
-        'stock price', 'market cap', 'valuation', 'ipo',
-        'analyst rating', 'upgrade', 'downgrade', 'price target',
-        // 交易相关
-        'trading', 'investor', 'investment', 'portfolio', 'fund'
+        // 中文关键词 - 纳斯达克相关
+        '纳斯达克', '纳指', '美股', '科技股',
+        // 中文关键词 - 主要公司
+        '苹果', '微软', '亚马逊', '谷歌', '特斯拉', 
+        '英伟达', '奈飞', '英特尔', 'Meta', '脸书',
+        // 中文关键词 - 行业
+        '芯片', '半导体', '人工智能', 'AI', '云计算',
+        '软件', '平台', '互联网',
+        // 中文关键词 - 市场
+        '财报', '业绩', '营收', '利润', '股价',
+        '市值', '估值', 'IPO', '上市',
+        '分析师', '评级', '目标价',
+        // 中文关键词 - 交易
+        '交易', '投资', '投资者', '基金', '组合',
+        // 英文关键词
+        'nasdaq', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'TSLA', 'NVDA',
+        'tech', 'technology', 'stock', 'market'
       ]
     };
     
