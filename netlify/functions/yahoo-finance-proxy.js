@@ -61,16 +61,21 @@ exports.handler = async (event, _context) => {
 
     const yahooSymbol = symbolMap[symbol] || symbol;
     
-    // 构建Yahoo Finance API URL
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=${range}&interval=${interval}`;
+    // 构建Yahoo Finance API URL - 使用更稳定的端点
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=${range}&interval=${interval}&includePrePost=false&events=div%2Csplit`;
     console.log('🌐 Yahoo Finance请求URL:', url);
 
     // 发起请求到Yahoo Finance API
     const response = await new Promise((resolve, reject) => {
       const options = {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        timeout: 10000
       };
 
       https.get(url, options, (res) => {
@@ -149,6 +154,20 @@ exports.handler = async (event, _context) => {
       const closePrice = close?.[index];
       const vol = volume?.[index] || 0;
 
+      // 计算相对于前一交易日的变化
+      let change = 0;
+      let changePercent = 0;
+      
+      if (index > 0 && close?.[index - 1] && closePrice) {
+        const previousClose = close[index - 1];
+        change = closePrice - previousClose;
+        changePercent = (change / previousClose) * 100;
+      } else if (openPrice && closePrice) {
+        // 如果没有前一日数据，使用当日开盘价
+        change = closePrice - openPrice;
+        changePercent = (change / openPrice) * 100;
+      }
+
       return {
         date: date.toISOString().split('T')[0], // YYYY-MM-DD格式
         open: openPrice,
@@ -156,8 +175,8 @@ exports.handler = async (event, _context) => {
         low: lowPrice,
         close: closePrice,
         volume: vol,
-        change: openPrice && closePrice ? closePrice - openPrice : 0,
-        changePercent: openPrice && closePrice ? ((closePrice - openPrice) / openPrice) * 100 : 0
+        change: change,
+        changePercent: changePercent
       };
     }).filter(item => item.close !== null && item.close !== undefined);
 
