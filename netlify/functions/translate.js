@@ -132,11 +132,34 @@ exports.handler = async (event, _context) => {
       req.end();
     });
 
+    // 记录完整响应用于调试
+    console.log('📦 Gemini完整响应:', JSON.stringify(response.data, null, 2));
+    
     // 提取翻译结果
     const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
     
+    console.log('📝 提取的翻译文本:', translatedText);
+    
     if (!translatedText) {
       console.warn('⚠️ 翻译结果为空');
+      
+      // 检查是否有错误信息
+      if (response.data?.error) {
+        console.error('❌ Gemini API错误:', response.data.error);
+        return {
+          statusCode: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            error: 'Gemini API error',
+            details: response.data.error.message || 'Unknown error',
+            translatedText: text // 返回原文作为后备
+          })
+        };
+      }
+      
       return {
         statusCode: 200,
         headers: {
@@ -149,7 +172,7 @@ exports.handler = async (event, _context) => {
       };
     }
 
-    console.log('✅ 翻译成功');
+    console.log('✅ 翻译成功，长度:', translatedText.length);
 
     // 返回结果
     return {
