@@ -672,8 +672,13 @@ export class NewsService implements INewsService {
    * 翻译新闻为中文
    */
   private async translateNews(newsItems: NewsItem[]): Promise<NewsItem[]> {
-    if (!config.apiKeys.gemini) {
-      console.warn('⚠️ 未配置Gemini API密钥，跳过翻译');
+    // 在生产环境中，总是尝试翻译（API密钥由Netlify函数处理）
+    const isProduction = typeof window !== 'undefined' && 
+                        window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1';
+    
+    if (!isProduction && !config.apiKeys.gemini) {
+      console.warn('⚠️ 本地开发环境未配置Gemini API密钥，跳过翻译');
       return newsItems;
     }
 

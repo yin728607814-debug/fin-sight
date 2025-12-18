@@ -571,6 +571,15 @@ export class PriceService implements IPriceService {
    * 检查是否应该使用演示数据
    */
   private shouldUseDemoData(): boolean {
+    // 在生产环境中，API密钥由Netlify函数处理，不需要检查
+    const isProduction = typeof window !== 'undefined' && 
+                        window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1';
+    
+    if (isProduction) {
+      return false; // 生产环境总是尝试真实API
+    }
+    
     return !this.config.apiKey || 
            this.config.apiKey === 'demo' ||
            this.config.apiKey === '' || 
