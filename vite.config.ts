@@ -52,7 +52,14 @@ export default defineConfig(({ mode }) => {
       sourcemap: !isProduction,
       minify: isProduction ? 'esbuild' : false,
       target: 'es2015',
+      // 复制额外的HTML文件到dist目录
+      copyPublicDir: true,
       rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          debug: path.resolve(__dirname, 'debug-alpha-vantage.html'),
+          test: path.resolve(__dirname, 'test-simple.html'),
+        },
         output: {
           manualChunks: {
             // 将React相关库分离到单独的chunk
