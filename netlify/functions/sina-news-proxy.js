@@ -24,8 +24,8 @@ exports.handler = async (event, _context) => {
     const { category = 'finance', num = '50' } = event.queryStringParameters || {};
     
     // 新浪财经分类配置
-    // 所有类型都使用财经要闻(lid=2509)，这是最可靠且内容最相关的分类
-    // 包含股票、美股、黄金等各类财经新闻
+    // 经过测试，财经要闻(lid=2509)是最可靠的分类
+    // 包含股票、美股、黄金等各类财经新闻，通过关键词过滤实现分类
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
       'stock': { pageid: '153', lid: '2509', name: '财经要闻' },
@@ -56,8 +56,7 @@ exports.handler = async (event, _context) => {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
           'Referer': 'https://finance.sina.com.cn/',
-          'Accept': 'application/json',
-          'Accept-Encoding': 'gzip, deflate'
+          'Accept': 'application/json'
         },
         timeout: 25000  // 增加到25秒
       };
