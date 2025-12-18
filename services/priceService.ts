@@ -136,13 +136,24 @@ export class PriceService implements IPriceService {
     try {
       logInfo('开始获取价格历史数据', { symbol, days });
       
-      const response = await this.makeRequest({
-        function: 'TIME_SERIES_DAILY',
-        symbol: this.normalizeSymbol(symbol),
-        outputsize: 'compact' // 获取最近100天数据
-      });
-
-      const priceData = this.transformPriceResponse(response.data, days);
+      let priceData: PriceData[];
+      
+      // 对于纳斯达克指数，使用Yahoo Finance
+      if (symbol === 'nasdaq' || symbol === 'NDX') {
+        const response = await this.makeRequest({
+          symbol: 'nasdaq'
+        });
+        priceData = this.transformYahooFinanceResponse(response.data, days);
+      } else {
+        // 其他资产使用Alpha Vantage
+        const response = await this.makeRequest({
+          function: 'TIME_SERIES_DAILY',
+          symbol: this.normalizeSymbol(symbol),
+          outputsize: 'compact' // 获取最近100天数据
+        });
+        priceData = this.transformPriceResponse(response.data, days);
+      }
+      
       const validatedData = this.validateAndFilterPriceData(priceData);
       
       // 缓存结果
@@ -235,9 +246,9 @@ export class PriceService implements IPriceService {
     // 处理特殊符号映射
     const symbolMap: Record<string, string> = {
       'XAUUSD': 'GLD', // 黄金ETF
-      'NDX': 'QQQ', // 纳斯达克100 ETF
+      'NDX': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
       'gold': 'GLD',
-      'nasdaq': 'QQQ'
+      'nasdaq': 'nasdaq' // 纳斯达克100指数 - 使用Yahoo Finance
     };
     
     return symbolMap[symbol] || symbol.toUpperCase();
@@ -256,12 +267,25 @@ export class PriceService implements IPriceService {
         let response: AxiosResponse<unknown>;
 
         if (isBrowser) {
-          // 浏览器环境：使用Netlify函数代理
-          console.log('🌐 使用Netlify函数代理调用Alpha Vantage API');
-          response = await axios.get('/.netlify/functions/price-proxy', {
-            params: params, // 不包含apiKey，由代理处理
-            timeout: this.config.timeout
-          });
+          // 对于纳斯达克指数，使用Yahoo Finance API
+          if (params.symbol === 'nasdaq' || params.symbol === 'NDX') {
+            console.log('🌐 使用Yahoo Finance API获取纳斯达克100指数数据');
+            response = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
+              params: { 
+                symbol: 'nasdaq',
+                range: '5d',
+                interval: '1d'
+              },
+              timeout: this.config.timeout
+            });
+          } else {
+            // 其他资产使用Alpha Vantage API
+            console.log('🌐 使用Netlify函数代理调用Alpha Vantage API');
+            response = await axios.get('/.netlify/functions/price-proxy', {
+              params: params, // 不包含apiKey，由代理处理
+              timeout: this.config.timeout
+            });
+          }
         } else {
           // 服务器环境：直接调用API
           response = await axios.get(this.config.baseURL, {
@@ -326,6 +350,32 @@ export class PriceService implements IPriceService {
     }
     
     throw this.errorHandler.handleNetworkError(lastError);
+  }
+
+  /**
+   * 转换Yahoo Finance API响应
+   */
+  private transformYahooFinanceResponse(apiResponse: any, days: number): PriceData[] {
+    if (!apiResponse.priceData || !Array.isArray(apiResponse.priceData)) {
+      logError('Yahoo Finance API响应格式错误', apiResponse);
+      return [];
+    }
+
+    const priceData = apiResponse.priceData
+      .slice(-days) // 取最近的天数
+      .map((item: any) => ({
+        date: new Date(item.date),
+        open: parseFloat(item.open) || 0,
+        high: parseFloat(item.high) || 0,
+        low: parseFloat(item.low) || 0,
+        close: parseFloat(item.close) || 0,
+        volume: parseInt(item.volume) || 0,
+        change: parseFloat(item.change) || 0,
+        changePercent: parseFloat(item.changePercent) || 0
+      }))
+      .filter((item: any) => item.close > 0); // 过滤无效数据
+
+    return priceData;
   }
 
   /**
