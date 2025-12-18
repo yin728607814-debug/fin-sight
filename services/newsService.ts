@@ -280,7 +280,7 @@ export class NewsService implements INewsService {
           response = await axios.get('/.netlify/functions/sina-news-proxy', {
             params: { 
               category: category,
-              num: 50  // 获取50条新闻
+              num: 500  // 获取500条新闻用于过滤
             },
             timeout: this.config.timeout
           });
@@ -519,15 +519,85 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 根据关键词过滤新闻
+   * 根据URL和关键词过滤新闻（优先URL过滤，更精准）
    */
   private filterNewsByKeywords(newsItems: NewsItem[], assetType: AssetType): NewsItem[] {
-    const keywords = this.getAssetKeywords(assetType);
+    console.log(`🔍 开始过滤${assetType}新闻，原始数量: ${newsItems.length}`);
     
+    if (assetType === 'nasdaq') {
+      // 纳斯达克：优先使用URL过滤
+      const urlFiltered = newsItems.filter(item => 
+        item.url && item.url.startsWith('https://finance.sina.com.cn/stock/usstock')
+      );
+      
+      console.log(`   URL过滤(/stock/usstock): ${urlFiltered.length}条`);
+      
+      // 如果URL过滤结果足够，直接返回
+      if (urlFiltered.length >= 50) {
+        console.log(`   ✅ URL过滤已足够，返回前50条`);
+        return urlFiltered.slice(0, 50);
+      }
+      
+      // 否则补充关键词过滤
+      const keywords = this.getAssetKeywords(assetType);
+      const keywordFiltered = newsItems.filter(item => {
+        // 已经在URL过滤中的，跳过
+        if (urlFiltered.find(u => u.url === item.url)) return false;
+        
+        const content = (item.title + ' ' + item.content).toLowerCase();
+        return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+      });
+      
+      console.log(`   关键词补充: ${keywordFiltered.length}条`);
+      
+      const result = [...urlFiltered, ...keywordFiltered].slice(0, 50);
+      console.log(`   最终结果: ${result.length}条`);
+      
+      return result;
+      
+    } else if (assetType === 'gold') {
+      // 黄金：URL过滤 (/money/ 且包含黄金关键词)
+      const moneyNews = newsItems.filter(item => 
+        item.url && item.url.startsWith('https://finance.sina.com.cn/money/')
+      );
+      
+      const urlFiltered = moneyNews.filter(item => {
+        const content = (item.title + ' ' + item.content).toLowerCase();
+        return content.includes('黄金') || content.includes('金价') || 
+               content.includes('贵金属') || content.includes('白银') ||
+               content.includes('gold');
+      });
+      
+      console.log(`   URL过滤(/money/+黄金关键词): ${urlFiltered.length}条`);
+      
+      // 如果URL过滤结果足够，直接返回
+      if (urlFiltered.length >= 50) {
+        console.log(`   ✅ URL过滤已足够，返回前50条`);
+        return urlFiltered.slice(0, 50);
+      }
+      
+      // 否则补充关键词过滤
+      const keywords = this.getAssetKeywords(assetType);
+      const keywordFiltered = newsItems.filter(item => {
+        // 已经在URL过滤中的，跳过
+        if (urlFiltered.find(u => u.url === item.url)) return false;
+        
+        const content = (item.title + ' ' + item.content).toLowerCase();
+        return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+      });
+      
+      console.log(`   关键词补充: ${keywordFiltered.length}条`);
+      
+      const result = [...urlFiltered, ...keywordFiltered].slice(0, 50);
+      console.log(`   最终结果: ${result.length}条`);
+      
+      return result;
+    }
+    
+    // 其他类型，使用关键词过滤
+    const keywords = this.getAssetKeywords(assetType);
     return newsItems.filter(item => {
       const content = (item.title + ' ' + item.content).toLowerCase();
-      
-      // 检查是否包含任何关键词
       return keywords.some(keyword => content.includes(keyword.toLowerCase()));
     });
   }

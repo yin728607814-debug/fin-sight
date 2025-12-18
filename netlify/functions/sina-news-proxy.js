@@ -21,11 +21,11 @@ exports.handler = async (event, _context) => {
 
   try {
     // 获取查询参数
-    const { category = 'finance', num = '50' } = event.queryStringParameters || {};
+    const { category = 'finance', num = '500' } = event.queryStringParameters || {};
     
     // 新浪财经分类配置
     // 经过测试，财经要闻(lid=2509)是最可靠的分类
-    // 获取所有财经新闻，前端通过关键词过滤实现分类
+    // 获取大量新闻（500条），前端通过URL过滤+关键词过滤实现精准分类
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
       'stock': { pageid: '153', lid: '2509', name: '财经要闻' },
@@ -44,10 +44,16 @@ exports.handler = async (event, _context) => {
       num 
     });
     
-    // 构建新浪财经API URL
-    const url = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${num}&page=1`;
+    // 获取多页数据（500条 = 10页 × 50条）
+    const allArticles = [];
+    const requestedNum = parseInt(num);
+    const perPage = 50;
+    const pages = Math.ceil(requestedNum / perPage);
     
-    const response = await new Promise((resolve, reject) => {
+    for (let page = 1; page <= pages; page++) {
+      const url = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${perPage}&page=${page}`;
+      
+      const response = await new Promise((resolve, reject) => {
       const urlObj = new URL(url);
       const options = {
         hostname: urlObj.hostname,
@@ -94,21 +100,43 @@ exports.handler = async (event, _context) => {
       });
 
       req.end();
-    });
+      });
 
-    console.log('📡 新浪财经API响应:', {
-      statusCode: response.statusCode,
-      hasData: !!response.data.result?.data,
-      dataCount: response.data.result?.data?.length || 0
-    });
+      console.log(`📡 第${page}页响应:`, {
+        statusCode: response.statusCode,
+        hasData: !!response.data.result?.data,
+        dataCount: response.data.result?.data?.length || 0
+      });
 
-    // 检查响应状态
-    if (response.data.result?.status?.code !== 0) {
-      throw new Error(response.data.result?.status?.msg || 'API请求失败');
+      // 检查响应状态
+      if (response.data.result?.status?.code !== 0) {
+        console.error(`❌ 第${page}页失败:`, response.data.result?.status?.msg);
+        break;
+      }
+
+      const pageArticles = response.data.result?.data || [];
+      if (pageArticles.length === 0) {
+        console.log(`⚠️  第${page}页无数据，停止获取`);
+        break;
+      }
+
+      allArticles.push(...pageArticles);
+      
+      // 如果已经获取足够的数据，停止
+      if (allArticles.length >= requestedNum) {
+        break;
+      }
+      
+      // 避免请求过快，延迟200ms
+      if (page < pages) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
     }
 
+    console.log(`✅ 总计获取 ${allArticles.length} 条新闻`);
+
     // 转换为统一格式
-    const articles = (response.data.result?.data || []).map(item => ({
+    const articles = allArticles.map(item => ({
       title: item.title,
       description: item.intro || item.summary || item.title,
       content: item.intro || item.summary || item.title,
