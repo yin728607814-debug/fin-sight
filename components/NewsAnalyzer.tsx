@@ -5,8 +5,8 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { NewsAnalyzerProps, NewsItem, NewsAnalysis } from '../types';
-import { useNews, useAnalysis, useLoading, useErrors } from '../utils/context';
-import { newsService, analysisService } from '../services';
+import { useNews, useAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
+import { newsService, analysisService, priceService } from '../services';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { DemoDataNotice } from './DemoDataNotice';
@@ -20,6 +20,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 }) => {
   const { news, setNews } = useNews(assetType);
   const { analysis, setAnalysis } = useAnalysis(assetType);
+  const { priceData, setPriceData } = usePriceData(assetType);
   const { loading, setLoading } = useLoading();
   const { errors, setError, clearError } = useErrors();
   
@@ -47,6 +48,53 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: false });
     }
   }, [assetType, setNews, setLoading, setError, clearError]);
+
+  /**
+   * 获取价格数据（5天历史数据，排除周末）
+   */
+  const fetchPriceData = useCallback(async () => {
+    try {
+      clearError('prices');
+      setLoading({ prices: true });
+      
+      // 根据资产类型确定符号
+      const symbol = assetType === 'nasdaq' ? 'QQQ' : 'GLD'; // QQQ是纳斯达克100 ETF，GLD是黄金ETF
+      
+      // 获取5天价格历史数据
+      const priceHistory = await priceService.fetchFiveDayPriceHistory(symbol);
+      
+      // 过滤掉周末数据（周六=6，周日=0）
+      const weekdayData = priceHistory.filter(data => {
+        const dayOfWeek = data.date.getDay();
+        return dayOfWeek !== 0 && dayOfWeek !== 6; // 排除周日和周六
+      });
+      
+      // 确保我们有5个工作日的数据，如果不够就获取更多
+      if (weekdayData.length < 5) {
+        // 获取更多天数的数据
+        const extendedHistory = await priceService.fetchPriceHistory(symbol, 10);
+        const extendedWeekdayData = extendedHistory.filter(data => {
+          const dayOfWeek = data.date.getDay();
+          return dayOfWeek !== 0 && dayOfWeek !== 6;
+        });
+        
+        // 取最近的5个工作日
+        const recentFiveDays = extendedWeekdayData.slice(-5);
+        setPriceData(recentFiveDays);
+      } else {
+        // 取最近的5个工作日
+        const recentFiveDays = weekdayData.slice(-5);
+        setPriceData(recentFiveDays);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '获取价格数据失败';
+      setError('prices', errorMessage);
+      console.error('获取价格数据失败:', error);
+    } finally {
+      setLoading({ prices: false });
+    }
+  }, [assetType, setPriceData, setLoading, setError, clearError]);
 
   /**
    * 分析新闻影响
@@ -120,16 +168,22 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   }, [assetType, setAnalysis, setLoading, setError, clearError, onAnalysisComplete]);
 
   /**
-   * 获取并分析新闻
+   * 获取并分析新闻，同时获取价格数据
    */
   const fetchAndAnalyze = useCallback(async () => {
     try {
-      const newsData = await fetchNews();
+      // 并行获取新闻和价格数据
+      const [newsData] = await Promise.all([
+        fetchNews(),
+        fetchPriceData()
+      ]);
+      
+      // 分析新闻
       await analyzeNews(newsData);
     } catch (error) {
-      console.error('获取和分析新闻失败:', error);
+      console.error('获取和分析数据失败:', error);
     }
-  }, [fetchNews, analyzeNews]);
+  }, [fetchNews, fetchPriceData, analyzeNews]);
 
   /**
    * 重新分析现有新闻
@@ -141,10 +195,10 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   }, [news, analyzeNews]);
 
   /**
-   * 组件挂载时自动获取新闻
+   * 组件挂载时自动获取新闻和价格数据
    */
   useEffect(() => {
-    if (news.length === 0) {
+    if (news.length === 0 || priceData.length === 0) {
       fetchAndAnalyze();
     }
   }, [assetType]); // 只在资产类型变化时重新获取
