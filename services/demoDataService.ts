@@ -119,7 +119,7 @@ export function generateDemoAnalysis(news: NewsItem[]): NewsAnalysis[] {
  * 生成演示价格数据
  */
 export function generateDemoPriceData(assetType: AssetType, days: number = 5): PriceData[] {
-  const basePrice = assetType === 'gold' ? 2000 : 15000;
+  const basePrice = assetType === 'gold' ? 2000 : 24500; // 纳斯达克100指数基础价格
   const priceData: PriceData[] = [];
   
   for (let i = days - 1; i >= 0; i--) {
@@ -165,7 +165,7 @@ export function generateDemoAssetInfo(assetType: AssetType): AssetInfo {
     nasdaq: {
       symbol: 'NDX',
       name: '纳斯达克100指数',
-      currentPrice: 15000 + Math.random() * 1000,
+      currentPrice: 24500 + Math.random() * 500, // 纳斯达克100指数价格范围
       currency: 'USD'
     }
   };

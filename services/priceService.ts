@@ -118,7 +118,8 @@ export class PriceService implements IPriceService {
    * 获取价格历史数据
    */
   async fetchPriceHistory(symbol: string, days: number): Promise<PriceData[]> {
-    const cacheKey = `price_${symbol}_${days}`;
+    // 为纳斯达克使用新的缓存键，避免与旧的QQQ数据冲突
+    const cacheKey = symbol === 'nasdaq' ? `price_nasdaq_yahoo_${days}` : `price_${symbol}_${days}`;
     
     // 检查缓存
     const cached = this.getFromPriceCache(cacheKey);
