@@ -153,9 +153,11 @@ export const TrendChart: React.FC<TrendChartProps> = ({
         ticks: {
           color: '#64748b',
           font: {
-            size: 11,
+            size: 10,
             family: 'Inter, system-ui, sans-serif'
-          }
+          },
+          maxRotation: 0,
+          minRotation: 0
         }
       },
       y: {
@@ -233,36 +235,38 @@ export const TrendChart: React.FC<TrendChartProps> = ({
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
       {/* 统计信息头部 */}
       {stats && (
-        <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center px-4 py-3">
-            <p className="text-sm text-slate-500 mb-2">当前价格</p>
-            <p className="text-xl font-semibold text-slate-900 tracking-wide">
-              {stats.current.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="text-center px-4 py-3">
-            <p className="text-sm text-slate-500 mb-2">总变化</p>
-            <p className={`text-xl font-semibold tracking-wide ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {stats.isPositive ? '+' : ''}{stats.change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="text-center px-4 py-3">
-            <p className="text-sm text-slate-500 mb-2">涨跌幅</p>
-            <p className={`text-xl font-semibold tracking-wide ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {stats.isPositive ? '+' : ''}{stats.changePercent.toFixed(2)}%
-            </p>
-          </div>
-          <div className="text-center px-4 py-3">
-            <p className="text-sm text-slate-500 mb-2">区间</p>
-            <p className="text-base text-slate-700 tracking-wide">
-              {stats.low.toLocaleString('en-US', { maximumFractionDigits: 0 })} - {stats.high.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-            </p>
+        <div className="mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-50 rounded-lg p-4 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">当前价格</div>
+              <div className="text-lg font-bold text-slate-900">
+                {stats.current.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-4 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">总变化</div>
+              <div className={`text-lg font-bold ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                {stats.isPositive ? '+' : ''}{stats.change.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-4 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">涨跌幅</div>
+              <div className={`text-lg font-bold ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                {stats.isPositive ? '+' : ''}{stats.changePercent.toFixed(2)}%
+              </div>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-4 text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">区间</div>
+              <div className="text-sm font-semibold text-slate-700">
+                {stats.low.toLocaleString('en-US', { maximumFractionDigits: 0 })} - {stats.high.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* 图表区域 */}
-      <div className="h-80">
+      <div className="h-72 w-full">
         <Line data={chartData} options={options} />
       </div>
     </div>

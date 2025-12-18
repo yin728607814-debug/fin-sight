@@ -117,7 +117,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
           {/* 左侧：新闻分析 */}
           <div className="lg:col-span-2 space-y-6">
             {/* 新闻分析器 */}
