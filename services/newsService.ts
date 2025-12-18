@@ -469,20 +469,27 @@ export class NewsService implements INewsService {
           content.includes(term.toLowerCase())
         );
         
+        // 检查是否来自新浪财经（新浪财经的新闻都是财经相关，无需严格过滤）
+        const isFromSina = sanitized.source.includes('新浪') || 
+                          sanitized.source.includes('sina') ||
+                          sanitized.source.includes('财经') ||
+                          sanitized.source.includes('经济');
+        
         // 生产环境中的宽松过滤策略
         const isProduction = typeof window !== 'undefined' && 
                             window.location.hostname !== 'localhost' && 
                             window.location.hostname !== '127.0.0.1';
         
         const shouldKeep = isProduction ? 
-          // 生产环境：只要有金融相关词汇或来自可靠源就保留
-          (isRelevant || hasReliableSource || hasFinancialTerms) :
+          // 生产环境：新浪财经的新闻直接保留，或者有金融相关词汇
+          (isFromSina || isRelevant || hasReliableSource || hasFinancialTerms) :
           // 开发环境：更严格的过滤
           (isRelevant || hasReliableSource);
         
         console.log(`📰 新闻过滤 [${index}]`, { 
           title: sanitized.title.substring(0, 50) + '...',
           source: sanitized.source,
+          isFromSina,
           isRelevant,
           matchedKeywords: matchedKeywords.length,
           hasReliableSource,

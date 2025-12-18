@@ -99,12 +99,16 @@ exports.handler = async (event, _context) => {
     // 转换为统一格式
     const articles = (response.data.result?.data || []).map(item => ({
       title: item.title,
-      description: item.intro || item.title,
-      content: item.intro || item.title,
+      description: item.intro || item.summary || item.title,
+      content: item.intro || item.summary || item.title,
       url: item.url,
-      source: item.media_name || item.source || '新浪财经',
+      source: {
+        id: 'sina-finance',
+        name: item.media_name || item.source || '新浪财经'
+      },
+      author: item.author || null,
       publishedAt: new Date(parseInt(item.ctime || item.intime) * 1000).toISOString(),
-      urlToImage: item.img || null
+      urlToImage: item.img || item.thumb || null
     }));
 
     console.log('✅ 成功获取新浪财经新闻:', articles.length);
