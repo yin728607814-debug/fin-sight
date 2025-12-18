@@ -67,7 +67,7 @@ export const NewsList: React.FC<NewsListProps> = ({
           return 0;
       }
     });
-  }, [news, analysis, sortBy]);
+  }, [news, getAnalysisForNews, sortBy]);
 
   /**
    * 分页后的新闻列表

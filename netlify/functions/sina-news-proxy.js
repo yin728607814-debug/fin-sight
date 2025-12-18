@@ -23,20 +23,28 @@ exports.handler = async (event, _context) => {
     // 获取查询参数
     const { category = 'finance', num = '50' } = event.queryStringParameters || {};
     
-    // 新浪财经分类ID
-    const categoryMap = {
-      'finance': '2509',  // 财经要闻
-      'stock': '2510',    // 股票新闻
-      'usstock': '2511',  // 美股新闻
-      'nasdaq': '2511'    // 纳斯达克（使用美股分类）
+    // 新浪财经分类配置
+    // 参考：https://finance.sina.com.cn/
+    const categoryConfig = {
+      'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
+      'stock': { pageid: '153', lid: '2510', name: '股票新闻' },
+      'usstock': { pageid: '153', lid: '2511', name: '美股专栏' },
+      'nasdaq': { pageid: '153', lid: '2511', name: '美股专栏' },
+      'gold': { pageid: '155', lid: '1686', name: '黄金资讯' }  // 黄金频道专栏
     };
     
-    const lid = categoryMap[category] || '2509';
+    const config = categoryConfig[category] || categoryConfig['finance'];
     
-    console.log('📰 获取新浪财经新闻:', { category, lid, num });
+    console.log('📰 获取新浪财经新闻:', { 
+      category, 
+      pageid: config.pageid,
+      lid: config.lid, 
+      name: config.name,
+      num 
+    });
     
     // 构建新浪财经API URL
-    const url = `https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=${lid}&k=&num=${num}&page=1`;
+    const url = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${num}&page=1`;
     
     const response = await new Promise((resolve, reject) => {
       const urlObj = new URL(url);
