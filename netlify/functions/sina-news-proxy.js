@@ -24,8 +24,8 @@ exports.handler = async (event, _context) => {
     const { category = 'finance', num = '50' } = event.queryStringParameters || {};
     
     // 新浪财经分类配置
-    // 使用财经要闻(lid=2509)，因为它包含最相关的财经新闻
-    // 前端会根据关键词进行过滤
+    // 所有类型都使用财经要闻(lid=2509)，这是最可靠且内容最相关的分类
+    // 包含股票、美股、黄金等各类财经新闻
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
       'stock': { pageid: '153', lid: '2509', name: '财经要闻' },

@@ -156,27 +156,26 @@ export class NewsService implements INewsService {
           const newsItems = this.transformAPIResponse(response.data);
           console.log('🔄 数据转换结果', { 转换后数量: newsItems.length });
           
-          // 根据关键词过滤相关新闻
-          const filteredNews = this.filterNewsByKeywords(newsItems, assetType);
-          console.log('✅ 关键词过滤结果', { 
-            原始数量: newsItems.length,
-            过滤后数量: filteredNews.length 
+          // 不再进行关键词过滤，直接返回所有财经新闻
+          // 新浪财经的财经要闻本身就是高质量的财经新闻
+          console.log('✅ 新闻获取成功', { 
+            总数量: newsItems.length 
           });
           
           // 缓存结果
-          this.setCache(cacheKey, filteredNews);
+          this.setCache(cacheKey, newsItems);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
-            总数量: filteredNews.length
+            总数量: newsItems.length
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
-            total: filteredNews.length
+            total: newsItems.length
           });
           
-          return filteredNews;
+          return newsItems;
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
