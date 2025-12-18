@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
       language,
       sortBy,
       pageSize: Math.min(parseInt(pageSize) || 20, 100).toString(),
-      apiKey
+      apiKey: apiKey
     });
 
     if (from) {
