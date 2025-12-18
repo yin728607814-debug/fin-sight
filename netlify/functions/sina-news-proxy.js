@@ -55,9 +55,11 @@ exports.handler = async (event, _context) => {
         method: 'GET',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-          'Referer': 'https://finance.sina.com.cn/'
+          'Referer': 'https://finance.sina.com.cn/',
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip, deflate'
         },
-        timeout: 10000
+        timeout: 25000  // 增加到25秒
       };
 
       const req = https.request(options, (res) => {

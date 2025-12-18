@@ -58,7 +58,7 @@ export const config: AppConfig = {
     environment: (getEnvVar('NODE_ENV', 'development') as 'development' | 'production' | 'preview') || 'development',
   },
   api: {
-    timeout: parseInt(getEnvVar('VITE_API_TIMEOUT', '10000'), 10),
+    timeout: parseInt(getEnvVar('VITE_API_TIMEOUT', '30000'), 10), // 增加到30秒
     retryAttempts: parseInt(getEnvVar('VITE_API_RETRY_ATTEMPTS', '3'), 10),
     cacheTimeout: parseInt(getEnvVar('VITE_CACHE_TIMEOUT', '300000'), 10), // 5分钟
   },
