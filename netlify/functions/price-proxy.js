@@ -36,10 +36,19 @@ exports.handler = async (event, _context) => {
     // 从环境变量获取API密钥
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY || process.env.VITE_ALPHA_VANTAGE_API_KEY;
     
-    console.log('🔑 检查Alpha Vantage API密钥:', {
+    // 详细的环境变量调试
+    const allAlphaKeys = Object.keys(process.env).filter(key => 
+      key.includes('ALPHA') || key.includes('VANTAGE')
+    );
+    
+    console.log('🔑 详细的Alpha Vantage API密钥检查:', {
       hasAlphaVantageApiKey: !!process.env.ALPHA_VANTAGE_API_KEY,
       hasViteAlphaVantageApiKey: !!process.env.VITE_ALPHA_VANTAGE_API_KEY,
-      finalApiKey: apiKey ? apiKey.substring(0, 8) + '...' : 'none'
+      finalApiKey: apiKey ? apiKey.substring(0, 8) + '...' : 'none',
+      finalApiKeyLength: apiKey ? apiKey.length : 0,
+      allAlphaKeys: allAlphaKeys,
+      nodeEnv: process.env.NODE_ENV,
+      netlifyContext: process.env.CONTEXT
     });
     
     if (!apiKey) {
