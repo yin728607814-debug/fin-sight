@@ -58,7 +58,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ prices: true });
       
       // 根据资产类型确定符号
-      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'GLD'; // nasdaq使用Yahoo Finance获取指数数据，GLD是黄金ETF
+      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold'; // nasdaq使用Yahoo Finance获取指数数据，gold使用演示数据
       
       // 获取5天价格历史数据
       const priceHistory = await priceService.fetchFiveDayPriceHistory(symbol);

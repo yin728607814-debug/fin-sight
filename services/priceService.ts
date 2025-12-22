@@ -244,9 +244,13 @@ export class PriceService implements IPriceService {
     const symbolMap: Record<string, string> = {
       'XAUUSD': 'GLD', // 黄金ETF
       'NDX': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
-      'gold': 'GLD',
       'nasdaq': 'nasdaq' // 纳斯达克100指数 - 使用Yahoo Finance
     };
+    
+    // 对于'gold'符号，我们不进行映射，让它使用演示数据
+    if (symbol === 'gold') {
+      return 'INVALID_SYMBOL_FOR_DEMO'; // 故意使用无效符号，强制使用演示数据
+    }
     
     return symbolMap[symbol] || symbol.toUpperCase();
   }
