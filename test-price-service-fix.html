@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试价格服务修复</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>测试价格服务修复</h1>
+    <div id="results">正在测试...</div>
+    
+    <script>
+        async function testPriceServiceFix() {
+            const resultsDiv = document.getElementById('results');
+            let testResults = '<h2>🧪 价格服务测试结果</h2>';
+            
+            try {
+                // 清除所有缓存
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                testResults += '<p>✅ 已清除所有缓存</p>';
+                
+                // 测试黄金价格获取
+                testResults += '<h3>1. 测试黄金价格获取</h3>';
+                
+                const goldResponse = await axios.get('/.netlify/functions/investing-proxy', {
+                    params: { 
+                        symbol: 'gold',
+                        range: '5d'
+                    },
+                    timeout: 30000
+                });
+                
+                if (goldResponse.data.priceData && goldResponse.data.priceData.length > 0) {
+                    const latestGoldPrice = goldResponse.data.priceData[goldResponse.data.priceData.length - 1];
+                    
+                    testResults += `<div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 10px 0;">`;
+                    testResults += `<h4>📊 黄金价格数据</h4>`;
+                    testResults += `<p><strong>最新价格:</strong> $${latestGoldPrice.close.toLocaleString()}</p>`;
+                    testResults += `<p><strong>数据源:</strong> ${goldResponse.data.meta?.source || '未知'}</p>`;
+                    testResults += `<p><strong>更新时间:</strong> ${goldResponse.data.meta?.lastUpdated || '未知'}</p>`;
+                    
+                    if (latestGoldPrice.close >= 4000 && latestGoldPrice.close <= 5000) {
+                        testResults += `<p style="color: green; font-weight: bold;">✅ 价格正确！在4000-5000范围内</p>`;
+                    } else if (latestGoldPrice.close >= 2500 && latestGoldPrice.close <= 3000) {
+                        testResults += `<p style="color: red; font-weight: bold;">❌ 价格错误！还是2500-3000范围（旧数据）</p>`;
+                        testResults += `<p style="color: red;">这表明还有地方在使用旧的价格逻辑或缓存</p>`;
+                    } else {
+                        testResults += `<p style="color: orange; font-weight: bold;">⚠️ 价格异常：$${latestGoldPrice.close}</p>`;
+                    }
+                    
+                    testResults += `</div>`;
+                    
+                    // 显示所有5天数据
+                    testResults += `<h4>📈 5天历史数据</h4>`;
+                    testResults += `<table style="width: 100%; border-collapse: collapse; margin: 10px 0;">`;
+                    testResults += `<tr style="background: #f8f9fa;"><th style="border: 1px solid #ddd; padding: 8px;">日期</th><th style="border: 1px solid #ddd; padding: 8px;">收盘价</th><th style="border: 1px solid #ddd; padding: 8px;">变化</th></tr>`;
+                    
+                    goldResponse.data.priceData.forEach(item => {
+                        const priceColor = item.close >= 4000 ? 'green' : item.close <= 3000 ? 'red' : 'orange';
+                        testResults += `<tr>`;
+                        testResults += `<td style="border: 1px solid #ddd; padding: 8px;">${item.date}</td>`;
+                        testResults += `<td style="border: 1px solid #ddd; padding: 8px; color: ${priceColor}; font-weight: bold;">$${item.close.toFixed(2)}</td>`;
+                        testResults += `<td style="border: 1px solid #ddd; padding: 8px;">${item.changePercent >= 0 ? '+' : ''}${item.changePercent.toFixed(2)}%</td>`;
+                        testResults += `</tr>`;
+                    });
+                    testResults += `</table>`;
+                    
+                } else {
+                    testResults += `<p style="color: red;">❌ 没有获取到黄金价格数据</p>`;
+                }
+                
+                // 测试纳斯达克价格获取
+                testResults += '<h3>2. 测试纳斯达克价格获取</h3>';
+                
+                try {
+                    const nasdaqResponse = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
+                        params: { 
+                            symbol: 'nasdaq',
+                            range: '5d'
+                        },
+                        timeout: 30000
+                    });
+                    
+                    if (nasdaqResponse.data.priceData && nasdaqResponse.data.priceData.length > 0) {
+                        const latestNasdaqPrice = nasdaqResponse.data.priceData[nasdaqResponse.data.priceData.length - 1];
+                        testResults += `<p>✅ 纳斯达克价格: ${latestNasdaqPrice.close.toLocaleString()}</p>`;
+                    }
+                } catch (error) {
+                    testResults += `<p style="color: orange;">⚠️ 纳斯达克测试跳过: ${error.message}</p>`;
+                }
+                
+                // 检查可能的问题
+                testResults += '<h3>3. 问题诊断</h3>';
+                
+                if (goldResponse.data.priceData && goldResponse.data.priceData.length > 0) {
+                    const prices = goldResponse.data.priceData.map(item => item.close);
+                    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    
+                    if (avgPrice < 3500) {
+                        testResults += `<div style="background: #fff3cd; padding: 15px; border-radius: 8px; color: #856404;">`;
+                        testResults += `<h4>🔍 发现问题</h4>`;
+                        testResults += `<p>平均价格 $${avgPrice.toFixed(2)} 过低，可能的原因：</p>`;
+                        testResults += `<ul>`;
+                        testResults += `<li>Investing.com API返回了错误的数据</li>`;
+                        testResults += `<li>价格解析逻辑有问题</li>`;
+                        testResults += `<li>还在使用旧的演示数据</li>`;
+                        testResults += `<li>缓存中有旧数据</li>`;
+                        testResults += `</ul>`;
+                        testResults += `</div>`;
+                    } else {
+                        testResults += `<p style="color: green;">✅ 价格范围正常，平均价格: $${avgPrice.toFixed(2)}</p>`;
+                    }
+                }
+                
+                resultsDiv.innerHTML = testResults;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<h2>❌ 测试失败</h2><p style="color: red;">${error.message}</p>`;
+                console.error('测试失败:', error);
+            }
+        }
+        
+        // 页面加载后自动测试
+        testPriceServiceFix();
+        
+        // 添加重新测试按钮
+        setTimeout(() => {
+            const retryButton = document.createElement('button');
+            retryButton.textContent = '🔄 重新测试';
+            retryButton.style.cssText = 'margin: 20px 0; padding: 15px 30px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold;';
+            retryButton.onclick = testPriceServiceFix;
+            document.body.appendChild(retryButton);
+            
+            // 添加清除缓存按钮
+            const clearButton = document.createElement('button');
+            clearButton.textContent = '🗑️ 清除缓存并重测';
+            clearButton.style.cssText = 'margin: 20px 10px; padding: 15px 30px; background: #ffc107; color: black; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold;';
+            clearButton.onclick = () => {
+                localStorage.clear();
+                sessionStorage.clear();
+                // 尝试清除浏览器缓存
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                        });
+                    });
+                }
+                alert('缓存已清除，正在重新测试...');
+                setTimeout(testPriceServiceFix, 1000);
+            };
+            document.body.appendChild(clearButton);
+        }, 2000);
+    </script>
+</body>
+</html>
+</content>

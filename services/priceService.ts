@@ -18,7 +18,7 @@ import {
   DEFAULT_RETRY_CONFIG 
 } from '../utils/errors';
 import { validatePriceData, validateAssetInfo, sanitizePriceData, sanitizeAssetInfo } from '../utils/validation';
-import { getFiveDayRange, isDataExpired } from '../utils/helpers';
+import { isDataExpired } from '../utils/helpers';
 import { logInfo, logError } from './logger';
 import { config } from '../config/env';
 
@@ -30,45 +30,6 @@ interface PriceAPIConfig {
   apiKey: string;
   timeout: number;
   maxRetries: number;
-}
-
-/**
- * Alpha Vantage API响应接口
- */
-interface AlphaVantageResponse {
-  'Meta Data': {
-    '1. Information': string;
-    '2. Symbol': string;
-    '3. Last Refreshed': string;
-    '4. Time Zone': string;
-  };
-  'Time Series (Daily)': {
-    [date: string]: {
-      '1. open': string;
-      '2. high': string;
-      '3. low': string;
-      '4. close': string;
-      '5. volume': string;
-    };
-  };
-}
-
-/**
- * 实时价格响应接口
- */
-interface RealTimePriceResponse {
-  'Global Quote': {
-    '01. symbol': string;
-    '02. open': string;
-    '03. high': string;
-    '04. low': string;
-    '05. price': string;
-    '06. volume': string;
-    '07. latest trading day': string;
-    '08. previous close': string;
-    '09. change': string;
-    '10. change percent': string;
-  };
 }
 
 /**
@@ -118,8 +79,12 @@ export class PriceService implements IPriceService {
    * 获取价格历史数据
    */
   async fetchPriceHistory(symbol: string, days: number): Promise<PriceData[]> {
-    // 为纳斯达克使用新的缓存键，避免与旧的QQQ数据冲突
-    const cacheKey = symbol === 'nasdaq' ? `price_nasdaq_yahoo_${days}` : `price_${symbol}_${days}`;
+    // 使用新的缓存键，避免与旧数据冲突 - 强制刷新黄金价格缓存
+    const cacheKey = symbol === 'gold' 
+      ? `price_gold_investing_v2_${days}` 
+      : symbol === 'nasdaq' 
+        ? `price_nasdaq_yahoo_${days}` 
+        : `price_${symbol}_v2_${days}`;
     
     // 检查缓存
     const cached = this.getFromPriceCache(cacheKey);
@@ -135,7 +100,20 @@ export class PriceService implements IPriceService {
     }
 
     try {
-      logInfo('开始获取价格历史数据', { symbol, days });
+      logInfo('🔍 开始获取价格历史数据', { symbol, days, cacheKey });
+      
+      // 对于黄金，强制清除旧缓存并使用新API
+      if (symbol === 'gold') {
+        // 清除所有可能的旧缓存键
+        const oldCacheKeys = [
+          `price_gold_${days}`,
+          `price_${symbol}_${days}`,
+          `price_${symbol}_investing_${days}`,
+          `price_gold_yahoo_${days}`
+        ];
+        oldCacheKeys.forEach(key => this.priceCache.delete(key));
+        logInfo('🗑️ 已清除黄金价格旧缓存', { clearedKeys: oldCacheKeys });
+      }
       
       let priceData: PriceData[];
       
@@ -144,14 +122,37 @@ export class PriceService implements IPriceService {
         const response = await this.makeRequest({
           symbol: 'nasdaq'
         });
-        priceData = this.transformYahooFinanceResponse(response.data, days);
+        priceData = this.transformInvestingResponse(response.data as any, days);
       } else if (symbol === 'gold') {
-        // 对于黄金，使用Investing.com API获取实时价格
-        console.log('🌐 使用Investing.com API获取实时黄金价格');
+        // 对于黄金，强制使用Investing.com API获取实时价格
+        console.log('🌐 强制使用Investing.com API获取黄金价格数据');
+        logInfo('🔍 黄金价格API调用开始', { symbol, endpoint: 'investing-proxy' });
+        
         const response = await this.makeRequest({
           symbol: 'gold'
         });
-        priceData = this.transformYahooFinanceResponse(response.data, days);
+        
+        logInfo('📊 黄金价格API响应', { 
+          hasData: !!response.data, 
+          hasPriceData: !!(response.data as any)?.priceData,
+          dataLength: (response.data as any)?.priceData?.length || 0
+        });
+        
+        priceData = this.transformInvestingResponse(response.data as any, days);
+        
+        // 验证价格数据是否正确
+        if (priceData.length > 0) {
+          const latestPrice = priceData[priceData.length - 1].close;
+          logInfo('💰 黄金价格验证', { 
+            latestPrice, 
+            isCorrectRange: latestPrice >= 4000 && latestPrice <= 5000,
+            dataPoints: priceData.length 
+          });
+          
+          if (latestPrice < 3500) {
+            logError('⚠️ 黄金价格异常偏低', { latestPrice, expected: '4000+' });
+          }
+        }
       } else {
         // 其他资产使用Alpha Vantage
         const response = await this.makeRequest({
@@ -159,7 +160,7 @@ export class PriceService implements IPriceService {
           symbol: this.normalizeSymbol(symbol),
           outputsize: 'compact' // 获取最近100天数据
         });
-        priceData = this.transformPriceResponse(response.data, days);
+        priceData = this.transformPriceResponse(response.data as any, days);
       }
       
       const validatedData = this.validateAndFilterPriceData(priceData);
@@ -216,7 +217,7 @@ export class PriceService implements IPriceService {
         symbol: this.normalizeSymbol(symbol)
       });
 
-      const assetInfo = this.transformAssetResponse(response.data, symbol);
+      const assetInfo = this.transformAssetResponse(response.data as any, symbol);
       const validatedInfo = this.validateAssetInfo(assetInfo);
       
       // 缓存结果
@@ -249,10 +250,10 @@ export class PriceService implements IPriceService {
   private normalizeSymbol(symbol: string): string {
     // 处理特殊符号映射
     const symbolMap: Record<string, string> = {
-      'XAUUSD': 'gold', // 现货黄金使用Yahoo Finance
+      'XAUUSD': 'gold', // 现货黄金使用Investing.com
       'NDX': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
       'nasdaq': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
-      'gold': 'gold' // 黄金使用Yahoo Finance
+      'gold': 'gold' // 黄金使用Investing.com
     };
     
     return symbolMap[symbol] || symbol.toUpperCase();
@@ -315,15 +316,15 @@ export class PriceService implements IPriceService {
         }
 
         // 检查API错误响应
-        if (response.data['Error Message']) {
+        if ((response.data as any)['Error Message']) {
           throw createAPIError(
             ErrorType.INVALID_RESPONSE,
-            response.data['Error Message'],
+            (response.data as any)['Error Message'],
             'API_ERROR'
           );
         }
 
-        if (response.data['Note']) {
+        if ((response.data as any)['Note']) {
           throw createAPIError(
             ErrorType.API_LIMIT_EXCEEDED,
             'API调用频率限制，请稍后重试',
@@ -367,11 +368,11 @@ export class PriceService implements IPriceService {
   }
 
   /**
-   * 转换Yahoo Finance API响应
+   * 转换Investing API响应
    */
-  private transformYahooFinanceResponse(apiResponse: any, days: number): PriceData[] {
-    if (!apiResponse.priceData || !Array.isArray(apiResponse.priceData)) {
-      logError('Yahoo Finance API响应格式错误', apiResponse);
+  private transformInvestingResponse(apiResponse: any, days: number): PriceData[] {
+    if (!apiResponse || !apiResponse.priceData || !Array.isArray(apiResponse.priceData)) {
+      logError('Investing API响应格式错误', apiResponse);
       return [];
     }
 
@@ -395,7 +396,7 @@ export class PriceService implements IPriceService {
   /**
    * 转换价格API响应
    */
-  private transformPriceResponse(apiResponse: AlphaVantageResponse, days: number): PriceData[] {
+  private transformPriceResponse(apiResponse: any, days: number): PriceData[] {
     if (!apiResponse['Time Series (Daily)']) {
       logError('价格API响应格式错误', apiResponse);
       return [];
@@ -430,7 +431,7 @@ export class PriceService implements IPriceService {
   /**
    * 转换资产信息API响应
    */
-  private transformAssetResponse(apiResponse: RealTimePriceResponse, originalSymbol: string): AssetInfo {
+  private transformAssetResponse(apiResponse: any, originalSymbol: string): AssetInfo {
     if (!apiResponse['Global Quote']) {
       throw createAPIError(
         ErrorType.INVALID_RESPONSE,

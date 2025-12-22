@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>完整数据流测试 - 黄金价格</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .info { color: #17a2b8; }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🔍 完整数据流测试 - 黄金价格</h1>
+    
+    <div class="card">
+        <h2>测试控制</h2>
+        <button class="btn-primary" onclick="testCompleteFlow()">🧪 测试完整数据流</button>
+        <button class="btn-warning" onclick="clearAllCaches()">🗑️ 清除所有缓存</button>
+        <button class="btn-success" onclick="window.location.reload(true)">🔄 强制刷新页面</button>
+        <button class="btn-danger" onclick="window.location.href='/gold'">📊 访问黄金页面</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function clearAllCaches() {
+            // 清除localStorage
+            localStorage.clear();
+            console.log('✅ localStorage已清除');
+            
+            // 清除sessionStorage
+            sessionStorage.clear();
+            console.log('✅ sessionStorage已清除');
+            
+            // 清除Cache API
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+                console.log('✅ Cache API已清除');
+            }
+            
+            alert('所有缓存已清除！');
+        }
+        
+        async function testCompleteFlow() {
+            const resultsDiv = document.getElementById('results');
+            let html = '<div class="card"><h2>📊 完整数据流测试结果</h2>';
+            
+            try {
+                // 步骤1: 清除缓存
+                await clearAllCaches();
+                html += '<p class="success">✅ 步骤1: 已清除所有缓存</p>';
+                
+                // 步骤2: 测试investing-proxy API
+                html += '<h3>步骤2: 测试 investing-proxy API</h3>';
+                const startTime = Date.now();
+                
+                const response = await axios.get('/.netlify/functions/investing-proxy', {
+                    params: { symbol: 'gold', range: '5d' },
+                    timeout: 30000
+                });
+                
+                const endTime = Date.now();
+                html += `<p class="info">API响应时间: ${endTime - startTime}ms</p>`;
+                
+                if (response.data && response.data.priceData && response.data.priceData.length > 0) {
+                    const latest = response.data.priceData[response.data.priceData.length - 1];
+                    const prices = response.data.priceData.map(item => item.close);
+                    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    
+                    html += `<div style="background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 10px 0;">`;
+                    html += `<h4>💰 API返回的价格数据</h4>`;
+                    html += `<p><strong>最新价格:</strong> ${latest.close.toLocaleString()} USD/oz</p>`;
+                    html += `<p><strong>平均价格:</strong> ${avgPrice.toFixed(2)} USD/oz</p>`;
+                    html += `<p><strong>数据点数:</strong> ${response.data.priceData.length}</p>`;
+                    html += `<p><strong>数据源:</strong> ${response.data.meta?.source || '未知'}</p>`;
+                    
+                    if (avgPrice >= 4000 && avgPrice <= 5000) {
+                        html += `<p class="success">✅ API价格正确！在4000-5000范围内</p>`;
+                    } else {
+                        html += `<p class="error">❌ API价格错误！价格为 ${avgPrice.toFixed(2)}</p>`;
+                    }
+                    html += `</div>`;
+                    
+                    // 步骤3: 模拟前端priceService调用
+                    html += '<h3>步骤3: 模拟前端 priceService 调用</h3>';
+                    
+                    // 模拟priceService的transformInvestingResponse方法
+                    const transformedData = response.data.priceData
+                        .slice(-5) // 取最近5天
+                        .map(item => ({
+                            date: new Date(item.date),
+                            open: parseFloat(item.open) || 0,
+                            high: parseFloat(item.high) || 0,
+                            low: parseFloat(item.low) || 0,
+                            close: parseFloat(item.close) || 0,
+                            volume: parseInt(item.volume) || 0,
+                            change: parseFloat(item.change) || 0,
+                            changePercent: parseFloat(item.changePercent) || 0
+                        }))
+                        .filter(item => item.close > 0);
+                    
+                    if (transformedData.length > 0) {
+                        const transformedLatest = transformedData[transformedData.length - 1];
+                        const transformedAvg = transformedData.reduce((sum, item) => sum + item.close, 0) / transformedData.length;
+                        
+                        html += `<div style="background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 10px 0;">`;
+                        html += `<h4>🔄 前端数据转换结果</h4>`;
+                        html += `<p><strong>转换后最新价格:</strong> ${transformedLatest.close.toLocaleString()} USD/oz</p>`;
+                        html += `<p><strong>转换后平均价格:</strong> ${transformedAvg.toFixed(2)} USD/oz</p>`;
+                        html += `<p><strong>转换后数据点数:</strong> ${transformedData.length}</p>`;
+                        
+                        if (transformedAvg >= 4000 && transformedAvg <= 5000) {
+                            html += `<p class="success">✅ 前端转换正确！价格保持在4000-5000范围内</p>`;
+                        } else {
+                            html += `<p class="error">❌ 前端转换有问题！转换后价格为 ${transformedAvg.toFixed(2)}</p>`;
+                        }
+                        html += `</div>`;
+                        
+                        // 步骤4: 检查缓存键
+                        html += '<h3>步骤4: 检查缓存策略</h3>';
+                        const cacheKeys = [
+                            'price_gold_investing_v2_5',
+                            'price_gold_5',
+                            'price_gold_investing_5',
+                            'price_gold_yahoo_5'
+                        ];
+                        
+                        html += `<div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 10px 0;">`;
+                        html += `<h4>🗂️ 缓存键检查</h4>`;
+                        html += `<p><strong>新缓存键:</strong> price_gold_investing_v2_5</p>`;
+                        html += `<p><strong>旧缓存键:</strong> ${cacheKeys.slice(1).join(', ')}</p>`;
+                        html += `<p class="info">ℹ️ 新版本使用 v2 缓存键避免旧数据干扰</p>`;
+                        html += `</div>`;
+                        
+                        // 最终判断
+                        html += `<h3>🎯 最终诊断</h3>`;
+                        if (avgPrice >= 4000 && transformedAvg >= 4000) {
+                            html += `<div style="background: #d4edda; padding: 15px; border-radius: 5px; color: #155724;">`;
+                            html += `<h4>✅ 数据流完全正常！</h4>`;
+                            html += `<p>API返回正确价格: ${avgPrice.toFixed(2)} USD/oz</p>`;
+                            html += `<p>前端转换正确: ${transformedAvg.toFixed(2)} USD/oz</p>`;
+                            html += `<p><strong>如果页面还显示2600+价格，可能的原因：</strong></p>`;
+                            html += `<ul>`;
+                            html += `<li>浏览器缓存未清除 - 请强制刷新</li>`;
+                            html += `<li>React组件状态缓存 - 请重新访问页面</li>`;
+                            html += `<li>Netlify CDN缓存 - 可能需要等待几分钟</li>`;
+                            html += `</ul>`;
+                            html += `</div>`;
+                        } else {
+                            html += `<div style="background: #f8d7da; padding: 15px; border-radius: 5px; color: #721c24;">`;
+                            html += `<h4>❌ 数据流存在问题</h4>`;
+                            html += `<p>API价格: ${avgPrice.toFixed(2)} USD/oz ${avgPrice >= 4000 ? '✅' : '❌'}</p>`;
+                            html += `<p>转换价格: ${transformedAvg.toFixed(2)} USD/oz ${transformedAvg >= 4000 ? '✅' : '❌'}</p>`;
+                            html += `</div>`;
+                        }
+                        
+                    } else {
+                        html += `<p class="error">❌ 前端数据转换失败</p>`;
+                    }
+                    
+                } else {
+                    html += `<p class="error">❌ API没有返回价格数据</p>`;
+                }
+                
+            } catch (error) {
+                html += `<p class="error">❌ 测试失败: ${error.message}</p>`;
+                console.error('测试失败:', error);
+            }
+            
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+        
+        // 页面加载后自动运行测试
+        window.onload = () => {
+            setTimeout(testCompleteFlow, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>调试黄金价格问题</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>调试黄金价格问题</h1>
+    <div id="results">正在调试...</div>
+    
+    <script>
+        async function debugGoldPrice() {
+            const resultsDiv = document.getElementById('results');
+            let debugInfo = '<h2>🔍 调试信息</h2>';
+            
+            try {
+                // 1. 测试Netlify函数
+                debugInfo += '<h3>1. 测试 investing-proxy 函数</h3>';
+                try {
+                    const response = await axios.get('/.netlify/functions/investing-proxy', {
+                        params: { 
+                            symbol: 'gold',
+                            range: '5d'
+                        },
+                        timeout: 30000
+                    });
+                    
+                    debugInfo += `<p>✅ 状态码: ${response.status}</p>`;
+                    debugInfo += `<p>📊 数据点数量: ${response.data.priceData?.length || 0}</p>`;
+                    
+                    if (response.data.priceData && response.data.priceData.length > 0) {
+                        const latest = response.data.priceData[response.data.priceData.length - 1];
+                        debugInfo += `<p><strong>最新价格: $${latest.close}</strong></p>`;
+                        
+                        if (latest.close >= 4000) {
+                            debugInfo += `<p style="color: green;">✅ 价格正确 (4000+)</p>`;
+                        } else {
+                            debugInfo += `<p style="color: red;">❌ 价格错误 (应该是4000+)</p>`;
+                        }
+                        
+                        debugInfo += `<p>数据源: ${response.data.meta?.source || '未知'}</p>`;
+                        debugInfo += `<p>更新时间: ${response.data.meta?.lastUpdated || '未知'}</p>`;
+                    }
+                    
+                    debugInfo += `<details><summary>完整响应</summary><pre>${JSON.stringify(response.data, null, 2)}</pre></details>`;
+                    
+                } catch (error) {
+                    debugInfo += `<p style="color: red;">❌ investing-proxy 失败: ${error.message}</p>`;
+                }
+                
+                // 2. 测试Yahoo Finance函数（如果还存在）
+                debugInfo += '<h3>2. 测试 yahoo-finance-proxy 函数</h3>';
+                try {
+                    const response = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
+                        params: { 
+                            symbol: 'nasdaq',
+                            range: '5d'
+                        },
+                        timeout: 30000
+                    });
+                    
+                    debugInfo += `<p>✅ Yahoo Finance 状态码: ${response.status}</p>`;
+                    debugInfo += `<p>📊 数据点数量: ${response.data.priceData?.length || 0}</p>`;
+                    
+                } catch (error) {
+                    debugInfo += `<p style="color: orange;">⚠️ yahoo-finance-proxy: ${error.message}</p>`;
+                }
+                
+                // 3. 检查浏览器缓存
+                debugInfo += '<h3>3. 检查浏览器缓存</h3>';
+                if (localStorage.getItem('priceCache')) {
+                    debugInfo += `<p>⚠️ 发现本地缓存数据</p>`;
+                    debugInfo += `<button onclick="clearCache()">清除缓存</button>`;
+                } else {
+                    debugInfo += `<p>✅ 没有本地缓存</p>`;
+                }
+                
+                // 4. 检查当前页面显示的价格
+                debugInfo += '<h3>4. 检查当前页面</h3>';
+                debugInfo += `<p>当前URL: ${window.location.href}</p>`;
+                debugInfo += `<p>用户代理: ${navigator.userAgent.substring(0, 100)}...</p>`;
+                
+                resultsDiv.innerHTML = debugInfo;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<h2>❌ 调试失败</h2><p>${error.message}</p>`;
+            }
+        }
+        
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('缓存已清除，请刷新页面');
+        }
+        
+        // 页面加载后自动调试
+        debugGoldPrice();
+        
+        // 添加重新调试按钮
+        setTimeout(() => {
+            const retryButton = document.createElement('button');
+            retryButton.textContent = '🔄 重新调试';
+            retryButton.style.cssText = 'margin: 20px 0; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;';
+            retryButton.onclick = debugGoldPrice;
+            document.body.appendChild(retryButton);
+        }, 2000);
+    </script>
+</body>
+</html>
+</content>

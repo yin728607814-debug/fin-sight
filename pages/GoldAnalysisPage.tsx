@@ -207,7 +207,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">当前价格</span>
                     <span className="font-semibold text-gray-900 whitespace-nowrap">
-                      {priceData.length > 0 ? `$${priceData[priceData.length - 1]?.close.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '--'}
+                      {priceData.length > 0 ? `$${priceData[priceData.length - 1]?.close.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '--'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

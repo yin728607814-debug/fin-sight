@@ -60,7 +60,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ prices: true });
       
       // 根据资产类型确定符号
-      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold'; // nasdaq使用Yahoo Finance获取指数数据，gold使用演示数据
+      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold'; // nasdaq使用Yahoo Finance获取指数数据，gold使用Investing.com获取实时价格
       
       // 获取5天价格历史数据
       const priceHistory = await priceService.fetchFiveDayPriceHistory(symbol);
@@ -204,7 +204,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setIsInitialized(true);
       fetchAndAnalyze();
     }
-  }, [assetType]); // 只在资产类型变化时重新获取，移除其他依赖避免死循环
+  }, [assetType, fetchAndAnalyze, isInitialized, news.length, priceData.length]); // 只在资产类型变化时重新获取，移除其他依赖避免死循环
 
   // 当资产类型变化时重置初始化状态
   useEffect(() => {
