@@ -146,10 +146,12 @@ export class PriceService implements IPriceService {
         });
         priceData = this.transformYahooFinanceResponse(response.data, days);
       } else if (symbol === 'gold') {
-        // 对于黄金，直接返回真实的4400+价格数据，不依赖可能失败的API
-        console.log('🌐 使用真实黄金价格数据 (4400+ USD/oz)');
-        const realGoldData = this.generateRealGoldPriceData(days);
-        priceData = realGoldData;
+        // 对于黄金，使用Investing.com API获取实时价格
+        console.log('🌐 使用Investing.com API获取实时黄金价格');
+        const response = await this.makeRequest({
+          symbol: 'gold'
+        });
+        priceData = this.transformYahooFinanceResponse(response.data, days);
       } else {
         // 其他资产使用Alpha Vantage
         const response = await this.makeRequest({
@@ -666,71 +668,6 @@ export class PriceService implements IPriceService {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * 生成真实的黄金价格数据 (4400+ USD/oz)
-   */
-  private generateRealGoldPriceData(days: number): PriceData[] {
-    // 使用真实的黄金价格 4400.85 USD/oz (用户截图中的价格)
-    const realCurrentPrice = 4400.85;
-    
-    const dates = [];
-    const now = new Date();
-    
-    // 生成过去指定天数的交易日期（跳过周末）
-    let daysAdded = 0;
-    let dayOffset = 0;
-    
-    while (daysAdded < days) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - dayOffset);
-      
-      // 跳过周末
-      if (date.getDay() !== 0 && date.getDay() !== 6) {
-        dates.unshift(date);
-        daysAdded++;
-      }
-      dayOffset++;
-    }
-    
-    console.log('📅 生成基于真实价格的黄金历史数据:', realCurrentPrice, 'USD/oz');
-    
-    // 生成基于真实价格的历史数据
-    return dates.map((date, index) => {
-      // 基于真实价格生成合理的历史波动 (±2-3%的日间波动)
-      const volatility = realCurrentPrice * 0.025; // 2.5%的波动率
-      const dayVariation = (Math.random() - 0.5) * 2 * volatility;
-      const basePrice = realCurrentPrice + dayVariation;
-      
-      // 生成OHLC数据
-      const intraday = realCurrentPrice * 0.01; // 1%的日内波动
-      const open = basePrice + (Math.random() - 0.5) * intraday;
-      const close = index === dates.length - 1 ? realCurrentPrice : basePrice + (Math.random() - 0.5) * intraday;
-      const high = Math.max(open, close) + Math.random() * (intraday / 2);
-      const low = Math.min(open, close) - Math.random() * (intraday / 2);
-      
-      // 计算变化（相对于前一天）
-      let change = 0;
-      let changePercent = 0;
-      
-      if (index > 0) {
-        const previousClose = realCurrentPrice + (Math.random() - 0.5) * volatility;
-        change = close - previousClose;
-        changePercent = (change / previousClose) * 100;
-      }
-      
-      return {
-        date,
-        open: Math.round(open * 100) / 100,
-        high: Math.round(high * 100) / 100,
-        low: Math.round(low * 100) / 100,
-        close: Math.round(close * 100) / 100,
-        volume: Math.floor(80000 + Math.random() * 120000), // 合理的交易量
-        change: Math.round(change * 100) / 100,
-        changePercent: Math.round(changePercent * 100) / 100
-      };
-    });
   }
 }
 
