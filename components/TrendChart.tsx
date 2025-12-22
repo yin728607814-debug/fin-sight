@@ -239,26 +239,26 @@ export const TrendChart: React.FC<TrendChartProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-slate-50 rounded-lg p-3 text-center min-w-0">
               <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">当前价格</div>
-              <div className="text-base font-bold text-slate-900 truncate">
-                {stats.current.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              <div className="text-sm font-bold text-slate-900 break-words">
+                {stats.current.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </div>
             </div>
             <div className="bg-slate-50 rounded-lg p-3 text-center min-w-0">
               <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">总变化</div>
-              <div className={`text-base font-bold truncate ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.isPositive ? '+' : ''}{stats.change.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              <div className={`text-sm font-bold break-words ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                {stats.isPositive ? '+' : ''}{stats.change.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </div>
             </div>
             <div className="bg-slate-50 rounded-lg p-3 text-center min-w-0">
               <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">涨跌幅</div>
-              <div className={`text-base font-bold truncate ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-sm font-bold break-words ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {stats.isPositive ? '+' : ''}{stats.changePercent.toFixed(2)}%
               </div>
             </div>
             <div className="bg-slate-50 rounded-lg p-3 text-center min-w-0">
               <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">区间</div>
-              <div className="text-xs font-semibold text-slate-700 truncate">
-                {stats.low.toLocaleString('en-US', { maximumFractionDigits: 0 })} - {stats.high.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              <div className="text-xs font-semibold text-slate-700 break-words">
+                {stats.low.toLocaleString('en-US', { maximumFractionDigits: 2 })} - {stats.high.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </div>
             </div>
           </div>
