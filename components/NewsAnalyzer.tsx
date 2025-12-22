@@ -201,7 +201,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
     if (news.length === 0 || priceData.length === 0) {
       fetchAndAnalyze();
     }
-  }, [assetType]); // 只在资产类型变化时重新获取
+  }, [assetType, fetchAndAnalyze, news.length, priceData.length]); // 只在资产类型变化时重新获取
 
   /**
    * 检查数据是否过期（超过30分钟）

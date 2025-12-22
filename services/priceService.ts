@@ -139,10 +139,10 @@ export class PriceService implements IPriceService {
       
       let priceData: PriceData[];
       
-      // 对于纳斯达克指数，使用Yahoo Finance
-      if (symbol === 'nasdaq' || symbol === 'NDX') {
+      // 对于纳斯达克指数和黄金，使用Yahoo Finance
+      if (symbol === 'nasdaq' || symbol === 'NDX' || symbol === 'gold') {
         const response = await this.makeRequest({
-          symbol: 'nasdaq'
+          symbol: symbol === 'nasdaq' ? 'nasdaq' : 'gold'
         });
         priceData = this.transformYahooFinanceResponse(response.data, days);
       } else {
@@ -242,15 +242,11 @@ export class PriceService implements IPriceService {
   private normalizeSymbol(symbol: string): string {
     // 处理特殊符号映射
     const symbolMap: Record<string, string> = {
-      'XAUUSD': 'GLD', // 黄金ETF
+      'XAUUSD': 'gold', // 现货黄金使用Yahoo Finance
       'NDX': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
-      'nasdaq': 'nasdaq' // 纳斯达克100指数 - 使用Yahoo Finance
+      'nasdaq': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
+      'gold': 'gold' // 黄金使用Yahoo Finance
     };
-    
-    // 对于'gold'符号，我们不进行映射，让它使用演示数据
-    if (symbol === 'gold') {
-      return 'INVALID_SYMBOL_FOR_DEMO'; // 故意使用无效符号，强制使用演示数据
-    }
     
     return symbolMap[symbol] || symbol.toUpperCase();
   }
@@ -268,12 +264,13 @@ export class PriceService implements IPriceService {
         let response: AxiosResponse<unknown>;
 
         if (isBrowser) {
-          // 对于纳斯达克指数，使用Yahoo Finance API
-          if (params.symbol === 'nasdaq' || params.symbol === 'NDX') {
-            console.log('🌐 使用Yahoo Finance API获取纳斯达克100指数数据');
+          // 对于纳斯达克指数和黄金，使用Yahoo Finance API
+          if (params.symbol === 'nasdaq' || params.symbol === 'NDX' || params.symbol === 'gold') {
+            const assetType = params.symbol === 'nasdaq' ? 'nasdaq' : 'gold';
+            console.log(`🌐 使用Yahoo Finance API获取${assetType === 'nasdaq' ? '纳斯达克100指数' : '黄金'}数据`);
             response = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
               params: { 
-                symbol: 'nasdaq',
+                symbol: assetType,
                 range: '5d',
                 interval: '1d'
               },

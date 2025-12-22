@@ -55,8 +55,9 @@ exports.handler = async (event, _context) => {
     const symbolMap = {
       'nasdaq': '^NDX',  // 纳斯达克100指数
       'NDX': '^NDX',
-      'gold': 'GC=F',    // 黄金期货
-      'GOLD': 'GC=F'
+      'gold': 'GC=F',    // 黄金期货 (Gold Continuous Contract)
+      'GOLD': 'GC=F',
+      'XAUUSD': 'GC=F'   // 现货黄金也使用黄金期货数据
     };
 
     const yahooSymbol = symbolMap[symbol] || symbol;
