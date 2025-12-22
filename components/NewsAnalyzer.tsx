@@ -27,6 +27,8 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
+  const [isInitialized, setIsInitialized] = useState(false);
+
   /**
    * 获取新闻数据
    */
@@ -198,10 +200,16 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
    * 组件挂载时自动获取新闻和价格数据
    */
   useEffect(() => {
-    if (news.length === 0 || priceData.length === 0) {
+    if (!isInitialized && (news.length === 0 || priceData.length === 0)) {
+      setIsInitialized(true);
       fetchAndAnalyze();
     }
-  }, [assetType, fetchAndAnalyze, news.length, priceData.length]); // 只在资产类型变化时重新获取
+  }, [assetType]); // 只在资产类型变化时重新获取，移除其他依赖避免死循环
+
+  // 当资产类型变化时重置初始化状态
+  useEffect(() => {
+    setIsInitialized(false);
+  }, [assetType]);
 
   /**
    * 检查数据是否过期（超过30分钟）
