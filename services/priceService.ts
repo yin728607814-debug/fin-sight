@@ -139,12 +139,17 @@ export class PriceService implements IPriceService {
       
       let priceData: PriceData[];
       
-      // 对于纳斯达克指数和黄金，使用Yahoo Finance
-      if (symbol === 'nasdaq' || symbol === 'NDX' || symbol === 'gold') {
+      // 对于纳斯达克指数，使用Yahoo Finance；对于黄金，使用Investing.com
+      if (symbol === 'nasdaq' || symbol === 'NDX') {
         const response = await this.makeRequest({
-          symbol: symbol === 'nasdaq' ? 'nasdaq' : 'gold'
+          symbol: 'nasdaq'
         });
         priceData = this.transformYahooFinanceResponse(response.data, days);
+      } else if (symbol === 'gold') {
+        const response = await this.makeRequest({
+          symbol: 'gold'
+        });
+        priceData = this.transformYahooFinanceResponse(response.data, days); // 使用相同的转换函数
       } else {
         // 其他资产使用Alpha Vantage
         const response = await this.makeRequest({
@@ -264,15 +269,24 @@ export class PriceService implements IPriceService {
         let response: AxiosResponse<unknown>;
 
         if (isBrowser) {
-          // 对于纳斯达克指数和黄金，使用Yahoo Finance API
-          if (params.symbol === 'nasdaq' || params.symbol === 'NDX' || params.symbol === 'gold') {
-            const assetType = params.symbol === 'nasdaq' ? 'nasdaq' : 'gold';
-            console.log(`🌐 使用Yahoo Finance API获取${assetType === 'nasdaq' ? '纳斯达克100指数' : '黄金'}数据`);
+          // 对于纳斯达克指数，使用Yahoo Finance API
+          if (params.symbol === 'nasdaq' || params.symbol === 'NDX') {
+            console.log('🌐 使用Yahoo Finance API获取纳斯达克100指数数据');
             response = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
               params: { 
-                symbol: assetType,
+                symbol: 'nasdaq',
                 range: '5d',
                 interval: '1d'
+              },
+              timeout: this.config.timeout
+            });
+          } else if (params.symbol === 'gold') {
+            // 对于黄金，使用Investing.com API
+            console.log('🌐 使用Investing.com API获取黄金价格数据');
+            response = await axios.get('/.netlify/functions/investing-proxy', {
+              params: { 
+                symbol: 'gold',
+                range: '5d'
               },
               timeout: this.config.timeout
             });
