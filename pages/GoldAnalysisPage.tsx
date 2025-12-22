@@ -206,18 +206,18 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">当前价格</span>
-                    <span className="font-semibold text-gray-900">
-                      {priceData.length > 0 ? `$${priceData[priceData.length - 1]?.close.toFixed(2)}` : '--'}
+                    <span className="font-semibold text-gray-900 whitespace-nowrap">
+                      {priceData.length > 0 ? `$${priceData[priceData.length - 1]?.close.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '--'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">24小时变化</span>
-                    <span className={`font-semibold ${
+                    <span className={`font-semibold whitespace-nowrap ${
                       priceData.length > 0 && priceData[priceData.length - 1]?.changePercent >= 0 
                         ? 'text-green-600' 
                         : 'text-red-600'
                     }`}>
-                      {priceData.length > 0 ? `${priceData[priceData.length - 1]?.changePercent.toFixed(2)}%` : '--'}
+                      {priceData.length > 0 ? `${priceData[priceData.length - 1]?.changePercent >= 0 ? '+' : ''}${priceData[priceData.length - 1]?.changePercent.toFixed(2)}%` : '--'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

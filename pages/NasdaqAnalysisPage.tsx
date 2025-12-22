@@ -206,8 +206,8 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">当前指数</span>
-                    <span className="font-semibold text-gray-900">
-                      {priceData.length > 0 ? `${priceData[priceData.length - 1]?.close.toFixed(2)}` : '--'}
+                    <span className="font-semibold text-gray-900 whitespace-nowrap">
+                      {priceData.length > 0 ? `${priceData[priceData.length - 1]?.close.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '--'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
