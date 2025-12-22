@@ -117,9 +117,9 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 lg:gap-8">
           {/* 左侧：新闻分析 */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             {/* 新闻分析器 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="px-6 py-4 border-b border-gray-200">
@@ -165,7 +165,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
           </div>
 
           {/* 右侧：价格趋势 */}
-          <div className="space-y-6">
+          <div className="xl:col-span-2 space-y-6">
             {/* 价格趋势图表 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="px-6 py-4 border-b border-gray-200">
