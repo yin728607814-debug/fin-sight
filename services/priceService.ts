@@ -376,8 +376,8 @@ export class PriceService implements IPriceService {
       return [];
     }
 
-    const priceData = apiResponse.priceData
-      .slice(-days) // 取最近的天数
+    // 先转换所有数据
+    const allPriceData = apiResponse.priceData
       .map((item: any) => ({
         date: new Date(item.date),
         open: parseFloat(item.open) || 0,
@@ -390,7 +390,14 @@ export class PriceService implements IPriceService {
       }))
       .filter((item: any) => item.close > 0); // 过滤无效数据
 
-    return priceData;
+    // 过滤掉周末数据（周六=6，周日=0）
+    const weekdayData = allPriceData.filter((item: any) => {
+      const dayOfWeek = item.date.getDay();
+      return dayOfWeek !== 0 && dayOfWeek !== 6;
+    });
+
+    // 返回最近的N个工作日数据
+    return weekdayData.slice(-days);
   }
 
   /**

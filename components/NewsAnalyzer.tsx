@@ -89,29 +89,11 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       // 根据资产类型确定符号
       const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold';
       
-      // 获取5天价格历史数据
+      // 获取5天价格历史数据（API 会自动过滤周末并返回5个工作日）
       const priceHistory = await priceService.fetchFiveDayPriceHistory(symbol);
       
-      // 过滤掉周末数据（周六=6，周日=0）
-      const weekdayData = priceHistory.filter(data => {
-        const dayOfWeek = data.date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6;
-      });
-      
-      // 确保我们有5个工作日的数据，如果不够就获取更多
-      if (weekdayData.length < 5) {
-        const extendedHistory = await priceService.fetchPriceHistory(symbol, 10);
-        const extendedWeekdayData = extendedHistory.filter(data => {
-          const dayOfWeek = data.date.getDay();
-          return dayOfWeek !== 0 && dayOfWeek !== 6;
-        });
-        
-        const recentFiveDays = extendedWeekdayData.slice(-5);
-        setPriceData(recentFiveDays);
-      } else {
-        const recentFiveDays = weekdayData.slice(-5);
-        setPriceData(recentFiveDays);
-      }
+      // 设置价格数据
+      setPriceData(priceHistory);
       
       return true;
     } catch (error) {

@@ -15,9 +15,13 @@ async function fetchYahooGoldFutures(range) {
   return new Promise((resolve, reject) => {
     // 使用黄金期货 (GC=F) - COMEX 黄金期货
     const symbol = 'GC=F';
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=1d&includePrePost=false`;
     
-    console.log('📡 请求 Yahoo Finance 黄金期货:', { symbol, range, url });
+    // 为了确保有足够的交易日数据，请求更多天数
+    // 5d 可能只有 3-4 个交易日（因为周末），所以请求 10d
+    const actualRange = range === '5d' ? '10d' : range;
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=${actualRange}&interval=1d&includePrePost=false`;
+    
+    console.log('📡 请求 Yahoo Finance 黄金期货:', { symbol, requestedRange: range, actualRange, url });
     
     https.get(url, {
       timeout: 15000,
