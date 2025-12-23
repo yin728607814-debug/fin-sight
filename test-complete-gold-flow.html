@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试完整黄金数据流</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 测试完整黄金数据流</h1>
+  
+  <div class="container">
+    <h2>1. 测试 Netlify 函数 (investing-proxy)</h2>
+    <button onclick="testInvestingProxy()" id="btn1">测试 investing-proxy</button>
+    <div id="result1"></div>
+  </div>
+  
+  <div class="container">
+    <h2>2. 测试直接 Yahoo Finance API</h2>
+    <button onclick="testYahooDirectly()" id="btn2">测试 Yahoo Finance GC=F</button>
+    <div id="result2"></div>
+  </div>
+  
+  <div class="container">
+    <h2>3. 清除缓存并重新测试</h2>
+    <button onclick="clearCacheAndTest()" id="btn3">清除缓存并测试</button>
+    <div id="result3"></div>
+  </div>
+
+  <script>
+    const today = new Date().toISOString().split('T')[0];
+    
+    async function testInvestingProxy() {
+      const btn = document.getElementById('btn1');
+      const result = document.getElementById('result1');
+      
+      btn.disabled = true;
+      result.innerHTML = '<div class="info">⏳ 正在测试 investing-proxy...</div>';
+      
+      try {
+        const response = await fetch('/.netlify/functions/investing-proxy?symbol=gold&range=5d');
+        const data = await response.json();
+        
+        if (response.ok) {
+          const latest = data.priceData[data.priceData.length - 1];
+          const latestDate = latest.date;
+          const isToday = latestDate === today;
+          
+          let html = `<div class="success">✅ 成功获取数据</div>`;
+          html += `<div class="info">
+            <strong>数据源:</strong> ${data.meta.source}<br>
+            <strong>数据点数:</strong> ${data.priceData.length}<br>
+            <strong>最新日期:</strong> ${latestDate} ${isToday ? '✅ (今天!)' : '⚠️ (不是今天)'}<br>
+            <strong>最新价格:</strong> $${latest.close}<br>
+            <strong>是否真实数据:</strong> ${data.meta.isRealData ? '✅ 是' : '❌ 否'}
+          </div>`;
+          
+          html += '<table><thead><tr><th>日期</th><th>开盘</th><th>最高</th><th>最低</th><th>收盘</th><th>涨跌幅</th></tr></thead><tbody>';
+          data.priceData.forEach(item => {
+            const isLatest = item.date === latestDate;
+            html += `<tr style="${isLatest ? 'background: #ffffcc;' : ''}">
+              <td>${item.date} ${item.date === today ? '✅' : ''}</td>
+              <td>$${item.open}</td>
+              <td>$${item.high}</td>
+              <td>$${item.low}</td>
+              <td><strong>$${item.close}</strong></td>
+              <td style="color: ${item.changePercent >= 0 ? 'green' : 'red'}">
+                ${item.changePercent >= 0 ? '+' : ''}${item.changePercent.toFixed(2)}%
+              </td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+          
+          result.innerHTML = html;
+        } else {
+          result.innerHTML = `<div class="error">❌ 错误: ${data.error || '未知错误'}</div>`;
+        }
+      } catch (error) {
+        result.innerHTML = `<div class="error">❌ 请求失败: ${error.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    
+    async function testYahooDirectly() {
+      const btn = document.getElementById('btn2');
+      const result = document.getElementById('result2');
+      
+      btn.disabled = true;
+      result.innerHTML = '<div class="info">⏳ 正在测试 Yahoo Finance...</div>';
+      
+      try {
+        const url = 'https://query2.finance.yahoo.com/v8/finance/chart/GC=F?range=5d&interval=1d&includePrePost=false';
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.chart?.result?.[0]) {
+          const result_data = data.chart.result[0];
+          const timestamps = result_data.timestamp || [];
+          const quotes = result_data.indicators?.quote?.[0] || {};
+          
+          const lastIndex = timestamps.length - 1;
+          const lastDate = new Date(timestamps[lastIndex] * 1000).toISOString().split('T')[0];
+          const isToday = lastDate === today;
+          
+          let html = `<div class="success">✅ 成功获取数据</div>`;
+          html += `<div class="info">
+            <strong>数据点数:</strong> ${timestamps.length}<br>
+            <strong>最新日期:</strong> ${lastDate} ${isToday ? '✅ (今天!)' : '⚠️ (不是今天)'}<br>
+            <strong>最新价格:</strong> $${quotes.close[lastIndex].toFixed(2)}
+          </div>`;
+          
+          html += '<table><thead><tr><th>日期</th><th>开盘</th><th>最高</th><th>最低</th><th>收盘</th></tr></thead><tbody>';
+          timestamps.forEach((ts, i) => {
+            const date = new Date(ts * 1000).toISOString().split('T')[0];
+            const isLatest = i === lastIndex;
+            html += `<tr style="${isLatest ? 'background: #ffffcc;' : ''}">
+              <td>${date} ${date === today ? '✅' : ''}</td>
+              <td>$${quotes.open[i].toFixed(2)}</td>
+              <td>$${quotes.high[i].toFixed(2)}</td>
+              <td>$${quotes.low[i].toFixed(2)}</td>
+              <td><strong>$${quotes.close[i].toFixed(2)}</strong></td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+          
+          result.innerHTML = html;
+        } else {
+          result.innerHTML = `<div class="error">❌ 错误: ${data.chart?.error?.description || '未知错误'}</div>`;
+        }
+      } catch (error) {
+        result.innerHTML = `<div class="error">❌ 请求失败: ${error.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    
+    async function clearCacheAndTest() {
+      const btn = document.getElementById('btn3');
+      const result = document.getElementById('result3');
+      
+      btn.disabled = true;
+      result.innerHTML = '<div class="info">⏳ 正在清除缓存...</div>';
+      
+      try {
+        // 清除所有缓存
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          result.innerHTML += '<div class="success">✅ 已清除浏览器缓存</div>';
+        }
+        
+        // 清除 localStorage
+        localStorage.clear();
+        result.innerHTML += '<div class="success">✅ 已清除 localStorage</div>';
+        
+        // 清除 sessionStorage
+        sessionStorage.clear();
+        result.innerHTML += '<div class="success">✅ 已清除 sessionStorage</div>';
+        
+        // 重新测试
+        result.innerHTML += '<div class="info">⏳ 重新测试 investing-proxy...</div>';
+        
+        const response = await fetch('/.netlify/functions/investing-proxy?symbol=gold&range=5d&_=' + Date.now());
+        const data = await response.json();
+        
+        if (response.ok) {
+          const latest = data.priceData[data.priceData.length - 1];
+          const latestDate = latest.date;
+          const isToday = latestDate === today;
+          
+          result.innerHTML += `<div class="${isToday ? 'success' : 'error'}">
+            ${isToday ? '✅' : '⚠️'} 最新数据日期: ${latestDate} (当前日期: ${today})
+          </div>`;
+          result.innerHTML += `<div class="info">
+            <strong>最新价格:</strong> $${latest.close}
+          </div>`;
+        } else {
+          result.innerHTML += `<div class="error">❌ 错误: ${data.error || '未知错误'}</div>`;
+        }
+      } catch (error) {
+        result.innerHTML += `<div class="error">❌ 失败: ${error.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    
+    // 页面加载时显示当前日期
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelector('h1').innerHTML += `<br><small style="color: #666;">当前日期: ${today}</small>`;
+    });
+  </script>
+</body>
+</html>
