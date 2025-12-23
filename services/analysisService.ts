@@ -1,6 +1,6 @@
 /**
  * AI分析服务模块
- * 负责使用AI技术分析新闻对市场的潜在影响
+ * 负责使用 Google Gemini AI 分析新闻对市场的潜在影响
  */
 
 import axios, { AxiosResponse } from 'axios';
@@ -10,7 +10,6 @@ import {
   ErrorType 
 } from '../types';
 import { 
-  createAPIError, 
   createAnalysisError, 
   ErrorHandler, 
   isRetryableError,
@@ -18,6 +17,7 @@ import {
   DEFAULT_RETRY_CONFIG 
 } from '../utils/errors';
 import { logInfo, logError } from './logger';
+import { config } from '../config/env';
 
 /**
  * AI分析API配置
@@ -28,42 +28,39 @@ interface AnalysisAPIConfig {
   model: string;
   timeout: number;
   maxRetries: number;
-  maxTokens: number;
 }
 
 /**
- * OpenAI API请求接口
+ * Gemini API请求接口
  */
-interface OpenAIRequest {
-  model: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
+interface GeminiRequest {
+  contents: Array<{
+    parts: Array<{
+      text: string;
+    }>;
   }>;
-  max_tokens: number;
-  temperature: number;
+  generationConfig?: {
+    temperature?: number;
+    maxOutputTokens?: number;
+  };
 }
 
 /**
- * OpenAI API响应接口
+ * Gemini API响应接口
  */
-interface OpenAIResponse {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    message: {
-      role: string;
-      content: string;
+interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
     };
-    finish_reason: string;
+    finishReason: string;
   }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
+  usageMetadata?: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
   };
 }
 
@@ -98,21 +95,20 @@ export class AnalysisService implements IAnalysisService {
 
   constructor(config?: Partial<AnalysisAPIConfig>) {
     this.config = {
-      baseURL: process.env.VITE_OPENAI_API_URL || 'https://api.openai.com/v1',
-      apiKey: process.env.VITE_OPENAI_API_KEY || '',
-      model: process.env.VITE_OPENAI_MODEL || 'gpt-3.5-turbo',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      apiKey: config?.apiKey || '',
+      model: 'gemini-1.5-flash',
       timeout: 30000,
       maxRetries: 3,
-      maxTokens: 500,
       ...config
     };
     
     this.errorHandler = ErrorHandler.getInstance();
     this.cache = new Map();
     
-    logInfo('AnalysisService initialized', { 
-      baseURL: this.config.baseURL,
-      model: this.config.model 
+    logInfo('AnalysisService initialized with Gemini AI', { 
+      model: this.config.model,
+      hasApiKey: !!this.config.apiKey
     });
   }
 
@@ -176,28 +172,151 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * AI分析方法
+   * AI分析方法 - 使用 Gemini API
    */
   private async aiAnalysis(newsContent: string, assetType: string): Promise<AnalysisResult> {
     const prompt = this.buildAnalysisPrompt(newsContent, assetType);
     
-    const response = await this.makeAIRequest({
-      model: this.config.model,
-      messages: [
+    const response = await this.makeGeminiRequest({
+      contents: [
         {
-          role: 'system',
-          content: '你是一个专业的金融分析师，专门分析新闻对金融市场的影响。请用JSON格式返回分析结果。'
-        },
-        {
-          role: 'user',
-          content: prompt
+          parts: [
+            {
+              text: prompt
+            }
+          ]
         }
       ],
-      max_tokens: this.config.maxTokens,
-      temperature: 0.3 // 较低的温度以获得更一致的结果
+      generationConfig: {
+        temperature: 0.3, // 较低的温度以获得更一致的结果
+        maxOutputTokens: 1000
+      }
     });
 
-    return this.parseAIResponse(response.data);
+    return this.parseGeminiResponse(response.data);
+  }
+
+  /**
+   * 发起 Gemini API 请求
+   */
+  private async makeGeminiRequest(request: GeminiRequest): Promise<AxiosResponse<GeminiResponse>> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
+      try {
+        const url = `${this.config.baseURL}/models/${this.config.model}:generateContent?key=${this.config.apiKey}`;
+        
+        logInfo('发起 Gemini API 请求', { 
+          attempt, 
+          model: this.config.model,
+          url: url.replace(this.config.apiKey, '***')
+        });
+        
+        const response = await axios.post<GeminiResponse>(
+          url,
+          request,
+          {
+            timeout: this.config.timeout,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        logInfo('Gemini API 请求成功', { 
+          attempt,
+          tokensUsed: response.data.usageMetadata?.totalTokenCount
+        });
+
+        return response;
+        
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt === this.config.maxRetries) {
+          break;
+        }
+        
+        if (axios.isAxiosError(error)) {
+          // 检查是否是配额限制错误
+          if (error.response?.status === 429) {
+            const delay = calculateRetryDelay(attempt, {
+              ...DEFAULT_RETRY_CONFIG,
+              baseDelay: 2000
+            });
+            logInfo(`Gemini API 配额限制，等待${delay}ms后重试`, { attempt });
+            await this.sleep(delay);
+            continue;
+          }
+          
+          if (!isRetryableError(error)) {
+            throw this.errorHandler.handleNetworkError(error);
+          }
+        }
+        
+        const delay = calculateRetryDelay(attempt);
+        logInfo(`Gemini API 请求失败，${delay}ms后重试`, { 
+          attempt, 
+          error: (error as Error).message 
+        });
+        await this.sleep(delay);
+      }
+    }
+    
+    throw this.errorHandler.handleNetworkError(lastError);
+  }
+
+  /**
+   * 解析 Gemini API 响应
+   */
+  private parseGeminiResponse(response: GeminiResponse): AnalysisResult {
+    try {
+      const candidate = response.candidates?.[0];
+      if (!candidate || !candidate.content?.parts?.[0]?.text) {
+        throw new Error('Gemini API 返回了空响应');
+      }
+
+      const text = candidate.content.parts[0].text;
+      logInfo('Gemini API 响应文本', { textLength: text.length });
+
+      // 尝试解析 JSON
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('无法从响应中提取 JSON');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // 验证和标准化响应
+      return {
+        impact: this.normalizeImpact(parsed.impact),
+        confidence: Math.max(0, Math.min(1, parseFloat(parsed.confidence) || 0.5)),
+        summary: parsed.summary || '无法生成摘要',
+        keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.slice(0, 5) : [],
+        predictedChange: parseFloat(parsed.predictedChange) || 0
+      };
+      
+    } catch (error) {
+      logError('解析 Gemini 响应失败', error);
+      throw createAnalysisError(
+        ErrorType.INVALID_RESPONSE,
+        `解析 AI 响应失败: ${(error as Error).message}`,
+        'PARSE_ERROR'
+      );
+    }
+  }
+
+  /**
+   * 标准化影响类型
+   */
+  private normalizeImpact(impact: string): ImpactType {
+    const normalized = impact?.toLowerCase();
+    if (normalized === 'positive' || normalized === '利好' || normalized === 'bullish') {
+      return 'positive';
+    } else if (normalized === 'negative' || normalized === '利空' || normalized === 'bearish') {
+      return 'negative';
+    }
+    return 'neutral';
   }
 
   /**
@@ -353,164 +472,68 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * 构建AI分析提示词
+   * 构建 AI 分析提示词 - 优化版
    */
   private buildAnalysisPrompt(newsContent: string, assetType: string): string {
-    const assetName = assetType === 'gold' ? '现货黄金' : '纳斯达克100指数';
+    const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    const assetContext = assetType === 'gold' 
+      ? `
+黄金市场关键因素：
+- 美元走势（负相关）
+- 通胀预期（正相关）
+- 利率政策（负相关）
+- 地缘政治风险（正相关）
+- 避险情绪（正相关）
+`
+      : `
+纳斯达克100关键因素：
+- 科技公司财报
+- 利率政策
+- 经济增长预期
+- 监管政策
+- 创新和技术趋势
+`;
     
-    return `
-请分析以下新闻对${assetName}的潜在影响：
+    return `你是一位资深的金融市场分析师，专门分析新闻事件对金融资产的影响。
 
-新闻内容：
+请深度分析以下新闻对${assetName}的影响：
+
+【新闻内容】
 ${newsContent}
 
-请以JSON格式返回分析结果，包含以下字段：
+【分析背景】
+${assetContext}
+
+【分析要求】
+1. 识别新闻中的关键信息和市场信号
+2. 评估对${assetName}的直接和间接影响
+3. 考虑短期（1-3天）和中期（1-2周）的价格影响
+4. 结合当前市场环境和历史经验
+5. 提供量化的价格变化预测
+
+【输出格式】
+请严格按照以下JSON格式返回分析结果（不要包含任何其他文字）：
+
 {
   "impact": "positive/negative/neutral",
-  "confidence": 0.0-1.0之间的数值,
-  "summary": "简要分析摘要（中文，不超过100字）",
-  "keyPoints": ["关键点1", "关键点2", "关键点3"],
-  "predictedChange": 预测的价格变化百分比（-10到10之间）
+  "confidence": 0.75,
+  "summary": "简明扼要的分析结论，说明为什么会产生这种影响（80-150字）",
+  "keyPoints": [
+    "关键点1：具体的影响因素",
+    "关键点2：市场可能的反应",
+    "关键点3：需要关注的风险或机会"
+  ],
+  "predictedChange": 2.5
 }
 
-分析要点：
-1. 考虑新闻对${assetName}的直接和间接影响
-2. 评估影响的时间框架和强度
-3. 考虑当前市场环境和趋势
-4. 提供客观、专业的分析
-`;
-  }
+【字段说明】
+- impact: positive(利好/看涨), negative(利空/看跌), neutral(中性)
+- confidence: 0-1之间，表示分析的置信度
+- summary: 中文分析摘要
+- keyPoints: 3-5个关键分析点
+- predictedChange: 预测的价格变化百分比（-10到+10之间）
 
-  /**
-   * 发起AI API请求
-   */
-  private async makeAIRequest(request: OpenAIRequest): Promise<AxiosResponse<OpenAIResponse>> {
-    let lastError: Error | null = null;
-    
-    for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
-      try {
-        const response = await axios.post(
-          `${this.config.baseURL}/chat/completions`,
-          request,
-          {
-            headers: {
-              'Authorization': `Bearer ${this.config.apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: this.config.timeout
-          }
-        );
-
-        return response;
-        
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (attempt === this.config.maxRetries) {
-          break;
-        }
-        
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 429) {
-            // API限制
-            const delay = calculateRetryDelay(attempt, {
-              ...DEFAULT_RETRY_CONFIG,
-              baseDelay: 3000
-            });
-            logInfo(`AI API限制，等待${delay}ms后重试`, { attempt });
-            await this.sleep(delay);
-            continue;
-          }
-          
-          if (error.response?.status === 401) {
-            throw createAPIError(
-              ErrorType.API_LIMIT_EXCEEDED,
-              'AI API密钥无效或已过期',
-              'INVALID_API_KEY'
-            );
-          }
-          
-          if (!isRetryableError(error)) {
-            throw this.errorHandler.handleNetworkError(error);
-          }
-        }
-        
-        const delay = calculateRetryDelay(attempt);
-        logInfo(`AI API请求失败，${delay}ms后重试`, { attempt, error: (error as Error).message });
-        await this.sleep(delay);
-      }
-    }
-    
-    throw this.errorHandler.handleNetworkError(lastError);
-  }
-
-  /**
-   * 解析AI响应
-   */
-  private parseAIResponse(response: OpenAIResponse): AnalysisResult {
-    if (!response.choices || response.choices.length === 0) {
-      throw createAnalysisError('AI响应格式错误：没有选择项');
-    }
-
-    const content = response.choices[0].message.content;
-    
-    try {
-      // 尝试解析JSON响应
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('未找到JSON格式的响应');
-      }
-      
-      const parsed = JSON.parse(jsonMatch[0]);
-      
-      return {
-        impact: this.validateImpact(parsed.impact),
-        confidence: this.validateConfidence(parsed.confidence),
-        summary: parsed.summary || '分析摘要不可用',
-        keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : ['关键点不可用'],
-        predictedChange: this.validatePredictedChange(parsed.predictedChange)
-      };
-      
-    } catch (error) {
-      logError('解析AI响应失败，使用默认值', { content, error });
-      
-      // 回退到简单解析
-      return {
-        impact: 'neutral',
-        confidence: 0.5,
-        summary: 'AI分析结果解析失败，请稍后重试',
-        keyPoints: ['分析结果不可用'],
-        predictedChange: 0
-      };
-    }
-  }
-
-  /**
-   * 验证影响类型
-   */
-  private validateImpact(impact: any): ImpactType {
-    if (['positive', 'negative', 'neutral'].includes(impact)) {
-      return impact as ImpactType;
-    }
-    return 'neutral';
-  }
-
-  /**
-   * 验证置信度
-   */
-  private validateConfidence(confidence: any): number {
-    const num = parseFloat(confidence);
-    if (isNaN(num)) return 0.5;
-    return Math.max(0, Math.min(1, num));
-  }
-
-  /**
-   * 验证预测变化
-   */
-  private validatePredictedChange(change: any): number {
-    const num = parseFloat(change);
-    if (isNaN(num)) return 0;
-    return Math.max(-10, Math.min(10, num));
+请开始分析：`;
   }
 
   /**
@@ -601,6 +624,8 @@ ${newsContent}
 }
 
 /**
- * 默认分析服务实例
+ * 默认分析服务实例 - 使用 Gemini API
  */
-export const analysisService = new AnalysisService();
+export const analysisService = new AnalysisService({
+  apiKey: config.apiKeys.gemini
+});
