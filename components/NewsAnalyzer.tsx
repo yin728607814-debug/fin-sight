@@ -8,8 +8,9 @@ import { NewsAnalyzerProps, NewsItem, NewsAnalysis } from '../types';
 import { useNews, useAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { newsService, analysisService, priceService } from '../services';
 import { LoadingSpinner } from './LoadingSpinner';
-import { ErrorMessage } from './ErrorMessage';
-import { DemoDataNotice } from './DemoDataNotice';
+import { DataFetchError } from './DemoDataNotice';
+import { RetryHandler, RetryButton } from './RetryHandler';
+import { ProgressiveFallback, createStandardFallbackLevels } from './ProgressiveFallback';
 
 /**
  * 新闻分析器组件
@@ -26,41 +27,67 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
-
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showFallbackOptions, setShowFallbackOptions] = useState(false);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
 
   /**
-   * 获取新闻数据
+   * 获取新闻数据（带重试机制）
    */
-  const fetchNews = useCallback(async () => {
+  const fetchNews = useCallback(async (): Promise<boolean> => {
     try {
       clearError('news');
       setLoading({ news: true });
+      setUsingFallbackData(false);
       
       const newsData = await newsService.fetchMarketNews(assetType, 10);
       setNews(newsData);
       setLastFetchTime(new Date());
       
-      return newsData;
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '获取新闻失败';
       setError('news', errorMessage);
-      throw error;
+      return false;
     } finally {
       setLoading({ news: false });
     }
   }, [assetType, setNews, setLoading, setError, clearError]);
 
   /**
-   * 获取价格数据（5天历史数据，排除周末）
+   * 使用演示数据作为降级方案
    */
-  const fetchPriceData = useCallback(async () => {
+  const useFallbackNews = useCallback(async (): Promise<boolean> => {
+    try {
+      clearError('news');
+      setLoading({ news: true });
+      
+      const { generateDemoNews } = await import('../services/demoDataService');
+      const demoNews = generateDemoNews(assetType, 10);
+      setNews(demoNews);
+      setLastFetchTime(new Date());
+      setUsingFallbackData(true);
+      
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '加载演示数据失败';
+      setError('news', errorMessage);
+      return false;
+    } finally {
+      setLoading({ news: false });
+    }
+  }, [assetType, setNews, setLoading, setError, clearError]);
+
+  /**
+   * 获取价格数据（带重试机制）
+   */
+  const fetchPriceData = useCallback(async (): Promise<boolean> => {
     try {
       clearError('prices');
       setLoading({ prices: true });
       
       // 根据资产类型确定符号
-      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold'; // nasdaq使用Yahoo Finance获取指数数据，gold使用Investing.com获取实时价格
+      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold';
       
       // 获取5天价格历史数据
       const priceHistory = await priceService.fetchFiveDayPriceHistory(symbol);
@@ -68,31 +95,30 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       // 过滤掉周末数据（周六=6，周日=0）
       const weekdayData = priceHistory.filter(data => {
         const dayOfWeek = data.date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6; // 排除周日和周六
+        return dayOfWeek !== 0 && dayOfWeek !== 6;
       });
       
       // 确保我们有5个工作日的数据，如果不够就获取更多
       if (weekdayData.length < 5) {
-        // 获取更多天数的数据
         const extendedHistory = await priceService.fetchPriceHistory(symbol, 10);
         const extendedWeekdayData = extendedHistory.filter(data => {
           const dayOfWeek = data.date.getDay();
           return dayOfWeek !== 0 && dayOfWeek !== 6;
         });
         
-        // 取最近的5个工作日
         const recentFiveDays = extendedWeekdayData.slice(-5);
         setPriceData(recentFiveDays);
       } else {
-        // 取最近的5个工作日
         const recentFiveDays = weekdayData.slice(-5);
         setPriceData(recentFiveDays);
       }
       
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '获取价格数据失败';
       setError('prices', errorMessage);
       console.error('获取价格数据失败:', error);
+      return false;
     } finally {
       setLoading({ prices: false });
     }
@@ -170,30 +196,42 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   }, [assetType, setAnalysis, setLoading, setError, clearError, onAnalysisComplete]);
 
   /**
-   * 获取并分析新闻，同时获取价格数据
+   * 获取并分析新闻，同时获取价格数据（带重试机制）
    */
-  const fetchAndAnalyze = useCallback(async () => {
+  const fetchAndAnalyze = useCallback(async (): Promise<boolean> => {
     try {
       // 并行获取新闻和价格数据
-      const [newsData] = await Promise.all([
+      const [newsSuccess, priceSuccess] = await Promise.all([
         fetchNews(),
         fetchPriceData()
       ]);
       
-      // 分析新闻
-      await analyzeNews(newsData);
+      // 如果新闻获取成功，进行分析
+      if (newsSuccess && news.length > 0) {
+        await analyzeNews(news);
+      }
+      
+      return newsSuccess || priceSuccess; // 至少一个成功就算成功
     } catch (error) {
       console.error('获取和分析数据失败:', error);
+      return false;
     }
-  }, [fetchNews, fetchPriceData, analyzeNews]);
+  }, [fetchNews, fetchPriceData, analyzeNews, news]);
 
   /**
-   * 重新分析现有新闻
+   * 重新分析现有新闻（带重试机制）
    */
-  const reanalyzeNews = useCallback(async () => {
+  const reanalyzeNews = useCallback(async (): Promise<boolean> => {
     if (news && news.length > 0) {
-      await analyzeNews(news);
+      try {
+        await analyzeNews(news);
+        return true;
+      } catch (error) {
+        console.error('重新分析新闻失败:', error);
+        return false;
+      }
     }
+    return false;
   }, [news, analyzeNews]);
 
   /**
@@ -222,13 +260,59 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* 演示数据提示 - 只在本地开发环境显示 */}
-      {typeof window !== 'undefined' && (
-        window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' ||
-        window.location.port === '3001'
-      ) && (
-        <DemoDataNotice />
+      {/* 数据获取失败时的渐进式降级 */}
+      {errors.news && !loading.news && news.length === 0 && (
+        <ProgressiveFallback
+          dataType="news"
+          fallbackLevels={createStandardFallbackLevels(
+            'news',
+            fetchNews,
+            undefined,
+            useFallbackNews
+          )}
+          onSuccess={(level) => {
+            console.log(`数据获取成功，使用策略: ${level.name}`);
+            setShowFallbackOptions(false);
+          }}
+          onAllFailed={() => {
+            console.log('所有数据获取策略都失败了');
+            setShowFallbackOptions(true);
+          }}
+        />
+      )}
+
+      {/* 使用降级数据的提示 */}
+      {usingFallbackData && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">
+                当前使用演示数据
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>由于无法获取实时新闻数据，当前显示的是演示数据用于功能展示。</p>
+                <div className="mt-2">
+                  <RetryButton
+                    onRetry={fetchNews}
+                    size="sm"
+                    className="mr-2"
+                  />
+                  <button
+                    onClick={() => setUsingFallbackData(false)}
+                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                  >
+                    隐藏提示
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       
       {/* 控制面板 */}
@@ -253,46 +337,54 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
           </div>
           
           <div className="flex space-x-2">
-            <button
-              onClick={fetchAndAnalyze}
-              disabled={loading.news || isAnalyzing}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading.news ? (
-                <>
-                  <LoadingSpinner size="sm" className="mr-2" />
-                  获取中...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  刷新新闻
-                </>
+            <RetryHandler onRetry={fetchAndAnalyze}>
+              {({ isRetrying, canRetry, retry, attempt, maxAttempts }) => (
+                <button
+                  onClick={retry}
+                  disabled={loading.news || isAnalyzing || isRetrying || !canRetry}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading.news || isRetrying ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      {isRetrying ? `重试中... (${attempt}/${maxAttempts})` : '获取中...'}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      刷新新闻
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </RetryHandler>
             
             {news.length > 0 && (
-              <button
-                onClick={reanalyzeNews}
-                disabled={isAnalyzing}
-                className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    分析中...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    重新分析
-                  </>
+              <RetryHandler onRetry={reanalyzeNews}>
+                {({ isRetrying, canRetry, retry, attempt, maxAttempts }) => (
+                  <button
+                    onClick={retry}
+                    disabled={isAnalyzing || isRetrying || !canRetry}
+                    className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAnalyzing || isRetrying ? (
+                      <>
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        {isRetrying ? `重新分析中... (${attempt}/${maxAttempts})` : '分析中...'}
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        重新分析
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
+              </RetryHandler>
             )}
           </div>
         </div>
@@ -324,20 +416,33 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
         )}
       </div>
 
-      {/* 错误信息 */}
-      {errors.news && (
-        <ErrorMessage 
-          message={errors.news} 
+      {/* 改进的错误信息显示 */}
+      {errors.news && !showFallbackOptions && (
+        <DataFetchError
+          dataType="news"
+          error={errors.news}
           onRetry={fetchNews}
           onDismiss={() => clearError('news')}
+          showFallbackOption={true}
+          onUseFallback={useFallbackNews}
         />
       )}
       
       {errors.analysis && (
-        <ErrorMessage 
-          message={errors.analysis} 
+        <DataFetchError
+          dataType="analysis"
+          error={errors.analysis}
           onRetry={reanalyzeNews}
           onDismiss={() => clearError('analysis')}
+        />
+      )}
+
+      {errors.prices && (
+        <DataFetchError
+          dataType="price"
+          error={errors.prices}
+          onRetry={fetchPriceData}
+          onDismiss={() => clearError('prices')}
         />
       )}
 

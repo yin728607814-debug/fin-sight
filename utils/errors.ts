@@ -259,6 +259,14 @@ export class ErrorHandler {
       return error;
     }
 
+    // 处理axios错误
+    if (error && typeof error === 'object' && 'isAxiosError' in error && error.isAxiosError) {
+      const axiosError = error as any;
+      const status = axiosError.response?.status;
+      const message = axiosError.response?.data?.message || axiosError.message || '网络请求失败';
+      return createNetworkError(`网络错误: ${message}`, status, error);
+    }
+
     if (error instanceof Error) {
       return createNetworkError(`网络错误: ${error.message}`, undefined, error);
     }

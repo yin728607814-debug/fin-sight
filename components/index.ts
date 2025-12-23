@@ -35,7 +35,11 @@ export {
   EmptyState 
 } from './ErrorMessage';
 
+// 改进的错误处理和重试组件
+export { DataFetchError, DemoDataNotice } from './DemoDataNotice';
+export { RetryHandler, RetryButton, RetryIndicator } from './RetryHandler';
+export { ProgressiveFallback, createStandardFallbackLevels } from './ProgressiveFallback';
+
 // 现有组件
 export { FeatureCard } from './FeatureCard';
 export { DebugPanel } from './DebugPanel';
-export { DemoDataNotice } from './DemoDataNotice';
