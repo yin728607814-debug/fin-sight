@@ -95,9 +95,9 @@ export class AnalysisService implements IAnalysisService {
 
   constructor(config?: Partial<AnalysisAPIConfig>) {
     this.config = {
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      baseURL: 'https://generativelanguage.googleapis.com/v1',
       apiKey: config?.apiKey || '',
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash', // 使用最新的 Gemini 2.5 Flash 模型
       timeout: 30000,
       maxRetries: 3,
       ...config
@@ -189,7 +189,7 @@ export class AnalysisService implements IAnalysisService {
       ],
       generationConfig: {
         temperature: 0.3, // 较低的温度以获得更一致的结果
-        maxOutputTokens: 1000
+        maxOutputTokens: 2048 // 增加输出token限制
       }
     });
 
@@ -472,68 +472,28 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * 构建 AI 分析提示词 - 优化版
+   * 构建 AI 分析提示词 - 简化版（减少思考token消耗）
    */
   private buildAnalysisPrompt(newsContent: string, assetType: string): string {
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
-    const assetContext = assetType === 'gold' 
-      ? `
-黄金市场关键因素：
-- 美元走势（负相关）
-- 通胀预期（正相关）
-- 利率政策（负相关）
-- 地缘政治风险（正相关）
-- 避险情绪（正相关）
-`
-      : `
-纳斯达克100关键因素：
-- 科技公司财报
-- 利率政策
-- 经济增长预期
-- 监管政策
-- 创新和技术趋势
-`;
     
-    return `你是一位资深的金融市场分析师，专门分析新闻事件对金融资产的影响。
+    return `分析以下新闻对${assetName}的影响，直接返回JSON格式（不要markdown代码块）：
 
-请深度分析以下新闻对${assetName}的影响：
+新闻：${newsContent}
 
-【新闻内容】
-${newsContent}
-
-【分析背景】
-${assetContext}
-
-【分析要求】
-1. 识别新闻中的关键信息和市场信号
-2. 评估对${assetName}的直接和间接影响
-3. 考虑短期（1-3天）和中期（1-2周）的价格影响
-4. 结合当前市场环境和历史经验
-5. 提供量化的价格变化预测
-
-【输出格式】
-请严格按照以下JSON格式返回分析结果（不要包含任何其他文字）：
-
+返回格式：
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "简明扼要的分析结论，说明为什么会产生这种影响（80-150字）",
-  "keyPoints": [
-    "关键点1：具体的影响因素",
-    "关键点2：市场可能的反应",
-    "关键点3：需要关注的风险或机会"
-  ],
+  "summary": "简要分析（80-150字）",
+  "keyPoints": ["关键点1", "关键点2", "关键点3"],
   "predictedChange": 2.5
 }
 
-【字段说明】
-- impact: positive(利好/看涨), negative(利空/看跌), neutral(中性)
-- confidence: 0-1之间，表示分析的置信度
-- summary: 中文分析摘要
-- keyPoints: 3-5个关键分析点
-- predictedChange: 预测的价格变化百分比（-10到+10之间）
-
-请开始分析：`;
+说明：
+- impact: positive(利好), negative(利空), neutral(中性)
+- confidence: 0-1之间的置信度
+- predictedChange: 预测价格变化百分比（-10到+10）`;
   }
 
   /**
