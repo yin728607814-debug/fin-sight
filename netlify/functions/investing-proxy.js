@@ -149,7 +149,7 @@ exports.handler = async (event, _context) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300' // 缓存5分钟
+        'Cache-Control': 'public, max-age=60' // 缓存1分钟（更频繁更新）
       },
       body: JSON.stringify(responseData)
     };
@@ -217,6 +217,14 @@ async function fetchAlphaVantageHistoricalData(range) {
           // 转换为标准格式
           const dates = Object.keys(timeSeries).sort((a, b) => new Date(b) - new Date(a));
           const days = range === '5d' ? 5 : range === '1mo' ? 30 : 5;
+          
+          console.log('📊 Alpha Vantage数据日期范围:', {
+            totalDates: dates.length,
+            latestDate: dates[0],
+            oldestDate: dates[dates.length - 1],
+            requestedDays: days
+          });
+          
           const historicalData = dates.slice(0, days).map(dateStr => {
             const dayData = timeSeries[dateStr];
             const open = parseFloat(dayData['1. open']);

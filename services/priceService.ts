@@ -49,8 +49,8 @@ export class PriceService implements IPriceService {
   private errorHandler: ErrorHandler;
   private priceCache: Map<string, CacheItem<PriceData[]>>;
   private assetCache: Map<string, CacheItem<AssetInfo>>;
-  private readonly PRICE_CACHE_DURATION = 15 * 60 * 1000; // 15分钟缓存
-  private readonly ASSET_CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+  private readonly PRICE_CACHE_DURATION = 1 * 60 * 1000; // 1分钟缓存（更频繁更新）
+  private readonly ASSET_CACHE_DURATION = 1 * 60 * 1000; // 1分钟缓存
 
   constructor(apiConfig?: Partial<PriceAPIConfig>) {
     this.config = {

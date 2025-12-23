@@ -331,7 +331,7 @@ export class HistoricalDataService implements HistoricalPriceService {
   private adapters: Map<string, DataSourceAdapter>;
   private currentAdapter: DataSourceAdapter;
   private cache: Map<string, { data: HistoricalPriceData[]; timestamp: number }>;
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+  private readonly CACHE_DURATION = 1 * 60 * 1000; // 1分钟缓存（更频繁更新）
 
   constructor(alphaVantageApiKey?: string) {
     this.adapters = new Map();
