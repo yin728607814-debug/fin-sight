@@ -299,77 +299,121 @@ export const NewsList: React.FC<NewsListProps> = ({
               </div>
 
               {/* 展开的详细内容 */}
-              {isExpanded && newsAnalysis && (
+              {isExpanded && (
                 <div className="border-t border-slate-200 bg-slate-50 p-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <h5 className="font-medium text-slate-900 mb-2">分析摘要</h5>
-                      <p className="text-sm text-slate-600 mb-4">{newsAnalysis.summary}</p>
+                  {newsAnalysis ? (
+                    // 有分析结果时显示分析详情
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <h5 className="font-medium text-slate-900 mb-2">分析摘要</h5>
+                        <p className="text-sm text-slate-600 mb-4">{newsAnalysis.summary}</p>
+                        
+                        <h5 className="font-medium text-slate-900 mb-2">关键要点</h5>
+                        <ul className="text-sm text-slate-600 space-y-1">
+                          {newsAnalysis.keyPoints.map((point, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="inline-block w-1.5 h-1.5 bg-slate-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                              {point}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                       
-                      <h5 className="font-medium text-slate-900 mb-2">关键要点</h5>
-                      <ul className="text-sm text-slate-600 space-y-1">
-                        {newsAnalysis.keyPoints.map((point, index) => (
-                          <li key={index} className="flex items-start">
-                            <span className="inline-block w-1.5 h-1.5 bg-slate-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div>
-                      <h5 className="font-medium text-slate-900 mb-2">影响评估</h5>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-slate-600">影响方向:</span>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            newsAnalysis.impact === 'positive' 
-                              ? 'bg-green-100 text-green-800'
-                              : newsAnalysis.impact === 'negative'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {newsAnalysis.impact === 'positive' ? '利好' : 
-                             newsAnalysis.impact === 'negative' ? '利空' : '中性'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-slate-600">置信度:</span>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-20 bg-slate-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full" 
-                                style={{ width: `${newsAnalysis.confidence * 100}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm font-medium">
-                              {(newsAnalysis.confidence * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {typeof newsAnalysis.predictedChange === 'number' && (
+                      <div>
+                        <h5 className="font-medium text-slate-900 mb-2">影响评估</h5>
+                        <div className="space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-slate-600">预测变化:</span>
-                            <span className={`text-sm font-medium ${
-                              newsAnalysis.predictedChange >= 0 ? 'text-green-600' : 'text-red-600'
+                            <span className="text-sm text-slate-600">影响方向:</span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              newsAnalysis.impact === 'positive' 
+                                ? 'bg-green-100 text-green-800'
+                                : newsAnalysis.impact === 'negative'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {newsAnalysis.predictedChange >= 0 ? '+' : ''}{newsAnalysis.predictedChange.toFixed(2)}%
+                              {newsAnalysis.impact === 'positive' ? '利好' : 
+                               newsAnalysis.impact === 'negative' ? '利空' : '中性'}
                             </span>
                           </div>
-                        )}
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-slate-600">时间框架:</span>
-                          <span className="text-sm text-slate-900">
-                            {newsAnalysis.timeframe === 'short' ? '短期' :
-                             newsAnalysis.timeframe === 'medium' ? '中期' : '长期'}
-                          </span>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-slate-600">置信度:</span>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-20 bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full" 
+                                  style={{ width: `${newsAnalysis.confidence * 100}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-sm font-medium">
+                                {(newsAnalysis.confidence * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {typeof newsAnalysis.predictedChange === 'number' && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-slate-600">预测变化:</span>
+                              <span className={`text-sm font-medium ${
+                                newsAnalysis.predictedChange >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {newsAnalysis.predictedChange >= 0 ? '+' : ''}{newsAnalysis.predictedChange.toFixed(2)}%
+                              </span>
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-slate-600">时间框架:</span>
+                            <span className="text-sm text-slate-900">
+                              {newsAnalysis.timeframe === 'short' ? '短期' :
+                               newsAnalysis.timeframe === 'medium' ? '中期' : '长期'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    // 没有分析结果时显示新闻完整内容
+                    <div>
+                      <h5 className="font-medium text-slate-900 mb-3">新闻详情</h5>
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-slate-700 whitespace-pre-wrap">{newsItem.content}</p>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-slate-300">
+                        <div className="flex items-center justify-between text-sm text-slate-500">
+                          <div>
+                            <span className="font-medium">来源:</span> {newsItem.source}
+                          </div>
+                          <div>
+                            <span className="font-medium">发布时间:</span> {newsItem.publishedAt.toLocaleString('zh-CN')}
+                          </div>
+                        </div>
+                        {newsItem.url && (
+                          <div className="mt-3">
+                            <a
+                              href={newsItem.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                              阅读原文
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p className="text-sm text-yellow-800">
+                          <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          该新闻尚未进行 AI 分析，点击"重新分析"按钮获取影响评估
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
