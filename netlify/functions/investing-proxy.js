@@ -5,7 +5,121 @@
 
 const https = require('https');
 
-exports.handler = async (event, _context) => {
+// 从 Yahoo Finance 获取黄金期货历史数据 (GC=F)
+async function fetchYahooGoldFutures(range) {
+  return new Promise((resolve, reject) => {
+    // 使用黄金期货 (GC=F) - COMEX 黄金期货
+    const symbol = 'GC=F';
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=1d&includePrePost=false`;
+    
+    console.log('📡 请求 Yahoo Finance 黄金期货:', { symbol, range, url });
+    
+    https.get(url, {
+      timeout: 15000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    }, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        try {
+          const jsonData = JSON.parse(data);
+          
+          if (jsonData.chart?.error) {
+            reject(new Error(`Yahoo Finance API error: ${jsonData.chart.error.description}`));
+            return;
+          }
+          
+          const result = jsonData.chart?.result?.[0];
+          if (!result) {
+            reject(new Error('No chart data found'));
+            return;
+          }
+          
+          const timestamps = result.timestamp || [];
+          const quotes = result.indicators?.quote?.[0] || {};
+          const { open, high, low, close, volume } = quotes;
+          
+          if (timestamps.length === 0) {
+            reject(new Error('No timestamp data'));
+            return;
+          }
+          
+          console.log('📊 Yahoo Finance 数据接收:', {
+            dataPoints: timestamps.length,
+            firstDate: new Date(timestamps[0] * 1000).toISOString().split('T')[0],
+            lastDate: new Date(timestamps[timestamps.length - 1] * 1000).toISOString().split('T')[0]
+          });
+          
+          // 转换为标准格式 - 黄金期货价格已经是正确的美元价格
+          const historicalData = timestamps.map((timestamp, index) => {
+            const date = new Date(timestamp * 1000);
+            const openPrice = open?.[index];
+            const highPrice = high?.[index];
+            const lowPrice = low?.[index];
+            const closePrice = close?.[index];
+            const vol = volume?.[index] || 0;
+            
+            // 黄金期货价格已经是正确的，不需要转换
+            return {
+              date: date.toISOString().split('T')[0],
+              open: Math.round(openPrice * 100) / 100,
+              high: Math.round(highPrice * 100) / 100,
+              low: Math.round(lowPrice * 100) / 100,
+              close: Math.round(closePrice * 100) / 100,
+              volume: vol,
+              change: Math.round((closePrice - openPrice) * 100) / 100,
+              changePercent: Math.round(((closePrice - openPrice) / openPrice) * 10000) / 100
+            };
+          }).filter(item => item.close !== null && item.close !== undefined && !isNaN(item.close));
+          
+          console.log('✅ 数据转换完成:', {
+            validDataPoints: historicalData.length,
+            latestDate: historicalData[historicalData.length - 1]?.date,
+            latestPrice: historicalData[historicalData.length - 1]?.close
+          });
+          
+          resolve(historicalData);
+        } catch (error) {
+          reject(new Error(`Failed to parse Yahoo Finance response: ${error.message}`));
+        }
+      });
+    }).on('error', (error) => {
+      reject(new Error(`Yahoo Finance request failed: ${error.message}`));
+    });
+  });
+}
+
+// 验证历史数据质量
+function validateHistoricalData(data) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('Invalid historical data: empty or not an array');
+  }
+  
+  return data.filter(item => {
+    // 基本数据完整性检查
+    return (
+      item.date &&
+      typeof item.open === 'number' && item.open > 0 &&
+      typeof item.high === 'number' && item.high > 0 &&
+      typeof item.low === 'number' && item.low > 0 &&
+      typeof item.close === 'number' && item.close > 0 &&
+      item.high >= Math.max(item.open, item.close) &&
+      item.low <= Math.min(item.open, item.close) &&
+      item.close >= 2000 && item.close <= 8000 // 合理的黄金价格范围
+    );
+  }).sort((a, b) => new Date(a.date) - new Date(b.date)); // 按日期排序
+}
+
+// Netlify 函数 handler
+const handler = async (event, _context) => {
   // 只允许GET请求
   if (event.httpMethod !== 'GET') {
     return {
@@ -129,121 +243,6 @@ exports.handler = async (event, _context) => {
   }
 };
 
-// 从 Yahoo Finance 获取黄金期货历史数据 (GC=F)
-async function fetchYahooGoldFutures(range) {
-  return new Promise((resolve, reject) => {
-    // 使用黄金期货 (GC=F) - COMEX 黄金期货
-    const symbol = 'GC=F';
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=1d&includePrePost=false`;
-    
-    console.log('📡 请求 Yahoo Finance 黄金期货:', { symbol, range, url });
-    
-    https.get(url, {
-      timeout: 15000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9'
-      }
-    }, (res) => {
-      let data = '';
-      
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      
-      res.on('end', () => {
-        try {
-          const jsonData = JSON.parse(data);
-          
-          if (jsonData.chart?.error) {
-            reject(new Error(`Yahoo Finance API error: ${jsonData.chart.error.description}`));
-            return;
-          }
-          
-          const result = jsonData.chart?.result?.[0];
-          if (!result) {
-            reject(new Error('No chart data found'));
-            return;
-          }
-          
-          const timestamps = result.timestamp || [];
-          const quotes = result.indicators?.quote?.[0] || {};
-          const { open, high, low, close, volume } = quotes;
-          
-          if (timestamps.length === 0) {
-            reject(new Error('No timestamp data'));
-            return;
-          }
-          
-          console.log('📊 Yahoo Finance 数据接收:', {
-            dataPoints: timestamps.length,
-            firstDate: new Date(timestamps[0] * 1000).toISOString().split('T')[0],
-            lastDate: new Date(timestamps[timestamps.length - 1] * 1000).toISOString().split('T')[0]
-          });
-          
-          // 转换为标准格式 - 黄金期货价格已经是正确的美元价格
-          const historicalData = timestamps.map((timestamp, index) => {
-            const date = new Date(timestamp * 1000);
-            const openPrice = open?.[index];
-            const highPrice = high?.[index];
-            const lowPrice = low?.[index];
-            const closePrice = close?.[index];
-            const vol = volume?.[index] || 0;
-            
-            // 黄金期货价格已经是正确的，不需要转换
-            return {
-              date: date.toISOString().split('T')[0],
-              open: Math.round(openPrice * 100) / 100,
-              high: Math.round(highPrice * 100) / 100,
-              low: Math.round(lowPrice * 100) / 100,
-              close: Math.round(closePrice * 100) / 100,
-              volume: vol,
-              change: Math.round((closePrice - openPrice) * 100) / 100,
-              changePercent: Math.round(((closePrice - openPrice) / openPrice) * 10000) / 100
-            };
-          }).filter(item => item.close !== null && item.close !== undefined && !isNaN(item.close));
-          
-          console.log('✅ 数据转换完成:', {
-            validDataPoints: historicalData.length,
-            latestDate: historicalData[historicalData.length - 1]?.date,
-            latestPrice: historicalData[historicalData.length - 1]?.close
-          });
-          
-          resolve(historicalData);
-        } catch (error) {
-          reject(new Error(`Failed to parse Yahoo Finance response: ${error.message}`));
-        }
-      });
-    }).on('error', (error) => {
-      reject(new Error(`Yahoo Finance request failed: ${error.message}`));
-    });
-  });
-}
-
-// 验证历史数据质量
-function validateHistoricalData(data) {
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error('Invalid historical data: empty or not an array');
-  }
-  
-  return data.filter(item => {
-    // 基本数据完整性检查
-    return (
-      item.date &&
-      typeof item.open === 'number' && item.open > 0 &&
-      typeof item.high === 'number' && item.high > 0 &&
-      typeof item.low === 'number' && item.low > 0 &&
-      typeof item.close === 'number' && item.close > 0 &&
-      item.high >= Math.max(item.open, item.close) &&
-      item.low <= Math.min(item.open, item.close) &&
-      item.close >= 2000 && item.close <= 8000 // 合理的黄金价格范围
-    );
-  }).sort((a, b) => new Date(a.date) - new Date(b.date)); // 按日期排序
-}
-
-// 导出函数用于测试
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { validateHistoricalData };
-}
+// 导出 handler
+module.exports = { handler };
 
