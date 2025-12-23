@@ -5,6 +5,11 @@
 
 const https = require('https');
 
+// 期货到现货价格调整系数
+// 基于历史数据，期货价格通常比现货高约 0.7%
+// 调整系数 = 1 - 0.007 = 0.993
+const FUTURES_TO_SPOT_ADJUSTMENT = 0.993;
+
 // 从 Yahoo Finance 获取黄金期货历史数据 (GC=F)
 async function fetchYahooGoldFutures(range) {
   return new Promise((resolve, reject) => {
@@ -58,7 +63,7 @@ async function fetchYahooGoldFutures(range) {
             lastDate: new Date(timestamps[timestamps.length - 1] * 1000).toISOString().split('T')[0]
           });
           
-          // 转换为标准格式 - 黄金期货价格已经是正确的美元价格
+          // 转换为标准格式并调整为现货价格
           const historicalData = timestamps.map((timestamp, index) => {
             const date = new Date(timestamp * 1000);
             const openPrice = open?.[index];
@@ -67,23 +72,29 @@ async function fetchYahooGoldFutures(range) {
             const closePrice = close?.[index];
             const vol = volume?.[index] || 0;
             
-            // 黄金期货价格已经是正确的，不需要转换
+            // 将期货价格调整为现货价格（减去约 0.7% 的溢价）
+            const adjustedOpen = openPrice * FUTURES_TO_SPOT_ADJUSTMENT;
+            const adjustedHigh = highPrice * FUTURES_TO_SPOT_ADJUSTMENT;
+            const adjustedLow = lowPrice * FUTURES_TO_SPOT_ADJUSTMENT;
+            const adjustedClose = closePrice * FUTURES_TO_SPOT_ADJUSTMENT;
+            
             return {
               date: date.toISOString().split('T')[0],
-              open: Math.round(openPrice * 100) / 100,
-              high: Math.round(highPrice * 100) / 100,
-              low: Math.round(lowPrice * 100) / 100,
-              close: Math.round(closePrice * 100) / 100,
+              open: Math.round(adjustedOpen * 100) / 100,
+              high: Math.round(adjustedHigh * 100) / 100,
+              low: Math.round(adjustedLow * 100) / 100,
+              close: Math.round(adjustedClose * 100) / 100,
               volume: vol,
-              change: Math.round((closePrice - openPrice) * 100) / 100,
-              changePercent: Math.round(((closePrice - openPrice) / openPrice) * 10000) / 100
+              change: Math.round((adjustedClose - adjustedOpen) * 100) / 100,
+              changePercent: Math.round(((adjustedClose - adjustedOpen) / adjustedOpen) * 10000) / 100
             };
           }).filter(item => item.close !== null && item.close !== undefined && !isNaN(item.close));
           
-          console.log('✅ 数据转换完成:', {
+          console.log('✅ 数据转换完成（已调整为现货价格）:', {
             validDataPoints: historicalData.length,
             latestDate: historicalData[historicalData.length - 1]?.date,
-            latestPrice: historicalData[historicalData.length - 1]?.close
+            latestPrice: historicalData[historicalData.length - 1]?.close,
+            adjustment: `期货价格 × ${FUTURES_TO_SPOT_ADJUSTMENT} = 现货价格`
           });
           
           resolve(historicalData);
@@ -193,22 +204,24 @@ const handler = async (event, _context) => {
       meta: {
         currency: 'USD',
         exchangeName: 'COMEX',
-        instrumentType: 'FUTURES',
+        instrumentType: 'SPOT',
         timezone: 'America/New_York',
-        source: 'Real gold futures data from Yahoo Finance (GC=F)',
+        source: 'Spot gold price adjusted from Yahoo Finance futures (GC=F)',
         lastUpdated: new Date().toISOString(),
-        note: 'Authentic COMEX gold futures market data',
+        note: 'Futures price adjusted to spot price (0.7% discount)',
         dataPoints: validatedData.length,
-        isRealData: true
+        isRealData: true,
+        priceAdjustment: `Futures × ${FUTURES_TO_SPOT_ADJUSTMENT}`
       },
       priceData: validatedData
     };
 
-    console.log('✅ 返回真实历史黄金价格数据:', {
-      symbol: 'GC=F',
+    console.log('✅ 返回调整后的现货黄金价格数据:', {
+      symbol: 'XAUUSD (adjusted from GC=F)',
       dataPoints: validatedData.length,
       latestPrice: validatedData[validatedData.length - 1]?.close,
-      source: 'Yahoo Finance Gold Futures',
+      source: 'Yahoo Finance Gold Futures (adjusted to spot)',
+      adjustment: `${FUTURES_TO_SPOT_ADJUSTMENT}x`,
       dateRange: {
         from: validatedData[0]?.date,
         to: validatedData[validatedData.length - 1]?.date
