@@ -126,22 +126,13 @@ export class NewsService implements INewsService {
       return demoNews;
     }
 
-    // 生产环境：根据资产类型选择API
+    // 生产环境：统一使用新浪财经（中文新闻）
     return measureAsync(
       'news_fetch',
       async () => {
         try {
-          let newsItems: NewsItem[];
-          
-          if (assetType === 'nasdaq') {
-            // 纳斯达克：使用Alpha Vantage News API
-            console.log('🚀 使用Alpha Vantage获取纳斯达克新闻');
-            newsItems = await this.fetchAlphaVantageNews(limit);
-          } else {
-            // 黄金：继续使用新浪财经
-            console.log('🚀 使用新浪财经获取黄金新闻');
-            newsItems = await this.fetchSinaNews(assetType, limit);
-          }
+          console.log('🚀 使用新浪财经获取新闻', { assetType });
+          const newsItems = await this.fetchSinaNews(assetType, limit);
           
           // 缓存结果
           this.setCache(cacheKey, newsItems);
@@ -172,99 +163,6 @@ export class NewsService implements INewsService {
       },
       { assetType, limit }
     );
-  }
-
-  /**
-   * 使用Finnhub获取纳斯达克新闻（免费配额：60次/分钟）
-   */
-  private async fetchAlphaVantageNews(limit: number = 50): Promise<NewsItem[]> {
-    try {
-      console.log('📡 调用Finnhub News API');
-      
-      // 纳斯达克100主要成分股
-      const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'INTC'];
-      
-      // 获取最近7天的新闻
-      const toDate = new Date();
-      const fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() - 7);
-      
-      const formatDate = (date: Date) => date.toISOString().split('T')[0];
-      
-      // 并发获取多个股票的新闻（限制并发数避免超限）
-      const allNews: any[] = [];
-      
-      // 每次获取2个股票的新闻，避免超过速率限制
-      for (let i = 0; i < Math.min(tickers.length, 4); i += 2) {
-        const batch = tickers.slice(i, i + 2);
-        
-        const batchPromises = batch.map(ticker =>
-          axios.get('https://finnhub.io/api/v1/company-news', {
-            params: {
-              symbol: ticker,
-              from: formatDate(fromDate),
-              to: formatDate(toDate),
-              token: config.apiKeys.finnhub
-            },
-            timeout: this.config.timeout
-          }).catch(err => {
-            console.warn(`⚠️ 获取${ticker}新闻失败`, err.message);
-            return { data: [] };
-          })
-        );
-        
-        const batchResults = await Promise.all(batchPromises);
-        batchResults.forEach(response => {
-          if (Array.isArray(response.data)) {
-            allNews.push(...response.data);
-          }
-        });
-        
-        // 避免速率限制，批次间延迟
-        if (i + 2 < tickers.length) {
-          await this.sleep(1000);
-        }
-      }
-
-      console.log('📡 Finnhub响应', { 
-        totalNews: allNews.length
-      });
-
-      if (allNews.length === 0) {
-        throw new Error('Finnhub API未返回新闻数据');
-      }
-
-      // 去重（按URL）
-      const uniqueNews = Array.from(
-        new Map(allNews.map(item => [item.url, item])).values()
-      );
-
-      // 按时间排序，取最新的
-      const sortedNews = uniqueNews
-        .sort((a, b) => b.datetime - a.datetime)
-        .slice(0, limit);
-
-      const newsItems = sortedNews.map((article: any, index: number) => {
-        return {
-          id: `finnhub_news_${Date.now()}_${index}`,
-          title: article.headline || 'Untitled',
-          content: article.summary || article.headline || '',
-          source: article.source || 'Finnhub',
-          publishedAt: new Date(article.datetime * 1000), // Unix timestamp转换
-          url: article.url || '#',
-          relevanceScore: 0.8, // Finnhub的新闻都是高相关性的
-          image: article.image || undefined
-        };
-      });
-
-      console.log('✅ Finnhub新闻转换完成', { count: newsItems.length });
-      
-      return newsItems;
-      
-    } catch (error) {
-      console.error('❌ Finnhub API调用失败', error);
-      throw error;
-    }
   }
 
   /**
