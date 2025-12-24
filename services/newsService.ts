@@ -67,7 +67,7 @@ export class NewsService implements INewsService {
   private config: NewsAPIConfig;
   private errorHandler: ErrorHandler;
   private cache: Map<string, CacheItem<NewsItem[]>>;
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+  private readonly CACHE_DURATION = 15 * 60 * 1000; // 15分钟缓存（优化配额使用）
 
   constructor(apiConfig?: Partial<NewsAPIConfig>) {
     // 使用新浪财经API（中文新闻，无需翻译）

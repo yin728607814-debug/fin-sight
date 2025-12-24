@@ -107,7 +107,7 @@ export class AnalysisService implements IAnalysisService {
   private config: AnalysisAPIConfig;
   private errorHandler: ErrorHandler;
   private cache: Map<string, CacheItem<AnalysisResult>>;
-  private readonly CACHE_DURATION = 30 * 60 * 1000; // 30分钟缓存
+  private readonly CACHE_DURATION = 2 * 60 * 60 * 1000; // 2小时缓存（优化配额使用）
   private requestQueue: Promise<AxiosResponse<GeminiResponse> | void> = Promise.resolve(); // 请求队列
   private lastRequestTime = 0; // 上次请求时间
   private readonly MIN_REQUEST_INTERVAL = 5000; // 最小请求间隔 5秒（免费版每分钟15次，留余量）
