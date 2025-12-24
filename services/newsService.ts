@@ -271,51 +271,93 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 批量翻译新闻（使用Gemini AI）
+   * 批量翻译新闻（使用Gemini AI - 一次性翻译所有新闻）
    */
   private async translateNewsItems(newsItems: NewsItem[]): Promise<NewsItem[]> {
     try {
-      // 限制翻译数量，避免超时和配额
-      const itemsToTranslate = newsItems.slice(0, 10);
-      console.log(`🌐 翻译前${itemsToTranslate.length}条新闻`);
+      console.log(`🌐 批量翻译${newsItems.length}条新闻（1次API调用）`);
       
-      const translatedItems: NewsItem[] = [];
+      // 构建批量翻译请求
+      const newsTexts = newsItems.map((item, index) => 
+        `[新闻${index}]\n标题: ${item.title}\n内容: ${item.content.substring(0, 300)}`
+      ).join('\n\n---\n\n');
       
-      // 批量翻译，每次5条
-      for (let i = 0; i < itemsToTranslate.length; i += 5) {
-        const batch = itemsToTranslate.slice(i, i + 5);
-        
-        const batchPromises = batch.map(async (item) => {
-          try {
-            const translatedTitle = await this.translateText(item.title);
-            const translatedContent = await this.translateText(item.content.substring(0, 500));
-            
-            return {
-              ...item,
-              title: translatedTitle,
-              content: translatedContent
-            };
-          } catch (error) {
-            console.warn(`翻译失败，保留原文`, error);
-            return item;
+      const prompt = `请将以下${newsItems.length}条英文新闻翻译成中文。为每条新闻返回翻译后的标题和内容。直接返回JSON格式（不要markdown代码块）：
+
+${newsTexts}
+
+返回格式：
+{
+  "translations": [
+    {
+      "newsIndex": 0,
+      "title": "翻译后的标题",
+      "content": "翻译后的内容"
+    },
+    {
+      "newsIndex": 1,
+      "title": "翻译后的标题",
+      "content": "翻译后的内容"
+    }
+  ]
+}`;
+
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${config.apiKeys.gemini}`,
+        {
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 8192
           }
-        });
-        
-        const batchResults = await Promise.all(batchPromises);
-        translatedItems.push(...batchResults);
-        
-        // 批次间延迟，避免API限制
-        if (i + 5 < itemsToTranslate.length) {
-          await this.sleep(2000);
+        },
+        {
+          timeout: 60000 // 60秒超时
         }
-      }
+      );
+
+      const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
       
-      // 添加剩余未翻译的新闻
-      if (newsItems.length > 10) {
-        translatedItems.push(...newsItems.slice(10));
+      if (!responseText) {
+        throw new Error('翻译响应为空');
       }
+
+      // 解析JSON响应
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('无法从响应中提取JSON');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
       
-      console.log(`✅ 翻译完成，共${translatedItems.length}条新闻`);
+      if (!parsed.translations || !Array.isArray(parsed.translations)) {
+        throw new Error('翻译响应格式错误');
+      }
+
+      // 应用翻译结果
+      const translatedItems = newsItems.map((item, index) => {
+        const translation = parsed.translations.find((t: any) => t.newsIndex === index);
+        
+        if (translation && translation.title && translation.content) {
+          return {
+            ...item,
+            title: translation.title,
+            content: translation.content
+          };
+        }
+        
+        // 如果翻译失败，保留原文
+        return item;
+      });
+
+      const successCount = translatedItems.filter((item, index) => 
+        item.title !== newsItems[index].title
+      ).length;
+
+      console.log(`✅ 批量翻译完成：${successCount}/${newsItems.length}条成功`);
+      
       return translatedItems;
       
     } catch (error) {
@@ -325,7 +367,7 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 翻译单个文本（使用Gemini AI）
+   * 翻译单个文本（使用Gemini AI）- 已废弃，使用批量翻译
    */
   private async translateText(text: string): Promise<string> {
     if (!text || text.length === 0) return text;
