@@ -121,51 +121,45 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
       const analysisResults: NewsAnalysis[] = [];
       
-      // 并发控制：Gemini 免费版限制 15 请求/分钟
-      // 每批 10 条新闻，批次间延迟 4 秒，确保不超过限制
-      const BATCH_SIZE = 10;
-      const DELAY_BETWEEN_BATCHES = 4000; // 批次之间延迟 4 秒
+      // 串行处理：逐条分析新闻，避免触发 Gemini API 速率限制
+      // Gemini 免费版限制：15 请求/分钟 = 每 4 秒可以发 1 个请求
+      const DELAY_BETWEEN_REQUESTS = 4500; // 每个请求之间延迟 4.5 秒（留出安全余量）
       
-      for (let i = 0; i < newsItems.length; i += BATCH_SIZE) {
-        const batch = newsItems.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < newsItems.length; i++) {
+        const newsItem = newsItems[i];
         
-        const batchPromises = batch.map(async (newsItem) => {
-          try {
-            const result = await analysisService.analyzeNewsImpact(
-              newsItem.content, 
-              assetType
-            );
-            
-            return {
-              newsId: newsItem.id,
-              impact: result.impact,
-              confidence: result.confidence,
-              summary: result.summary,
-              keyPoints: result.keyPoints,
-              predictedChange: result.predictedChange,
-              timeframe: 'short' as const
-            };
-          } catch (error) {
-            console.warn(`分析新闻 ${newsItem.id} 失败:`, error);
-            // 返回默认分析结果
-            return {
-              newsId: newsItem.id,
-              impact: 'neutral' as const,
-              confidence: 0,
-              summary: '分析失败',
-              keyPoints: [],
-              predictedChange: 0,
-              timeframe: 'short' as const
-            };
-          }
-        });
+        try {
+          const result = await analysisService.analyzeNewsImpact(
+            newsItem.content, 
+            assetType
+          );
+          
+          analysisResults.push({
+            newsId: newsItem.id,
+            impact: result.impact,
+            confidence: result.confidence,
+            summary: result.summary,
+            keyPoints: result.keyPoints,
+            predictedChange: result.predictedChange,
+            timeframe: 'short' as const
+          });
+        } catch (error) {
+          console.warn(`分析新闻 ${newsItem.id} 失败:`, error);
+          // 返回默认分析结果
+          analysisResults.push({
+            newsId: newsItem.id,
+            impact: 'neutral' as const,
+            confidence: 0,
+            summary: '分析失败',
+            keyPoints: [],
+            predictedChange: 0,
+            timeframe: 'short' as const
+          });
+        }
         
-        const batchResults = await Promise.all(batchPromises);
-        analysisResults.push(...batchResults);
-        
-        // 如果还有更多批次，等待一段时间再继续
-        if (i + BATCH_SIZE < newsItems.length) {
-          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+        // 如果不是最后一条新闻，等待后再继续
+        if (i < newsItems.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
         }
       }
 
