@@ -126,13 +126,27 @@ export class NewsService implements INewsService {
       return demoNews;
     }
 
-    // 生产环境：统一使用新浪财经（中文新闻）
+    // 生产环境：根据资产类型选择API
     return measureAsync(
       'news_fetch',
       async () => {
         try {
-          console.log('🚀 使用新浪财经获取新闻', { assetType });
-          const newsItems = await this.fetchSinaNews(assetType, limit);
+          let newsItems: NewsItem[];
+          
+          if (assetType === 'nasdaq') {
+            // 纳斯达克：使用Finnhub获取英文新闻，然后翻译
+            console.log('🚀 使用Finnhub获取纳斯达克新闻（将自动翻译）');
+            newsItems = await this.fetchFinnhubNews(limit);
+            
+            // 自动翻译成中文
+            console.log('🌐 开始翻译新闻...');
+            newsItems = await this.translateNewsItems(newsItems);
+            console.log('✅ 翻译完成');
+          } else {
+            // 黄金：继续使用新浪财经（中文）
+            console.log('🚀 使用新浪财经获取黄金新闻');
+            newsItems = await this.fetchSinaNews(assetType, limit);
+          }
           
           // 缓存结果
           this.setCache(cacheKey, newsItems);
@@ -163,6 +177,190 @@ export class NewsService implements INewsService {
       },
       { assetType, limit }
     );
+  }
+
+  /**
+   * 使用Finnhub获取纳斯达克新闻
+   */
+  private async fetchFinnhubNews(limit: number = 50): Promise<NewsItem[]> {
+    try {
+      console.log('📡 调用Finnhub News API');
+      
+      // 纳斯达克100主要成分股
+      const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'INTC'];
+      
+      // 获取最近7天的新闻
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 7);
+      
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      
+      // 并发获取多个股票的新闻
+      const allNews: any[] = [];
+      
+      // 每次获取2个股票的新闻，避免超过速率限制
+      for (let i = 0; i < Math.min(tickers.length, 4); i += 2) {
+        const batch = tickers.slice(i, i + 2);
+        
+        const batchPromises = batch.map(ticker =>
+          axios.get('https://finnhub.io/api/v1/company-news', {
+            params: {
+              symbol: ticker,
+              from: formatDate(fromDate),
+              to: formatDate(toDate),
+              token: config.apiKeys.finnhub
+            },
+            timeout: this.config.timeout
+          }).catch(err => {
+            console.warn(`⚠️ 获取${ticker}新闻失败`, err.message);
+            return { data: [] };
+          })
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(response => {
+          if (Array.isArray(response.data)) {
+            allNews.push(...response.data);
+          }
+        });
+        
+        // 避免速率限制，批次间延迟
+        if (i + 2 < tickers.length) {
+          await this.sleep(1000);
+        }
+      }
+
+      console.log('📡 Finnhub响应', { totalNews: allNews.length });
+
+      if (allNews.length === 0) {
+        throw new Error('Finnhub API未返回新闻数据');
+      }
+
+      // 去重（按URL）
+      const uniqueNews = Array.from(
+        new Map(allNews.map(item => [item.url, item])).values()
+      );
+
+      // 按时间排序，取最新的
+      const sortedNews = uniqueNews
+        .sort((a, b) => b.datetime - a.datetime)
+        .slice(0, limit);
+
+      const newsItems = sortedNews.map((article: any, index: number) => {
+        return {
+          id: `finnhub_news_${Date.now()}_${index}`,
+          title: article.headline || 'Untitled',
+          content: article.summary || article.headline || '',
+          source: article.source || 'Finnhub',
+          publishedAt: new Date(article.datetime * 1000),
+          url: article.url || '#',
+          relevanceScore: 0.8,
+          image: article.image || undefined
+        };
+      });
+
+      console.log('✅ Finnhub新闻转换完成', { count: newsItems.length });
+      
+      return newsItems;
+      
+    } catch (error) {
+      console.error('❌ Finnhub API调用失败', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量翻译新闻（使用Gemini AI）
+   */
+  private async translateNewsItems(newsItems: NewsItem[]): Promise<NewsItem[]> {
+    try {
+      // 限制翻译数量，避免超时和配额
+      const itemsToTranslate = newsItems.slice(0, 10);
+      console.log(`🌐 翻译前${itemsToTranslate.length}条新闻`);
+      
+      const translatedItems: NewsItem[] = [];
+      
+      // 批量翻译，每次5条
+      for (let i = 0; i < itemsToTranslate.length; i += 5) {
+        const batch = itemsToTranslate.slice(i, i + 5);
+        
+        const batchPromises = batch.map(async (item) => {
+          try {
+            const translatedTitle = await this.translateText(item.title);
+            const translatedContent = await this.translateText(item.content.substring(0, 500));
+            
+            return {
+              ...item,
+              title: translatedTitle,
+              content: translatedContent
+            };
+          } catch (error) {
+            console.warn(`翻译失败，保留原文`, error);
+            return item;
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        translatedItems.push(...batchResults);
+        
+        // 批次间延迟，避免API限制
+        if (i + 5 < itemsToTranslate.length) {
+          await this.sleep(2000);
+        }
+      }
+      
+      // 添加剩余未翻译的新闻
+      if (newsItems.length > 10) {
+        translatedItems.push(...newsItems.slice(10));
+      }
+      
+      console.log(`✅ 翻译完成，共${translatedItems.length}条新闻`);
+      return translatedItems;
+      
+    } catch (error) {
+      console.error('批量翻译失败，返回原文', error);
+      return newsItems;
+    }
+  }
+
+  /**
+   * 翻译单个文本（使用Gemini AI）
+   */
+  private async translateText(text: string): Promise<string> {
+    if (!text || text.length === 0) return text;
+    
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${config.apiKeys.gemini}`,
+        {
+          contents: [{
+            parts: [{
+              text: `请将以下英文翻译成中文，只返回翻译结果，不要添加任何解释：\n\n${text}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 1024
+          }
+        },
+        {
+          timeout: 10000
+        }
+      );
+
+      const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      
+      if (translatedText && translatedText.length > 0) {
+        return translatedText;
+      }
+      
+      return text;
+      
+    } catch (error) {
+      console.warn('翻译失败，返回原文', error);
+      return text;
+    }
   }
 
   /**
@@ -854,65 +1052,6 @@ export class NewsService implements INewsService {
     
     console.log(`🎉 翻译完成，总计 ${translatedItems.length} 条新闻`);
     return translatedItems;
-  }
-
-  /**
-   * 翻译单个文本（带重试机制）
-   */
-  private async translateText(text: string, maxRetries: number = 3): Promise<string> {
-    if (!text || text.length === 0) return text;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log('🔄 调用翻译代理...', { textLength: text.length, attempt });
-        
-        const response = await axios.post('/.netlify/functions/translate', {
-          text: text
-        }, {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000 // 增加超时时间到30秒
-        });
-
-        console.log('📡 翻译代理响应状态:', response.status);
-        
-        const translatedText = response.data?.translatedText;
-        
-        if (translatedText && translatedText.trim().length > 0 && translatedText !== text) {
-          console.log('✅ 翻译成功');
-          return translatedText.trim();
-        } else {
-          console.warn('⚠️ 翻译响应无效，保留原文');
-          return text;
-        }
-        
-      } catch (error) {
-        const isLastAttempt = attempt === maxRetries;
-        const isRateLimitError = error.response?.status === 500 || error.response?.status === 429;
-        
-        console.error('❌ 翻译代理调用失败:', {
-          message: error.message,
-          status: error.response?.status,
-          attempt,
-          maxRetries,
-          isRateLimitError
-        });
-        
-        // 如果是速率限制错误且不是最后一次尝试，等待后重试
-        if (isRateLimitError && !isLastAttempt) {
-          const delay = attempt * 2000; // 递增延迟：2秒、4秒、6秒
-          console.log(`⏳ 等待 ${delay}ms 后重试...`);
-          await this.sleep(delay);
-          continue;
-        }
-        
-        // 最后一次尝试失败或非速率限制错误，返回原文
-        return text;
-      }
-    }
-    
-    return text;
   }
 
   /**
