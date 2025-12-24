@@ -222,8 +222,8 @@ export class AnalysisService implements IAnalysisService {
         }
       ],
       generationConfig: {
-        temperature: 0.2, // 降低温度，提高响应速度
-        maxOutputTokens: 6144 // 减少到6144，加快生成速度
+        temperature: 0.3, // 适中的温度，平衡质量和速度
+        maxOutputTokens: 8192 // 使用模型最大值，确保50条新闻分析完整
       }
     });
 
@@ -231,29 +231,42 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * 构建批量分析提示词 - 为每条新闻返回单独分析（优化版，减少token消耗）
+   * 构建批量分析提示词 - 为每条新闻返回单独分析（平衡版本）
    */
   private buildBatchAnalysisPrompt(newsList: Array<{ title: string; content: string }>, assetType: string): string {
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 将新闻列表格式化，每条新闻带编号（只取标题和内容前200字，减少token）
+    // 将新闻列表格式化，每条新闻带编号（取前300字，保留足够上下文）
     const newsText = newsList.map((news, index) => 
-      `[${index}] ${news.title}\n${news.content.substring(0, 200)}...`
+      `[${index}] ${news.title}\n${news.content.substring(0, 300)}...`
     ).join('\n\n');
     
-    return `分析以下${newsList.length}条新闻对${assetName}的影响，返回JSON（无markdown）：
+    return `分析以下${newsList.length}条新闻对${assetName}的影响，为每条新闻提供详细分析。返回JSON（无markdown）：
 
 ${newsText}
 
 格式：
 {
   "analyses": [
-    {"newsIndex": 0, "impact": "positive/negative/neutral", "confidence": 0.75, "summary": "简要分析60-80字", "keyPoints": ["点1", "点2", "点3"], "predictedChange": 2.5}
+    {
+      "newsIndex": 0,
+      "impact": "positive/negative/neutral",
+      "confidence": 0.75,
+      "summary": "详细分析这条新闻的影响（80-120字）",
+      "keyPoints": ["关键点1", "关键点2", "关键点3"],
+      "predictedChange": 2.5
+    }
   ],
   "overallImpact": "positive/negative/neutral",
   "overallConfidence": 0.70,
-  "overallSummary": "整体分析100-150字"
-}`;
+  "overallSummary": "综合所有新闻的整体市场影响分析（150-200字）"
+}
+
+要求：
+- 每条新闻都要有完整分析
+- summary要具体说明影响机制
+- keyPoints要提取核心要素
+- predictedChange范围：-10到+10`;
   }
 
   /**
@@ -538,7 +551,7 @@ ${newsText}
       logInfo('Gemini API 批量响应文本', { textLength: text.length });
 
       // 尝试解析 JSON - 增强容错
-      let jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('无法从响应中提取 JSON');
       }
