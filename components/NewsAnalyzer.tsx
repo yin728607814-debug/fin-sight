@@ -107,7 +107,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   }, [assetType, setPriceData, setLoading, setError, clearError]);
 
   /**
-   * 分析新闻影响
+   * 分析新闻影响（带并发控制）
    */
   const analyzeNews = useCallback(async (newsItems: NewsItem[]) => {
     if (!newsItems || newsItems.length === 0) {
@@ -121,40 +121,52 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
       const analysisResults: NewsAnalysis[] = [];
       
-      // 并行分析所有新闻
-      const analysisPromises = newsItems.map(async (newsItem) => {
-        try {
-          const result = await analysisService.analyzeNewsImpact(
-            newsItem.content, 
-            assetType
-          );
-          
-          return {
-            newsId: newsItem.id,
-            impact: result.impact,
-            confidence: result.confidence,
-            summary: result.summary,
-            keyPoints: result.keyPoints,
-            predictedChange: result.predictedChange,
-            timeframe: 'short' as const
-          };
-        } catch (error) {
-          console.warn(`分析新闻 ${newsItem.id} 失败:`, error);
-          // 返回默认分析结果
-          return {
-            newsId: newsItem.id,
-            impact: 'neutral' as const,
-            confidence: 0,
-            summary: '分析失败',
-            keyPoints: [],
-            predictedChange: 0,
-            timeframe: 'short' as const
-          };
+      // 并发控制：每次最多分析 5 条新闻（避免超出 Gemini API 限制）
+      const BATCH_SIZE = 5;
+      const DELAY_BETWEEN_BATCHES = 1000; // 批次之间延迟 1 秒
+      
+      for (let i = 0; i < newsItems.length; i += BATCH_SIZE) {
+        const batch = newsItems.slice(i, i + BATCH_SIZE);
+        
+        const batchPromises = batch.map(async (newsItem) => {
+          try {
+            const result = await analysisService.analyzeNewsImpact(
+              newsItem.content, 
+              assetType
+            );
+            
+            return {
+              newsId: newsItem.id,
+              impact: result.impact,
+              confidence: result.confidence,
+              summary: result.summary,
+              keyPoints: result.keyPoints,
+              predictedChange: result.predictedChange,
+              timeframe: 'short' as const
+            };
+          } catch (error) {
+            console.warn(`分析新闻 ${newsItem.id} 失败:`, error);
+            // 返回默认分析结果
+            return {
+              newsId: newsItem.id,
+              impact: 'neutral' as const,
+              confidence: 0,
+              summary: '分析失败',
+              keyPoints: [],
+              predictedChange: 0,
+              timeframe: 'short' as const
+            };
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        analysisResults.push(...batchResults);
+        
+        // 如果还有更多批次，等待一段时间再继续
+        if (i + BATCH_SIZE < newsItems.length) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
         }
-      });
-
-      const results = await Promise.all(analysisPromises);
-      analysisResults.push(...results);
+      }
 
       // 按影响程度排序（置信度 * 预测变化的绝对值）
       analysisResults.sort((a, b) => {
