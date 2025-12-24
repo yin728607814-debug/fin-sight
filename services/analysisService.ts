@@ -118,7 +118,7 @@ export class AnalysisService implements IAnalysisService {
       baseURL: 'https://generativelanguage.googleapis.com/v1',
       apiKey: config?.apiKey || '',
       model: 'gemini-2.5-flash-lite', // 使用轻量级模型，配额更高
-      timeout: 30000,
+      timeout: 60000, // 增加到60秒，支持批量分析50条新闻
       maxRetries: 3,
       ...config
     };
@@ -222,8 +222,8 @@ export class AnalysisService implements IAnalysisService {
         }
       ],
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 8192 // 支持最多50条新闻的批量分析
+        temperature: 0.2, // 降低温度，提高响应速度
+        maxOutputTokens: 6144 // 减少到6144，加快生成速度
       }
     });
 
@@ -231,57 +231,29 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * 构建批量分析提示词 - 为每条新闻返回单独分析
+   * 构建批量分析提示词 - 为每条新闻返回单独分析（优化版，减少token消耗）
    */
   private buildBatchAnalysisPrompt(newsList: Array<{ title: string; content: string }>, assetType: string): string {
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 将新闻列表格式化，每条新闻带编号
+    // 将新闻列表格式化，每条新闻带编号（只取标题和内容前200字，减少token）
     const newsText = newsList.map((news, index) => 
-      `[新闻 ${index}]\n标题: ${news.title}\n内容: ${news.content}`
-    ).join('\n\n---\n\n');
+      `[${index}] ${news.title}\n${news.content.substring(0, 200)}...`
+    ).join('\n\n');
     
-    return `请分析以下${newsList.length}条新闻对${assetName}的影响。为每条新闻提供单独的分析，并给出整体评估。直接返回JSON格式（不要markdown代码块）：
+    return `分析以下${newsList.length}条新闻对${assetName}的影响，返回JSON（无markdown）：
 
 ${newsText}
 
-返回格式：
+格式：
 {
   "analyses": [
-    {
-      "newsIndex": 0,
-      "impact": "positive/negative/neutral",
-      "confidence": 0.75,
-      "summary": "针对这条新闻的分析（80-120字）",
-      "keyPoints": ["关键点1", "关键点2", "关键点3"],
-      "predictedChange": 2.5
-    },
-    {
-      "newsIndex": 1,
-      "impact": "positive/negative/neutral",
-      "confidence": 0.65,
-      "summary": "针对这条新闻的分析（80-120字）",
-      "keyPoints": ["关键点1", "关键点2", "关键点3"],
-      "predictedChange": -1.2
-    }
-    // ... 为每条新闻提供分析
+    {"newsIndex": 0, "impact": "positive/negative/neutral", "confidence": 0.75, "summary": "简要分析60-80字", "keyPoints": ["点1", "点2", "点3"], "predictedChange": 2.5}
   ],
   "overallImpact": "positive/negative/neutral",
   "overallConfidence": 0.70,
-  "overallSummary": "综合所有新闻的整体市场影响分析（150-200字）"
-}
-
-说明：
-- analyses: 数组，包含每条新闻的单独分析
-- newsIndex: 新闻编号（0开始）
-- impact: positive(利好), negative(利空), neutral(中性)
-- confidence: 0-1之间的置信度
-- summary: 针对该条新闻的具体分析
-- keyPoints: 该新闻的3个关键影响因素
-- predictedChange: 该新闻预测的价格变化百分比（-10到+10）
-- overallImpact: 综合所有新闻的整体影响方向
-- overallConfidence: 整体分析的置信度
-- overallSummary: 综合分析摘要`;
+  "overallSummary": "整体分析100-150字"
+}`;
   }
 
   /**
