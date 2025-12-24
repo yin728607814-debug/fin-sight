@@ -8,6 +8,7 @@ export interface AppConfig {
     gemini: string;
     news: string;
     alphaVantage: string;
+    finnhub: string;
   };
   app: {
     title: string;
@@ -56,6 +57,7 @@ export const config: AppConfig = {
     gemini: getEnvVar('VITE_GEMINI_API_KEY') || getEnvVar('GEMINI_API_KEY'),
     news: getEnvVar('VITE_NEWS_API_KEY') || getEnvVar('NEWS_API_KEY'),
     alphaVantage: getEnvVar('VITE_ALPHA_VANTAGE_API_KEY') || getEnvVar('ALPHA_VANTAGE_API_KEY'),
+    finnhub: getEnvVar('VITE_FINNHUB_API_KEY') || getEnvVar('FINNHUB_API_KEY'),
   },
   app: {
     title: getEnvVar('VITE_APP_TITLE', 'Investment News Analyzer'),
@@ -77,6 +79,7 @@ export function validateConfig(): { isValid: boolean; missingKeys: string[] } {
     { key: 'GEMINI_API_KEY', value: config.apiKeys.gemini },
     { key: 'NEWS_API_KEY', value: config.apiKeys.news },
     { key: 'ALPHA_VANTAGE_API_KEY', value: config.apiKeys.alphaVantage },
+    { key: 'FINNHUB_API_KEY', value: config.apiKeys.finnhub },
   ];
 
   const missingKeys = requiredKeys

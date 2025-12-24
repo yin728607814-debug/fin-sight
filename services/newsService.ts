@@ -204,7 +204,7 @@ export class NewsService implements INewsService {
               symbol: ticker,
               from: formatDate(fromDate),
               to: formatDate(toDate),
-              token: config.apiKeys.alphaVantage // 复用Alpha Vantage密钥字段存储Finnhub token
+              token: config.apiKeys.finnhub
             },
             timeout: this.config.timeout
           }).catch(err => {

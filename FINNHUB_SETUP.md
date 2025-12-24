@@ -26,20 +26,21 @@ Finnhub免费版更慷慨：
 2. 进入你的项目
 3. 点击 "Site settings" → "Environment variables"
 4. 添加新变量：
-   - Key: `VITE_ALPHA_VANTAGE_API_KEY`
+   - Key: `VITE_FINNHUB_API_KEY`
    - Value: 你的Finnhub API密钥
 
 #### 方法2：通过本地.env文件（开发环境）
 ```bash
 # .env
-VITE_ALPHA_VANTAGE_API_KEY=你的Finnhub_API密钥
+VITE_FINNHUB_API_KEY=你的Finnhub_API密钥
+FINNHUB_API_KEY=你的Finnhub_API密钥
 ```
 
 ## 注意事项
 
-- 代码中复用了 `VITE_ALPHA_VANTAGE_API_KEY` 环境变量名
-- 实际上现在存储的是Finnhub的API密钥
-- 这样做是为了避免修改太多代码
+- 纳斯达克新闻使用 `VITE_FINNHUB_API_KEY`
+- 价格数据继续使用 `VITE_ALPHA_VANTAGE_API_KEY`
+- 两个API密钥互不影响
 
 ## API限制
 
