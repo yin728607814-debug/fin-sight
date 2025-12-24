@@ -153,8 +153,6 @@ export const DataFetchError: React.FC<DataFetchErrorProps> = ({
  * 当使用演示数据时显示提示信息
  */
 
-import React from 'react';
-
 interface DemoDataNoticeProps {
   onDismiss?: () => void;
 }

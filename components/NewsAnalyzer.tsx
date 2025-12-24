@@ -40,7 +40,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: true });
       setUsingFallbackData(false);
       
-      const newsData = await newsService.fetchMarketNews(assetType, 10);
+      const newsData = await newsService.fetchMarketNews(assetType, 50);
       setNews(newsData);
       setLastFetchTime(new Date());
       
@@ -63,7 +63,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: true });
       
       const { generateDemoNews } = await import('../services/demoDataService');
-      const demoNews = generateDemoNews(assetType, 10);
+      const demoNews = generateDemoNews(assetType, 50);
       setNews(demoNews);
       setLastFetchTime(new Date());
       setUsingFallbackData(true);
@@ -107,7 +107,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   }, [assetType, setPriceData, setLoading, setError, clearError]);
 
   /**
-   * 分析新闻影响（带并发控制）
+   * 批量分析新闻影响（一次性分析所有新闻，每条新闻获得单独分析）
    */
   const analyzeNews = useCallback(async (newsItems: NewsItem[]) => {
     if (!newsItems || newsItems.length === 0) {
@@ -119,56 +119,42 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setIsAnalyzing(true);
       setLoading({ analysis: true });
 
-      const analysisResults: NewsAnalysis[] = [];
+      console.log(`🚀 开始批量分析 ${newsItems.length} 条新闻（只需1次API调用，每条新闻单独分析）`);
       
-      // 串行处理：逐条分析新闻，避免触发 Gemini API 速率限制
-      // Gemini 免费版限制：15 请求/分钟 = 每 4 秒可以发 1 个请求
-      const DELAY_BETWEEN_REQUESTS = 4500; // 每个请求之间延迟 4.5 秒（留出安全余量）
+      // 使用批量分析方法 - 一次性分析所有新闻，但为每条新闻返回单独结果
+      const batchResult = await analysisService.analyzeBatchNews(
+        newsItems.map(item => ({
+          title: item.title,
+          content: item.content
+        })),
+        assetType
+      );
       
-      for (let i = 0; i < newsItems.length; i++) {
-        const newsItem = newsItems[i];
-        
-        try {
-          const result = await analysisService.analyzeNewsImpact(
-            newsItem.content, 
-            assetType
-          );
-          
-          analysisResults.push({
-            newsId: newsItem.id,
-            impact: result.impact,
-            confidence: result.confidence,
-            summary: result.summary,
-            keyPoints: result.keyPoints,
-            predictedChange: result.predictedChange,
-            timeframe: 'short' as const
-          });
-        } catch (error) {
-          console.warn(`分析新闻 ${newsItem.id} 失败:`, error);
-          // 返回默认分析结果
-          analysisResults.push({
-            newsId: newsItem.id,
-            impact: 'neutral' as const,
-            confidence: 0,
-            summary: '分析失败',
-            keyPoints: [],
-            predictedChange: 0,
-            timeframe: 'short' as const
-          });
-        }
-        
-        // 如果不是最后一条新闻，等待后再继续
-        if (i < newsItems.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
-        }
-      }
+      // 将批量分析结果映射到每条新闻
+      const analysisResults: NewsAnalysis[] = newsItems.map((newsItem, index) => {
+        // 找到对应的分析结果
+        const analysis = batchResult.analyses.find(a => a.newsIndex === index) || {
+          impact: 'neutral' as const,
+          confidence: 0.5,
+          summary: '分析结果未找到',
+          keyPoints: [],
+          predictedChange: 0
+        };
 
-      // 按影响程度排序（置信度 * 预测变化的绝对值）
-      analysisResults.sort((a, b) => {
-        const scoreA = a.confidence * Math.abs(a.predictedChange);
-        const scoreB = b.confidence * Math.abs(b.predictedChange);
-        return scoreB - scoreA;
+        return {
+          newsId: newsItem.id,
+          impact: analysis.impact,
+          confidence: analysis.confidence,
+          summary: analysis.summary,
+          keyPoints: analysis.keyPoints,
+          predictedChange: analysis.predictedChange,
+          timeframe: 'short' as const
+        };
       });
+
+      console.log(`✅ 批量分析完成！`);
+      console.log(`   整体影响: ${batchResult.overallImpact}, 整体置信度: ${batchResult.overallConfidence.toFixed(2)}`);
+      console.log(`   ${analysisResults.filter(a => a.impact === 'positive').length} 条利好, ${analysisResults.filter(a => a.impact === 'negative').length} 条利空, ${analysisResults.filter(a => a.impact === 'neutral').length} 条中性`);
 
       setAnalysis(analysisResults);
       onAnalysisComplete?.(analysisResults);
@@ -177,6 +163,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '分析新闻失败';
       setError('analysis', errorMessage);
+      console.error('❌ 批量分析失败:', error);
       throw error;
     } finally {
       setIsAnalyzing(false);

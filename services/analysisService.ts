@@ -13,8 +13,7 @@ import {
   createAnalysisError, 
   ErrorHandler, 
   isRetryableError,
-  calculateRetryDelay,
-  DEFAULT_RETRY_CONFIG 
+  calculateRetryDelay
 } from '../utils/errors';
 import { logInfo, logError } from './logger';
 import { config } from '../config/env';
@@ -76,6 +75,23 @@ interface AnalysisResult {
 }
 
 /**
+ * 批量分析结果接口（包含每条新闻的单独分析）
+ */
+interface BatchAnalysisResult {
+  analyses: Array<{
+    newsIndex: number;
+    impact: ImpactType;
+    confidence: number;
+    summary: string;
+    keyPoints: string[];
+    predictedChange: number;
+  }>;
+  overallImpact: ImpactType;
+  overallConfidence: number;
+  overallSummary: string;
+}
+
+/**
  * 缓存项接口
  */
 interface CacheItem<T> {
@@ -92,12 +108,16 @@ export class AnalysisService implements IAnalysisService {
   private errorHandler: ErrorHandler;
   private cache: Map<string, CacheItem<AnalysisResult>>;
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30分钟缓存
+  private requestQueue: Promise<AxiosResponse<GeminiResponse> | void> = Promise.resolve(); // 请求队列
+  private lastRequestTime = 0; // 上次请求时间
+  private readonly MIN_REQUEST_INTERVAL = 5000; // 最小请求间隔 5秒（免费版每分钟15次，留余量）
+  private consecutiveRateLimitErrors = 0; // 连续429错误计数
 
   constructor(config?: Partial<AnalysisAPIConfig>) {
     this.config = {
       baseURL: 'https://generativelanguage.googleapis.com/v1',
       apiKey: config?.apiKey || '',
-      model: 'gemini-2.5-flash', // 使用最新的 Gemini 2.5 Flash 模型
+      model: 'gemini-2.5-flash-lite', // 使用轻量级模型，配额更高
       timeout: 30000,
       maxRetries: 3,
       ...config
@@ -119,6 +139,149 @@ export class AnalysisService implements IAnalysisService {
       model: this.config.model,
       hasApiKey: !!this.config.apiKey
     });
+  }
+
+  /**
+   * 批量分析多条新闻（节省API调用，但为每条新闻返回单独分析）
+   */
+  async analyzeBatchNews(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
+    const cacheKey = this.generateCacheKey(JSON.stringify(newsList), assetType);
+    
+    // 检查缓存
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      logInfo('返回缓存的批量分析结果', { assetType, newsCount: newsList.length });
+      return cached as unknown as BatchAnalysisResult;
+    }
+
+    try {
+      logInfo('开始批量AI新闻影响分析', { assetType, newsCount: newsList.length });
+      
+      // 如果API密钥明确是占位符，提示用户配置真实密钥
+      if (this.shouldUseDemoData()) {
+        logInfo('⚠️ 检测到占位符API密钥，使用本地分析方法');
+        console.warn('请访问 https://ai.google.dev/ 获取真实的Gemini API密钥以启用AI分析');
+        const result = await this.localBatchAnalysis(newsList, assetType);
+        this.setCache(cacheKey, result as unknown as AnalysisResult);
+        return result;
+      }
+      
+      const result = await this.aiBatchAnalysis(newsList, assetType);
+      
+      // 缓存结果
+      this.setCache(cacheKey, result as unknown as AnalysisResult);
+      
+      logInfo('批量AI新闻影响分析完成', { 
+        assetType, 
+        newsCount: newsList.length,
+        overallImpact: result.overallImpact, 
+        overallConfidence: result.overallConfidence 
+      });
+      
+      return result;
+      
+    } catch (error) {
+      logError('⚠️ 批量AI分析API调用失败，回退到本地分析', error);
+      
+      // 检查是否是429错误
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        console.error('🚫 Gemini API 配额已用完！');
+        console.error('免费版限制：每分钟15次请求，每天1500次请求');
+        console.error('建议：');
+        console.error('  1. 等待1-2分钟后刷新页面重试');
+        console.error('  2. 考虑升级到付费版本: https://ai.google.dev/pricing');
+      }
+      
+      // 回退到本地分析
+      try {
+        const result = await this.localBatchAnalysis(newsList, assetType);
+        this.setCache(cacheKey, result as unknown as AnalysisResult);
+        return result;
+      } catch (fallbackError) {
+        const analysisError = this.errorHandler.handleAnalysisError(fallbackError);
+        logError('本地分析也失败了', analysisError);
+        throw analysisError;
+      }
+    }
+  }
+
+  /**
+   * AI批量分析方法 - 使用 Gemini API，为每条新闻返回单独分析
+   */
+  private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
+    const prompt = this.buildBatchAnalysisPrompt(newsList, assetType);
+    
+    const response = await this.makeGeminiRequest({
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 8192 // 支持最多50条新闻的批量分析
+      }
+    });
+
+    return this.parseBatchGeminiResponse(response.data, newsList.length);
+  }
+
+  /**
+   * 构建批量分析提示词 - 为每条新闻返回单独分析
+   */
+  private buildBatchAnalysisPrompt(newsList: Array<{ title: string; content: string }>, assetType: string): string {
+    const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    
+    // 将新闻列表格式化，每条新闻带编号
+    const newsText = newsList.map((news, index) => 
+      `[新闻 ${index}]\n标题: ${news.title}\n内容: ${news.content}`
+    ).join('\n\n---\n\n');
+    
+    return `请分析以下${newsList.length}条新闻对${assetName}的影响。为每条新闻提供单独的分析，并给出整体评估。直接返回JSON格式（不要markdown代码块）：
+
+${newsText}
+
+返回格式：
+{
+  "analyses": [
+    {
+      "newsIndex": 0,
+      "impact": "positive/negative/neutral",
+      "confidence": 0.75,
+      "summary": "针对这条新闻的分析（80-120字）",
+      "keyPoints": ["关键点1", "关键点2", "关键点3"],
+      "predictedChange": 2.5
+    },
+    {
+      "newsIndex": 1,
+      "impact": "positive/negative/neutral",
+      "confidence": 0.65,
+      "summary": "针对这条新闻的分析（80-120字）",
+      "keyPoints": ["关键点1", "关键点2", "关键点3"],
+      "predictedChange": -1.2
+    }
+    // ... 为每条新闻提供分析
+  ],
+  "overallImpact": "positive/negative/neutral",
+  "overallConfidence": 0.70,
+  "overallSummary": "综合所有新闻的整体市场影响分析（150-200字）"
+}
+
+说明：
+- analyses: 数组，包含每条新闻的单独分析
+- newsIndex: 新闻编号（0开始）
+- impact: positive(利好), negative(利空), neutral(中性)
+- confidence: 0-1之间的置信度
+- summary: 针对该条新闻的具体分析
+- keyPoints: 该新闻的3个关键影响因素
+- predictedChange: 该新闻预测的价格变化百分比（-10到+10）
+- overallImpact: 综合所有新闻的整体影响方向
+- overallConfidence: 整体分析的置信度
+- overallSummary: 综合分析摘要`;
   }
 
   /**
@@ -161,11 +324,22 @@ export class AnalysisService implements IAnalysisService {
       
     } catch (error) {
       logError('⚠️ AI分析API调用失败，回退到本地分析', error);
-      console.error('Gemini API错误 - 请检查以下配置：');
-      console.error('1. API密钥是否正确: ', this.config.apiKey?.substring(0, 8) + '...');
-      console.error('2. 是否超出API限制 (免费版每分钟15次请求)');
-      console.error('3. 网络连接是否正常');
-      console.error('获取真实API密钥: https://ai.google.dev/');
+      
+      // 检查是否是429错误
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        console.error('🚫 Gemini API 配额已用完！');
+        console.error('免费版限制：每分钟15次请求，每天1500次请求');
+        console.error('建议：');
+        console.error('  1. 等待1-2分钟后刷新页面重试');
+        console.error('  2. 减少同时分析的新闻数量');
+        console.error('  3. 考虑升级到付费版本: https://ai.google.dev/pricing');
+      } else {
+        console.error('Gemini API错误 - 请检查以下配置：');
+        console.error('1. API密钥是否正确: ', this.config.apiKey?.substring(0, 8) + '...');
+        console.error('2. 是否超出API限制 (免费版每分钟15次请求)');
+        console.error('3. 网络连接是否正常');
+        console.error('获取真实API密钥: https://ai.google.dev/');
+      }
       
       // 回退到本地分析
       try {
@@ -206,9 +380,35 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * 发起 Gemini API 请求
+   * 发起 Gemini API 请求（带队列控制）
    */
   private async makeGeminiRequest(request: GeminiRequest): Promise<AxiosResponse<GeminiResponse>> {
+    // 将请求加入队列，确保串行执行
+    // 关键：使用独立的 Promise 链，避免错误传播阻塞队列
+    const currentRequest = this.executeGeminiRequest(request);
+    
+    // 更新队列：等待当前请求完成（无论成功或失败）
+    this.requestQueue = this.requestQueue
+      .then(() => currentRequest)
+      .catch(() => {}); // 捕获错误，防止队列中断
+    
+    // 返回实际的请求结果
+    return currentRequest;
+  }
+
+  /**
+   * 执行 Gemini API 请求（实际执行）
+   */
+  private async executeGeminiRequest(request: GeminiRequest): Promise<AxiosResponse<GeminiResponse>> {
+    // 确保请求间隔
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+      const waitTime = this.MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+      logInfo(`请求间隔控制，等待${waitTime}ms`, { timeSinceLastRequest });
+      await this.sleep(waitTime);
+    }
+    
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
@@ -221,6 +421,8 @@ export class AnalysisService implements IAnalysisService {
           url: url.replace(this.config.apiKey, '***')
         });
         
+        this.lastRequestTime = Date.now(); // 记录请求时间
+        
         const response = await axios.post<GeminiResponse>(
           url,
           request,
@@ -228,41 +430,76 @@ export class AnalysisService implements IAnalysisService {
             timeout: this.config.timeout,
             headers: {
               'Content-Type': 'application/json'
-            }
+            },
+            // 防止axios在错误日志中暴露URL
+            validateStatus: (status) => status < 500
           }
         );
+
+        // 手动处理4xx错误
+        if (response.status >= 400) {
+          const error: unknown = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          error.response = response;
+          error.config = { ...response.config, url: url.replace(this.config.apiKey, '***') };
+          throw error;
+        }
 
         logInfo('Gemini API 请求成功', { 
           attempt,
           tokensUsed: response.data.usageMetadata?.totalTokenCount
         });
 
+        // 成功后重置429错误计数
+        this.consecutiveRateLimitErrors = 0;
+        
         return response;
         
       } catch (error) {
         lastError = error as Error;
         
-        if (attempt === this.config.maxRetries) {
-          break;
-        }
-        
         if (axios.isAxiosError(error)) {
-          // 检查是否是配额限制错误
+          // 检查是否是配额限制错误 (429)
           if (error.response?.status === 429) {
-            const delay = calculateRetryDelay(attempt, {
-              ...DEFAULT_RETRY_CONFIG,
-              baseDelay: 2000
+            this.consecutiveRateLimitErrors++;
+            
+            // 根据连续429错误次数，使用更激进的退避策略
+            // 第1次: 10秒, 第2次: 20秒, 第3次: 40秒, 第4次: 60秒
+            const baseDelay = 10000; // 基础延迟10秒
+            const delay = Math.min(
+              baseDelay * Math.pow(2, this.consecutiveRateLimitErrors - 1),
+              60000 // 最多60秒
+            );
+            
+            if (attempt === this.config.maxRetries) {
+              logError(`Gemini API 配额限制，已达最大重试次数`, { 
+                attempt,
+                consecutiveErrors: this.consecutiveRateLimitErrors,
+                suggestion: '免费版API配额已用完，请等待1分钟后再试，或考虑升级到付费版本'
+              });
+              break;
+            }
+            
+            logInfo(`Gemini API 配额限制 (429)，等待${delay}ms后重试`, { 
+              attempt,
+              consecutiveErrors: this.consecutiveRateLimitErrors,
+              remainingRetries: this.config.maxRetries - attempt
             });
-            logInfo(`Gemini API 配额限制，等待${delay}ms后重试`, { attempt });
             await this.sleep(delay);
             continue;
           }
           
+          // 其他不可重试的错误直接抛出
           if (!isRetryableError(error)) {
             throw this.errorHandler.handleNetworkError(error);
           }
         }
         
+        // 最后一次尝试失败，不再重试
+        if (attempt === this.config.maxRetries) {
+          break;
+        }
+        
+        // 其他错误使用标准重试延迟
         const delay = calculateRetryDelay(attempt);
         logInfo(`Gemini API 请求失败，${delay}ms后重试`, { 
           attempt, 
@@ -310,6 +547,78 @@ export class AnalysisService implements IAnalysisService {
       throw createAnalysisError(
         ErrorType.INVALID_RESPONSE,
         `解析 AI 响应失败: ${(error as Error).message}`,
+        'PARSE_ERROR'
+      );
+    }
+  }
+
+  /**
+   * 解析批量分析的 Gemini API 响应
+   */
+  private parseBatchGeminiResponse(response: GeminiResponse, expectedCount: number): BatchAnalysisResult {
+    try {
+      const candidate = response.candidates?.[0];
+      if (!candidate || !candidate.content?.parts?.[0]?.text) {
+        throw new Error('Gemini API 返回了空响应');
+      }
+
+      const text = candidate.content.parts[0].text;
+      logInfo('Gemini API 批量响应文本', { textLength: text.length });
+
+      // 尝试解析 JSON
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('无法从响应中提取 JSON');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // 验证响应结构
+      if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
+        throw new Error('响应缺少 analyses 数组');
+      }
+
+      // 标准化每条新闻的分析结果
+      const analyses = parsed.analyses.map((analysis: {
+        newsIndex: number;
+        impact: string;
+        confidence: number;
+        summary: string;
+        keyPoints: string[];
+        predictedChange: number;
+      }) => ({
+        newsIndex: parseInt(String(analysis.newsIndex)) || 0,
+        impact: this.normalizeImpact(analysis.impact),
+        confidence: Math.max(0, Math.min(1, parseFloat(String(analysis.confidence)) || 0.5)),
+        summary: analysis.summary || '无法生成摘要',
+        keyPoints: Array.isArray(analysis.keyPoints) ? analysis.keyPoints.slice(0, 3) : [],
+        predictedChange: parseFloat(String(analysis.predictedChange)) || 0
+      }));
+
+      // 如果返回的分析数量不足，用默认值填充
+      while (analyses.length < expectedCount) {
+        analyses.push({
+          newsIndex: analyses.length,
+          impact: 'neutral' as ImpactType,
+          confidence: 0.3,
+          summary: '分析数据不完整',
+          keyPoints: [],
+          predictedChange: 0
+        });
+      }
+
+      return {
+        analyses: analyses.slice(0, expectedCount), // 确保不超过预期数量
+        overallImpact: this.normalizeImpact(parsed.overallImpact),
+        overallConfidence: Math.max(0, Math.min(1, parseFloat(parsed.overallConfidence) || 0.5)),
+        overallSummary: parsed.overallSummary || '无法生成整体摘要'
+      };
+      
+    } catch (error) {
+      logError('解析批量 Gemini 响应失败', error);
+      throw createAnalysisError(
+        ErrorType.INVALID_RESPONSE,
+        `解析批量 AI 响应失败: ${(error as Error).message}`,
         'PARSE_ERROR'
       );
     }
@@ -385,6 +694,50 @@ export class AnalysisService implements IAnalysisService {
       summary: this.generateLocalSummary(newsContent, impact, assetType),
       keyPoints: this.extractLocalKeyPoints(newsContent, impact),
       predictedChange
+    };
+  }
+
+  /**
+   * 本地批量分析方法（备用）
+   */
+  private async localBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
+    logInfo('执行本地批量新闻分析', { assetType, count: newsList.length });
+    
+    // 为每条新闻单独分析
+    const analyses = await Promise.all(
+      newsList.map(async (news, index) => {
+        const result = await this.localAnalysis(`${news.title}\n${news.content}`, assetType);
+        return {
+          newsIndex: index,
+          impact: result.impact,
+          confidence: result.confidence,
+          summary: result.summary,
+          keyPoints: result.keyPoints,
+          predictedChange: result.predictedChange
+        };
+      })
+    );
+
+    // 计算整体影响
+    const positiveCount = analyses.filter(a => a.impact === 'positive').length;
+    const negativeCount = analyses.filter(a => a.impact === 'negative').length;
+    const neutralCount = analyses.filter(a => a.impact === 'neutral').length;
+
+    let overallImpact: ImpactType = 'neutral';
+    if (positiveCount > negativeCount && positiveCount > neutralCount) {
+      overallImpact = 'positive';
+    } else if (negativeCount > positiveCount && negativeCount > neutralCount) {
+      overallImpact = 'negative';
+    }
+
+    const avgConfidence = analyses.reduce((sum, a) => sum + a.confidence, 0) / analyses.length;
+    const avgChange = analyses.reduce((sum, a) => sum + a.predictedChange, 0) / analyses.length;
+
+    return {
+      analyses,
+      overallImpact,
+      overallConfidence: avgConfidence,
+      overallSummary: `综合分析${newsList.length}条新闻，整体${overallImpact === 'positive' ? '利好' : overallImpact === 'negative' ? '利空' : '中性'}，预测变化约${avgChange.toFixed(2)}%`
     };
   }
 

@@ -144,6 +144,20 @@ export interface AnalysisService {
     keyPoints: string[];
     predictedChange: number;
   }>;
+  
+  analyzeBatchNews(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<{
+    analyses: Array<{
+      newsIndex: number;
+      impact: ImpactType;
+      confidence: number;
+      summary: string;
+      keyPoints: string[];
+      predictedChange: number;
+    }>;
+    overallImpact: ImpactType;
+    overallConfidence: number;
+    overallSummary: string;
+  }>;
 }
 
 // ============================================================================
