@@ -194,13 +194,38 @@ export class NewsService implements INewsService {
         timeout: this.config.timeout
       });
 
-      console.log('📡 Alpha Vantage响应', { 
+      console.log('📡 Alpha Vantage完整响应', { 
         status: response.status,
+        data: response.data,
+        dataKeys: Object.keys(response.data || {}),
         hasFeed: !!response.data?.feed,
         feedLength: response.data?.feed?.length || 0
       });
 
+      // 检查是否有错误信息
+      if (response.data?.['Error Message']) {
+        throw new Error(`Alpha Vantage API错误: ${response.data['Error Message']}`);
+      }
+
+      // 检查是否有Note（API限制提示）
+      if (response.data?.Note) {
+        console.warn('⚠️ Alpha Vantage API限制', response.data.Note);
+        throw new Error(`Alpha Vantage API限制: ${response.data.Note}`);
+      }
+
+      // 检查是否有Information（API密钥问题）
+      if (response.data?.Information) {
+        console.warn('⚠️ Alpha Vantage API信息', response.data.Information);
+        throw new Error(`Alpha Vantage API: ${response.data.Information}`);
+      }
+
       if (!response.data?.feed || !Array.isArray(response.data.feed)) {
+        console.error('❌ Alpha Vantage返回格式错误', {
+          hasData: !!response.data,
+          dataType: typeof response.data,
+          dataKeys: response.data ? Object.keys(response.data) : [],
+          fullData: response.data
+        });
         throw new Error('Alpha Vantage API返回格式错误');
       }
 
