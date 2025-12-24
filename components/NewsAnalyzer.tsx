@@ -121,9 +121,10 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
       const analysisResults: NewsAnalysis[] = [];
       
-      // 并发控制：每次最多分析 5 条新闻（避免超出 Gemini API 限制）
-      const BATCH_SIZE = 5;
-      const DELAY_BETWEEN_BATCHES = 1000; // 批次之间延迟 1 秒
+      // 并发控制：Gemini 免费版限制 15 请求/分钟
+      // 每批 10 条新闻，批次间延迟 4 秒，确保不超过限制
+      const BATCH_SIZE = 10;
+      const DELAY_BETWEEN_BATCHES = 4000; // 批次之间延迟 4 秒
       
       for (let i = 0; i < newsItems.length; i += BATCH_SIZE) {
         const batch = newsItems.slice(i, i + BATCH_SIZE);
