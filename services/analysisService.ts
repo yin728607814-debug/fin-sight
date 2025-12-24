@@ -525,7 +525,7 @@ ${newsText}
   }
 
   /**
-   * 解析批量分析的 Gemini API 响应
+   * 解析批量分析的 Gemini API 响应（增强容错）
    */
   private parseBatchGeminiResponse(response: GeminiResponse, expectedCount: number): BatchAnalysisResult {
     try {
@@ -537,13 +537,60 @@ ${newsText}
       const text = candidate.content.parts[0].text;
       logInfo('Gemini API 批量响应文本', { textLength: text.length });
 
-      // 尝试解析 JSON
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      // 尝试解析 JSON - 增强容错
+      let jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('无法从响应中提取 JSON');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      let jsonText = jsonMatch[0];
+      
+      // 尝试修复常见的JSON错误
+      // 1. 移除末尾可能不完整的对象
+      const lastCommaIndex = jsonText.lastIndexOf(',');
+      const lastBracketIndex = jsonText.lastIndexOf('}');
+      if (lastCommaIndex > lastBracketIndex) {
+        // 有逗号但没有闭合括号，可能是不完整的
+        jsonText = jsonText.substring(0, lastCommaIndex) + ']},"overallImpact":"neutral","overallConfidence":0.5,"overallSummary":"分析被截断"}';
+      }
+      
+      // 2. 确保JSON正确闭合
+      const openBraces = (jsonText.match(/\{/g) || []).length;
+      const closeBraces = (jsonText.match(/\}/g) || []).length;
+      if (openBraces > closeBraces) {
+        jsonText += '}'.repeat(openBraces - closeBraces);
+      }
+      
+      const openBrackets = (jsonText.match(/\[/g) || []).length;
+      const closeBrackets = (jsonText.match(/\]/g) || []).length;
+      if (openBrackets > closeBrackets) {
+        jsonText += ']'.repeat(openBrackets - closeBrackets);
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonText);
+      } catch (parseError) {
+        logError('JSON解析失败，尝试提取部分数据', parseError);
+        // 如果完整JSON解析失败，尝试提取analyses数组
+        const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)\]/);
+        if (analysesMatch) {
+          try {
+            const analysesText = '[' + analysesMatch[1] + ']';
+            const analyses = JSON.parse(analysesText);
+            parsed = {
+              analyses,
+              overallImpact: 'neutral',
+              overallConfidence: 0.5,
+              overallSummary: '部分分析结果'
+            };
+          } catch {
+            throw parseError; // 如果还是失败，抛出原始错误
+          }
+        } else {
+          throw parseError;
+        }
+      }
       
       // 验证响应结构
       if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
