@@ -175,109 +175,96 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 使用Alpha Vantage获取纳斯达克新闻
+   * 使用Finnhub获取纳斯达克新闻（免费配额：60次/分钟）
    */
   private async fetchAlphaVantageNews(limit: number = 50): Promise<NewsItem[]> {
     try {
-      console.log('📡 调用Alpha Vantage News API');
+      console.log('📡 调用Finnhub News API');
       
       // 纳斯达克100主要成分股
-      const tickers = 'AAPL,MSFT,GOOGL,AMZN,NVDA,TSLA,META,NFLX,AMD,INTC';
+      const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'INTC'];
       
-      const response = await axios.get('https://www.alphavantage.co/query', {
-        params: {
-          function: 'NEWS_SENTIMENT',
-          tickers: tickers,
-          limit: Math.min(limit, 1000), // API最多返回1000条
-          apikey: config.apiKeys.alphaVantage
-        },
-        timeout: this.config.timeout
+      // 获取最近7天的新闻
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 7);
+      
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      
+      // 并发获取多个股票的新闻（限制并发数避免超限）
+      const allNews: any[] = [];
+      
+      // 每次获取2个股票的新闻，避免超过速率限制
+      for (let i = 0; i < Math.min(tickers.length, 4); i += 2) {
+        const batch = tickers.slice(i, i + 2);
+        
+        const batchPromises = batch.map(ticker =>
+          axios.get('https://finnhub.io/api/v1/company-news', {
+            params: {
+              symbol: ticker,
+              from: formatDate(fromDate),
+              to: formatDate(toDate),
+              token: config.apiKeys.alphaVantage // 复用Alpha Vantage密钥字段存储Finnhub token
+            },
+            timeout: this.config.timeout
+          }).catch(err => {
+            console.warn(`⚠️ 获取${ticker}新闻失败`, err.message);
+            return { data: [] };
+          })
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(response => {
+          if (Array.isArray(response.data)) {
+            allNews.push(...response.data);
+          }
+        });
+        
+        // 避免速率限制，批次间延迟
+        if (i + 2 < tickers.length) {
+          await this.sleep(1000);
+        }
+      }
+
+      console.log('📡 Finnhub响应', { 
+        totalNews: allNews.length
       });
 
-      console.log('📡 Alpha Vantage完整响应', { 
-        status: response.status,
-        data: response.data,
-        dataKeys: Object.keys(response.data || {}),
-        hasFeed: !!response.data?.feed,
-        feedLength: response.data?.feed?.length || 0
+      if (allNews.length === 0) {
+        throw new Error('Finnhub API未返回新闻数据');
+      }
+
+      // 去重（按URL）
+      const uniqueNews = Array.from(
+        new Map(allNews.map(item => [item.url, item])).values()
+      );
+
+      // 按时间排序，取最新的
+      const sortedNews = uniqueNews
+        .sort((a, b) => b.datetime - a.datetime)
+        .slice(0, limit);
+
+      const newsItems = sortedNews.map((article: any, index: number) => {
+        return {
+          id: `finnhub_news_${Date.now()}_${index}`,
+          title: article.headline || 'Untitled',
+          content: article.summary || article.headline || '',
+          source: article.source || 'Finnhub',
+          publishedAt: new Date(article.datetime * 1000), // Unix timestamp转换
+          url: article.url || '#',
+          relevanceScore: 0.8, // Finnhub的新闻都是高相关性的
+          image: article.image || undefined
+        };
       });
 
-      // 检查是否有错误信息
-      if (response.data?.['Error Message']) {
-        throw new Error(`Alpha Vantage API错误: ${response.data['Error Message']}`);
-      }
-
-      // 检查是否有Note（API限制提示）
-      if (response.data?.Note) {
-        console.warn('⚠️ Alpha Vantage API限制', response.data.Note);
-        throw new Error(`Alpha Vantage API限制: ${response.data.Note}`);
-      }
-
-      // 检查是否有Information（API密钥问题）
-      if (response.data?.Information) {
-        console.warn('⚠️ Alpha Vantage API信息', response.data.Information);
-        throw new Error(`Alpha Vantage API: ${response.data.Information}`);
-      }
-
-      if (!response.data?.feed || !Array.isArray(response.data.feed)) {
-        console.error('❌ Alpha Vantage返回格式错误', {
-          hasData: !!response.data,
-          dataType: typeof response.data,
-          dataKeys: response.data ? Object.keys(response.data) : [],
-          fullData: response.data
-        });
-        throw new Error('Alpha Vantage API返回格式错误');
-      }
-
-      const newsItems = response.data.feed
-        .slice(0, limit)
-        .map((article: any, index: number) => {
-          // 计算整体情绪评分
-          const sentimentScore = article.overall_sentiment_score || 0;
-          const relevanceScore = this.calculateAlphaVantageRelevance(article);
-          
-          return {
-            id: `av_news_${Date.now()}_${index}`,
-            title: article.title || 'Untitled',
-            content: article.summary || article.title || '',
-            source: article.source || 'Alpha Vantage',
-            publishedAt: new Date(article.time_published || Date.now()),
-            url: article.url || '#',
-            relevanceScore: relevanceScore,
-            sentiment: sentimentScore // 保存情绪评分供后续使用
-          };
-        });
-
-      console.log('✅ Alpha Vantage新闻转换完成', { count: newsItems.length });
+      console.log('✅ Finnhub新闻转换完成', { count: newsItems.length });
       
       return newsItems;
       
     } catch (error) {
-      console.error('❌ Alpha Vantage API调用失败', error);
+      console.error('❌ Finnhub API调用失败', error);
       throw error;
     }
-  }
-
-  /**
-   * 计算Alpha Vantage新闻的相关性评分
-   */
-  private calculateAlphaVantageRelevance(article: any): number {
-    let score = 0.5;
-    
-    // 基于ticker相关性评分
-    if (article.ticker_sentiment && Array.isArray(article.ticker_sentiment)) {
-      const avgRelevance = article.ticker_sentiment.reduce((sum: number, ts: any) => {
-        return sum + (parseFloat(ts.relevance_score) || 0);
-      }, 0) / article.ticker_sentiment.length;
-      
-      score += avgRelevance * 0.3;
-    }
-    
-    // 基于整体情绪评分
-    const sentimentScore = Math.abs(article.overall_sentiment_score || 0);
-    score += sentimentScore * 0.2;
-    
-    return Math.min(Math.max(score, 0), 1);
   }
 
   /**
