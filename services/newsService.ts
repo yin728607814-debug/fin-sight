@@ -115,8 +115,7 @@ export class NewsService implements INewsService {
     
     if (isLocalDev) {
       console.warn('🌐 检测到本地开发环境');
-      console.warn('📰 News API不支持浏览器直接调用（CORS限制）');
-      console.warn('🎭 使用演示数据进行展示');
+      console.warn('📰 使用演示数据进行展示');
       console.warn('💡 部署到生产环境后将使用真实数据');
       
       const { generateDemoNews } = await import('./demoDataService');
@@ -127,70 +126,42 @@ export class NewsService implements INewsService {
       return demoNews;
     }
 
-    // 服务器环境：尝试真实API调用
+    // 生产环境：根据资产类型选择API
     return measureAsync(
       'news_fetch',
       async () => {
         try {
-          console.log('🚀 服务器环境：开始获取真实新闻数据', { assetType, limit });
-          logInfo('开始获取新闻数据', { assetType, limit });
+          let newsItems: NewsItem[];
           
-          const query = this.buildSearchQuery(assetType);
-          console.log('🔍 搜索查询', { query });
-          
-          const response = await this.makeRequest('/everything', {
-            q: query,
-            language: 'en',
-            sortBy: 'publishedAt',
-            pageSize: Math.min(limit, 100) // API限制
-            // 移除时间限制，获取更多结果
-          }, assetType);
-
-          console.log('📡 API响应状态', { 
-            status: response.status, 
-            statusText: response.statusText,
-            dataStatus: response.data?.status,
-            totalResults: response.data?.totalResults
-          });
-
-          const newsItems = this.transformAPIResponse(response.data);
-          console.log('🔄 数据转换结果', { 转换后数量: newsItems.length });
-          
-          // 根据assetType过滤相关新闻
-          // 使用宽泛的关键词确保能匹配到足够的新闻
-          const filteredNews = this.filterNewsByKeywords(newsItems, assetType);
-          console.log('✅ 关键词过滤结果', { 
-            原始数量: newsItems.length,
-            过滤后数量: filteredNews.length,
-            assetType: assetType
-          });
-          
-          // 如果过滤后新闻太少，返回所有新闻
-          const finalNews = filteredNews.length >= 10 ? filteredNews : newsItems;
-          console.log('📊 最终新闻数量', { 
-            使用过滤: filteredNews.length >= 10,
-            数量: finalNews.length
-          });
+          if (assetType === 'nasdaq') {
+            // 纳斯达克：使用Alpha Vantage News API
+            console.log('🚀 使用Alpha Vantage获取纳斯达克新闻');
+            newsItems = await this.fetchAlphaVantageNews(limit);
+          } else {
+            // 黄金：继续使用新浪财经
+            console.log('🚀 使用新浪财经获取黄金新闻');
+            newsItems = await this.fetchSinaNews(assetType, limit);
+          }
           
           // 缓存结果
-          this.setCache(cacheKey, finalNews);
+          this.setCache(cacheKey, newsItems);
           
           console.log('🎉 新闻获取完成', { 
             assetType, 
-            总数量: finalNews.length
+            总数量: newsItems.length
           });
           
           logInfo('成功获取新闻数据', { 
             assetType, 
-            total: finalNews.length
+            total: newsItems.length
           });
           
-          return finalNews;
+          return newsItems;
           
         } catch (error) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
           
-          console.error('❌ 真实API调用失败，回退到演示数据');
+          console.error('❌ API调用失败，回退到演示数据');
           logError('⚠️ 新闻API调用失败，使用演示数据', error);
           
           const { generateDemoNews } = await import('./demoDataService');
@@ -201,6 +172,132 @@ export class NewsService implements INewsService {
       },
       { assetType, limit }
     );
+  }
+
+  /**
+   * 使用Alpha Vantage获取纳斯达克新闻
+   */
+  private async fetchAlphaVantageNews(limit: number = 50): Promise<NewsItem[]> {
+    try {
+      console.log('📡 调用Alpha Vantage News API');
+      
+      // 纳斯达克100主要成分股
+      const tickers = 'AAPL,MSFT,GOOGL,AMZN,NVDA,TSLA,META,NFLX,AMD,INTC';
+      
+      const response = await axios.get('https://www.alphavantage.co/query', {
+        params: {
+          function: 'NEWS_SENTIMENT',
+          tickers: tickers,
+          limit: Math.min(limit, 1000), // API最多返回1000条
+          apikey: config.apiKeys.alphaVantage
+        },
+        timeout: this.config.timeout
+      });
+
+      console.log('📡 Alpha Vantage响应', { 
+        status: response.status,
+        hasFeed: !!response.data?.feed,
+        feedLength: response.data?.feed?.length || 0
+      });
+
+      if (!response.data?.feed || !Array.isArray(response.data.feed)) {
+        throw new Error('Alpha Vantage API返回格式错误');
+      }
+
+      const newsItems = response.data.feed
+        .slice(0, limit)
+        .map((article: any, index: number) => {
+          // 计算整体情绪评分
+          const sentimentScore = article.overall_sentiment_score || 0;
+          const relevanceScore = this.calculateAlphaVantageRelevance(article);
+          
+          return {
+            id: `av_news_${Date.now()}_${index}`,
+            title: article.title || 'Untitled',
+            content: article.summary || article.title || '',
+            source: article.source || 'Alpha Vantage',
+            publishedAt: new Date(article.time_published || Date.now()),
+            url: article.url || '#',
+            relevanceScore: relevanceScore,
+            sentiment: sentimentScore // 保存情绪评分供后续使用
+          };
+        });
+
+      console.log('✅ Alpha Vantage新闻转换完成', { count: newsItems.length });
+      
+      return newsItems;
+      
+    } catch (error) {
+      console.error('❌ Alpha Vantage API调用失败', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 计算Alpha Vantage新闻的相关性评分
+   */
+  private calculateAlphaVantageRelevance(article: any): number {
+    let score = 0.5;
+    
+    // 基于ticker相关性评分
+    if (article.ticker_sentiment && Array.isArray(article.ticker_sentiment)) {
+      const avgRelevance = article.ticker_sentiment.reduce((sum: number, ts: any) => {
+        return sum + (parseFloat(ts.relevance_score) || 0);
+      }, 0) / article.ticker_sentiment.length;
+      
+      score += avgRelevance * 0.3;
+    }
+    
+    // 基于整体情绪评分
+    const sentimentScore = Math.abs(article.overall_sentiment_score || 0);
+    score += sentimentScore * 0.2;
+    
+    return Math.min(Math.max(score, 0), 1);
+  }
+
+  /**
+   * 使用新浪财经获取新闻（黄金等）
+   */
+  private async fetchSinaNews(assetType: AssetType, limit: number): Promise<NewsItem[]> {
+    console.log('🚀 服务器环境：开始获取真实新闻数据', { assetType, limit });
+    logInfo('开始获取新闻数据', { assetType, limit });
+    
+    const query = this.buildSearchQuery(assetType);
+    console.log('🔍 搜索查询', { query });
+    
+    const response = await this.makeRequest('/everything', {
+      q: query,
+      language: 'en',
+      sortBy: 'publishedAt',
+      pageSize: Math.min(limit, 100) // API限制
+    }, assetType);
+
+    console.log('📡 API响应状态', { 
+      status: response.status, 
+      statusText: response.statusText,
+      dataStatus: response.data?.status,
+      totalResults: response.data?.totalResults
+    });
+
+    const newsItems = this.transformAPIResponse(response.data);
+    console.log('🔄 数据转换结果', { 转换后数量: newsItems.length });
+    
+    // 根据assetType过滤相关新闻
+    const filteredNews = this.filterNewsByKeywords(newsItems, assetType);
+    console.log('✅ 关键词过滤结果', { 
+      原始数量: newsItems.length,
+      过滤后数量: filteredNews.length,
+      assetType: assetType
+    });
+    
+    // 如果过滤后新闻太少，返回所有新闻
+    const finalNews = filteredNews.length >= 10 ? filteredNews : newsItems;
+    console.log('📊 最终新闻数量', { 
+      使用过滤: filteredNews.length >= 10,
+      数量: finalNews.length
+    });
+    
+    return finalNews;
   }
 
   /**
