@@ -229,7 +229,7 @@ export const NewsList: React.FC<NewsListProps> = ({
                       </div>
                     </div>
                     
-                    <h4 className="text-lg font-medium text-slate-900 mb-2 line-clamp-2">
+                    <h4 className="text-lg font-medium text-slate-900 mb-2">
                       {newsItem.title}
                     </h4>
                     
