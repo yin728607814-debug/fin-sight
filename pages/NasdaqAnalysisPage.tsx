@@ -60,39 +60,46 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                      errors.news || errors.analysis || errors.prices;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* 装饰性背景 */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="relative bg-white/40 backdrop-blur-xl shadow-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <Link
                 to="/"
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center text-gray-700 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeftIcon className="h-5 w-5 mr-2" />
                 返回首页
               </Link>
-              <div className="ml-6 h-6 border-l border-gray-300" />
+              <div className="ml-6 h-6 border-l border-gray-300/50" />
               <h1 className="ml-6 text-xl font-bold text-gray-900 flex items-center">
-                <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
+                <span className="inline-block w-3 h-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mr-3 shadow-lg"></span>
                 纳斯达克100分析
               </h1>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-600 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                 {formatUpdateTime(lastUpdated)}
               </div>
               {isDataExpired(lastUpdated, 30) && (
-                <div className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                <div className="text-sm text-amber-700 bg-amber-100/80 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                   {formatExpirationWarning(lastUpdated, 30)}
                 </div>
               )}
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white/60 backdrop-blur-sm border border-white/40 rounded-lg hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
               >
                 <svg className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -105,7 +112,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 全局错误显示 */}
         {hasAnyError && (
           <div className="mb-6">
@@ -122,8 +129,8 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
           {/* 左侧：新闻分析 */}
           <div className="xl:col-span-3 space-y-6">
             {/* 新闻分析器 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-white/20">
                 <h2 className="text-lg font-semibold text-gray-900">
                   新闻影响分析
                 </h2>
@@ -148,8 +155,8 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
             )}
 
             {/* 新闻列表 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-white/20">
                 <h2 className="text-lg font-semibold text-gray-900">
                   相关新闻
                 </h2>
@@ -176,8 +183,8 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
           {/* 右侧：价格趋势 */}
           <div className="xl:col-span-2 space-y-6">
             {/* 价格趋势图表 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-white/20">
                 <h2 className="text-lg font-semibold text-gray-900">
                   价格趋势
                 </h2>
@@ -205,23 +212,23 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
             </div>
 
             {/* 市场概览 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-white/20">
                 <h2 className="text-lg font-semibold text-gray-900">
                   市场概览
                 </h2>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">当前指数</span>
-                    <span className="font-semibold text-gray-900 whitespace-nowrap">
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">当前指数</span>
+                    <span className="font-bold text-gray-900 whitespace-nowrap">
                       {priceData.length > 0 ? `${priceData[priceData.length - 1]?.close.toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '--'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">24小时变化</span>
-                    <span className={`font-semibold ${
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">24小时变化</span>
+                    <span className={`font-bold ${
                       priceData.length > 0 && priceData[priceData.length - 1]?.changePercent >= 0 
                         ? 'text-green-600' 
                         : 'text-red-600'
@@ -229,15 +236,15 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                       {priceData.length > 0 ? `${priceData[priceData.length - 1]?.changePercent.toFixed(2)}%` : '--'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">相关新闻</span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">相关新闻</span>
+                    <span className="font-bold text-gray-900">
                       {news.length} 条
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">分析报告</span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">分析报告</span>
+                    <span className="font-bold text-gray-900">
                       {analysis.length} 份
                     </span>
                   </div>
@@ -246,29 +253,29 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
             </div>
 
             {/* 技术指标 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-white/20">
                 <h2 className="text-lg font-semibold text-gray-900">
                   技术指标
                 </h2>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">5日最高</span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">5日最高</span>
+                    <span className="font-bold text-gray-900">
                       {priceData.length > 0 ? Math.max(...priceData.map(d => d.high)).toFixed(2) : '--'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">5日最低</span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">5日最低</span>
+                    <span className="font-bold text-gray-900">
                       {priceData.length > 0 ? Math.min(...priceData.map(d => d.low)).toFixed(2) : '--'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">平均成交量</span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex justify-between items-center p-3 bg-white/30 backdrop-blur-sm rounded-xl">
+                    <span className="text-sm text-gray-700 font-medium">平均成交量</span>
+                    <span className="font-bold text-gray-900">
                       {priceData.length > 0 && priceData.some(d => d.volume) 
                         ? (priceData.reduce((sum, d) => sum + (d.volume || 0), 0) / priceData.length).toFixed(0)
                         : '--'
@@ -280,8 +287,8 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
             </div>
 
             {/* 快速导航 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-white/20">
                 <h2 className="text-lg font-semibold text-gray-900">
                   快速导航
                 </h2>
@@ -290,13 +297,13 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                 <div className="space-y-3">
                   <Link
                     to="/gold"
-                    className="block w-full text-left px-4 py-3 text-sm font-medium text-yellow-600 bg-yellow-50 rounded-md hover:bg-yellow-100 transition-colors"
+                    className="block w-full text-left px-4 py-3 text-sm font-medium text-yellow-700 bg-yellow-100/60 backdrop-blur-sm rounded-xl hover:bg-yellow-100/80 transition-all shadow-lg"
                   >
                     切换到现货黄金分析
                   </Link>
                   <Link
                     to="/"
-                    className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                    className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 bg-white/50 backdrop-blur-sm rounded-xl hover:bg-white/70 transition-all shadow-lg"
                   >
                     返回首页
                   </Link>
