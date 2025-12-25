@@ -1,0 +1,87 @@
+# ========================================
+# Netlify 环境变量完整配置
+# 最后更新: 2025-12-25
+# ========================================
+# 
+# 使用方法：
+# 1. 访问 Netlify Dashboard
+# 2. 进入 Site settings → Environment variables
+# 3. 点击 "Import from a .env file"
+# 4. 复制下面的全部内容并粘贴
+# 5. 点击 "Import variables"
+# 
+# ========================================
+
+# News API - 获取金融新闻
+# 来源: https://newsapi.org/
+NEWS_API_KEY=4e96dafb9944403f9b76dcf2c5de51a2
+VITE_NEWS_API_KEY=4e96dafb9944403f9b76dcf2c5de51a2
+
+# Alpha Vantage API - 获取股票价格数据
+# 来源: https://www.alphavantage.co/
+ALPHA_VANTAGE_API_KEY=QM9BUDSK391TXWXB
+VITE_ALPHA_VANTAGE_API_KEY=QM9BUDSK391TXWXB
+
+# Finnhub API - 获取纳斯达克新闻
+# 来源: https://finnhub.io/
+FINNHUB_API_KEY=d55pnopr01qu4cciap2gd55pnopr01qu4cciap30
+VITE_FINNHUB_API_KEY=d55pnopr01qu4cciap2gd55pnopr01qu4cciap30
+
+# Gemini API - AI新闻分析和翻译
+# 来源: https://ai.google.dev/
+# 注意: 这是新项目的密钥，配额更充足
+GEMINI_API_KEY=AIzaSyDwPZDAO4HkB2kvPfbfPc35DZCZGEpHJYM
+VITE_GEMINI_API_KEY=AIzaSyDwPZDAO4HkB2kvPfbfPc35DZCZGEpHJYM
+
+# 应用配置
+VITE_APP_TITLE=Investment News Analyzer
+VITE_APP_VERSION=1.0.0
+
+# ========================================
+# 配置说明
+# ========================================
+# 
+# 1. NEWS_API_KEY
+#    - 用途: 获取金融新闻（备用）
+#    - 限制: 免费版每天100次请求
+#    - 状态: ✅ 已配置
+# 
+# 2. ALPHA_VANTAGE_API_KEY
+#    - 用途: 获取股票价格数据
+#    - 限制: 免费版每天25次请求
+#    - 状态: ✅ 已配置
+# 
+# 3. FINNHUB_API_KEY
+#    - 用途: 获取纳斯达克英文新闻（备用源）
+#    - 限制: 免费版60次/分钟
+#    - 状态: ✅ 已配置
+# 
+# 4. GEMINI_API_KEY (重要!)
+#    - 用途: AI新闻分析 + 新闻翻译
+#    - 限制: 免费版15次/分钟，1500次/天
+#    - 状态: ✅ 已配置（新项目密钥）
+#    - 优化: 
+#      * 分析缓存2小时
+#      * 新闻缓存15分钟
+#      * 优先使用中文源（减少翻译）
+# 
+# ========================================
+# 当前策略
+# ========================================
+# 
+# 纳斯达克页面:
+#   1. 新浪财经美股频道 (中文，免费)
+#   2. 东方财富美股频道 (中文，免费)
+#   3. Finnhub (英文，备用) + Gemini翻译
+#   → 优先中文源，减少API调用
+# 
+# 黄金页面:
+#   1. 新浪财经 (中文，免费)
+#   → 无需翻译
+# 
+# AI分析:
+#   - 批量分析: 50条新闻 = 1次API调用
+#   - 缓存: 2小时
+#   - 预计: 每天500-750次页面访问
+# 
+# ========================================
