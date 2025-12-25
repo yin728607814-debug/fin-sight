@@ -57,14 +57,16 @@ exports.handler = async function(event, context) {
         const url = $link.attr('href') || '';
         
         // 过滤掉太短的标题和无效链接
-        if (title.length > 10 && url) {
-          // 只保留美股相关的新闻
-          const keywords = ['美股', '纳斯达克', '道琼斯', '标普', '华尔街', 
+        if (title.length > 10 && url && url.includes('/a/')) {
+          // 更宽松的美股相关过滤
+          const keywords = ['美股', '纳斯达克', '纳指', '道琼斯', '标普', '华尔街', 
                            '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
-                           'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA'];
+                           'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA',
+                           '科技股', '美国', '上市', '股价', '涨', '跌'];
           const isRelevant = keywords.some(kw => title.includes(kw));
           
-          if (isRelevant || url.includes('usstock') || url.includes('mgqb')) {
+          // URL包含美股路径或标题相关
+          if (isRelevant || url.includes('usstock') || url.includes('mgqb') || url.includes('cgnjj')) {
             // 尝试获取时间信息
             const $parent = $link.parent();
             const time = $parent.find('.time, .date, span[class*="time"]').first().text().trim();
