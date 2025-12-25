@@ -168,7 +168,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
               <div className="p-4 sm:p-6">
                 {newsLoading || loading.news ? (
                   <div className="flex justify-center py-8">
-                    <LoadingSpinner size="md" text="加载新闻中..." />
+                    <LoadingSpinner size="md" />
                   </div>
                 ) : (
                   <NewsList
@@ -196,7 +196,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
               <div className="p-4 sm:p-6">
                 {pricesLoading || loading.prices ? (
                   <div className="flex justify-center py-8">
-                    <LoadingSpinner size="md" text="加载价格数据..." />
+                    <LoadingSpinner size="md" />
                   </div>
                 ) : priceData.length > 0 ? (
                   <TrendChart

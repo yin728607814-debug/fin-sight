@@ -10,10 +10,10 @@ import { NewsAnalyzer } from '../components/NewsAnalyzer';
 import { TrendChart } from '../components/TrendChart';
 import { NewsList } from '../components/NewsList';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorMessage } from '../components/ErrorMessage';
 import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
 import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
-import { AssetType } from '../types';
 
 /**
  * 纳斯达克100分析页面Props
@@ -120,7 +120,6 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
               title="数据加载出现问题"
               message="部分数据可能无法正常显示，请尝试刷新页面"
               onRetry={handleRefresh}
-              onClose={() => {}}
             />
           </div>
         )}
@@ -167,7 +166,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
               <div className="p-6">
                 {newsLoading || loading.news ? (
                   <div className="flex justify-center py-8">
-                    <LoadingSpinner size="md" text="加载新闻中..." />
+                    <LoadingSpinner size="md" />
                   </div>
                 ) : (
                   <NewsList
@@ -195,7 +194,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
               <div className="p-6">
                 {pricesLoading || loading.prices ? (
                   <div className="flex justify-center py-8">
-                    <LoadingSpinner size="md" text="加载价格数据..." />
+                    <LoadingSpinner size="md" />
                   </div>
                 ) : priceData.length > 0 ? (
                   <TrendChart
