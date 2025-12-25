@@ -430,7 +430,7 @@ export class NewsService implements INewsService {
       const formatDate = (date: Date) => date.toISOString().split('T')[0];
       
       // 并发获取多个股票的新闻
-      const allNews: any[] = [];
+      const allNews: unknown[] = [];
       
       // 每次获取2个股票的新闻，避免超过速率限制
       for (let i = 0; i < Math.min(tickers.length, 4); i += 2) {
