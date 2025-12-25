@@ -53,8 +53,20 @@ exports.handler = async function(event, context) {
     $('a[href*="finance.eastmoney.com/a/"]').each((_idx, element) => {
       try {
         const $link = $(element);
-        const title = $link.text().trim() || $link.attr('title') || '';
+        const linkText = $link.text().trim();
+        const titleAttr = $link.attr('title');
+        // 优先使用title属性（完整标题），如果没有则使用链接文本
+        const title = titleAttr || linkText || '';
         const href = $link.attr('href') || '';
+        
+        // 调试：打印前3条的详细信息
+        if (articles.length < 3) {
+          console.log(`\n[调试] 新闻 ${articles.length + 1}:`);
+          console.log(`  链接文本: "${linkText}"`);
+          console.log(`  title属性: "${titleAttr || '无'}"`);
+          console.log(`  最终标题: "${title}"`);
+          console.log(`  URL: ${href}`);
+        }
         
         // 过滤掉太短的标题
         if (title.length > 15 && href) {
