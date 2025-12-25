@@ -49,22 +49,26 @@ exports.handler = async function(event, context) {
     const $ = cheerio.load(response.data);
     const articles = [];
     
-    // 查找新闻列表项
-    $('div.newslist ul li, .news-list li, .list-item').each((index, element) => {
+    // 查找所有新闻链接 - 使用更通用的选择器
+    $('a[href*="/a/"]').each((idx, element) => {
       try {
-        const $item = $(element);
-        const $link = $item.find('a').first();
-        const title = $link.text().trim() || $link.attr('title');
-        const url = $link.attr('href');
-        const time = $item.find('.time, .date, span').first().text().trim();
+        const $link = $(element);
+        const title = $link.text().trim() || $link.attr('title') || '';
+        const url = $link.attr('href') || '';
         
-        if (title && url && title.length > 10) {
+        // 过滤掉太短的标题和无效链接
+        if (title.length > 10 && url) {
           // 只保留美股相关的新闻
           const keywords = ['美股', '纳斯达克', '道琼斯', '标普', '华尔街', 
-                           '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达'];
+                           '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
+                           'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA'];
           const isRelevant = keywords.some(kw => title.includes(kw));
           
           if (isRelevant || url.includes('usstock') || url.includes('mgqb')) {
+            // 尝试获取时间信息
+            const $parent = $link.parent();
+            const time = $parent.find('.time, .date, span[class*="time"]').first().text().trim();
+            
             articles.push({
               title: title,
               description: title,
