@@ -221,9 +221,9 @@ export class NewsService implements INewsService {
     // 按相关性排序
     scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
     
-    // 降低过滤阈值，保留更多新闻（阈值20分，更宽松）
-    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.2);
-    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥20分)`);
+    // 降低过滤阈值，保留更多新闻（阈值10分，更宽松）
+    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
+    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
     
     // 如果中文源仍然不足，补充Finnhub + 翻译
     if (filteredNews.length < limit) {
@@ -261,7 +261,7 @@ export class NewsService implements INewsService {
       const response = await axios.get('/.netlify/functions/sina-news-proxy', {
         params: { 
           category: 'finance',
-          num: 500  // 获取更多用于过滤
+          num: limit  // 使用传入的limit参数
         },
         timeout: this.config.timeout
       });
@@ -357,20 +357,24 @@ export class NewsService implements INewsService {
     const url = news.url.toLowerCase();
     const source = news.source.toLowerCase();
     
-    // 1. 来源加分 (30分)
+    // 1. 来源加分 (40分) - 提高来源权重
     // 东方财富美股专页的新闻默认高分
     if (source.includes('东方财富') || url.includes('eastmoney.com')) {
-      score += 0.30;
+      score += 0.40;
     }
     // 新浪财经美股路径
     else if (url.includes('/usstock/') || url.includes('/stock/us')) {
+      score += 0.40;
+    }
+    // 其他新浪财经新闻
+    else if (source.includes('新浪') || source.includes('sina') || source.includes('财经')) {
       score += 0.30;
     }
     
-    // 2. 标题核心关键词 (40分)
+    // 2. 标题核心关键词 (30分)
     const highPriorityKeywords = ['纳斯达克', 'nasdaq', '纳指', '美股', '华尔街', '道琼斯', '标普'];
     if (highPriorityKeywords.some(kw => title.includes(kw))) {
-      score += 0.25;
+      score += 0.30;
     }
     
     // 3. 科技公司和股票代码 (20分)
@@ -382,14 +386,8 @@ export class NewsService implements INewsService {
     }
     
     // 4. 通用财经关键词 (10分)
-    const generalKeywords = ['科技股', '芯片', '半导体', 'ai', '人工智能', '上市', 'ipo', '美联储'];
+    const generalKeywords = ['科技股', '芯片', '半导体', 'ai', '人工智能', '上市', 'ipo', '美联储', '股市', '股价'];
     if (generalKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
-      score += 0.10;
-    }
-    
-    // 5. 美国相关 (10分)
-    const usKeywords = ['美国', '联邦', '华盛顿', 'us', 'america'];
-    if (usKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
       score += 0.10;
     }
     
