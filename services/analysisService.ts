@@ -236,12 +236,18 @@ export class AnalysisService implements IAnalysisService {
   private buildBatchAnalysisPrompt(newsList: Array<{ title: string; content: string }>, assetType: string): string {
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 将新闻列表格式化，每条新闻带编号（取前300字，保留足够上下文）
-    const newsText = newsList.map((news, index) => 
-      `[${index}] ${news.title}\n${news.content.substring(0, 300)}...`
-    ).join('\n\n');
+    // 将新闻列表格式化，每条新闻带编号（使用完整内容，最多800字）
+    const newsText = newsList.map((news, index) => {
+      // 使用完整的content，如果太长则截取800字
+      const fullContent = news.content.length > 800 
+        ? news.content.substring(0, 800) + '...' 
+        : news.content;
+      return `[${index}] ${news.title}\n${fullContent}`;
+    }).join('\n\n');
     
-    return `分析以下${newsList.length}条新闻对${assetName}的影响，为每条新闻提供详细分析。返回JSON（无markdown）：
+    return `你是一位专业的金融分析师。分析以下${newsList.length}条新闻对${assetName}的影响。
+
+注意：新闻内容可能较简短（仅标题和摘要），请基于标题和关键信息做出专业判断。返回JSON（无markdown）：
 
 ${newsText}
 
@@ -252,7 +258,7 @@ ${newsText}
       "newsIndex": 0,
       "impact": "positive/negative/neutral",
       "confidence": 0.75,
-      "summary": "详细分析这条新闻的影响（80-120字）",
+      "summary": "基于标题和摘要，详细分析这条新闻的影响机制和传导路径（80-120字）",
       "keyPoints": ["关键点1", "关键点2", "关键点3"],
       "predictedChange": 2.5
     }
@@ -262,11 +268,12 @@ ${newsText}
   "overallSummary": "综合所有新闻的整体市场影响分析（150-200字）"
 }
 
-要求：
-- 每条新闻都要有完整分析
-- summary要具体说明影响机制
-- keyPoints要提取核心要素
-- predictedChange范围：-10到+10`;
+分析要求：
+- 即使内容简短，也要基于标题和关键词做出合理推断
+- summary要具体说明影响机制和传导路径
+- keyPoints要提取核心要素（政策、数据、事件等）
+- predictedChange范围：-10到+10（百分比）
+- confidence反映信息完整度和影响确定性`;
   }
 
   /**
