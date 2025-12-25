@@ -53,6 +53,10 @@ export const initialAppState: AppState = {
     gold: [],
     nasdaq: []
   },
+  overallAnalysis: {
+    gold: null,
+    nasdaq: null
+  },
   priceData: {
     gold: [],
     nasdaq: []
@@ -90,6 +94,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         analysis: {
           ...state.analysis,
+          [action.payload.assetType]: action.payload.analysis
+        }
+      };
+
+    case AppActionType.SET_OVERALL_ANALYSIS:
+      return {
+        ...state,
+        overallAnalysis: {
+          ...state.overallAnalysis,
           [action.payload.assetType]: action.payload.analysis
         }
       };
@@ -141,6 +154,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         analysis: {
           gold: [],
           nasdaq: []
+        },
+        overallAnalysis: {
+          gold: null,
+          nasdaq: null
         },
         priceData: {
           gold: [],
@@ -362,6 +379,26 @@ export function usePriceData(assetType?: AssetType) {
     setPriceData,
     loading: state.loading.prices,
     error: state.errors.prices
+  };
+}
+
+/**
+ * 使用整体分析状态的Hook
+ */
+export function useOverallAnalysis(assetType?: AssetType) {
+  const { state, dispatch } = useAppState();
+  const targetAsset = assetType || state.currentAsset;
+
+  const setOverallAnalysis = useCallback((analysis: import('../types').OverallMarketAnalysis) => {
+    dispatch({
+      type: AppActionType.SET_OVERALL_ANALYSIS,
+      payload: { assetType: targetAsset, analysis }
+    });
+  }, [dispatch, targetAsset]);
+
+  return {
+    overallAnalysis: state.overallAnalysis[targetAsset],
+    setOverallAnalysis
   };
 }
 

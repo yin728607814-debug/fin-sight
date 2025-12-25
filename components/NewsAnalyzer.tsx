@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { NewsAnalyzerProps, NewsItem, NewsAnalysis } from '../types';
-import { useNews, useAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
+import { useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { newsService, analysisService, priceService } from '../services';
 import { LoadingSpinner } from './LoadingSpinner';
 import { DataFetchError } from './DemoDataNotice';
@@ -21,6 +21,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 }) => {
   const { news, setNews } = useNews(assetType);
   const { analysis, setAnalysis } = useAnalysis(assetType);
+  const { overallAnalysis, setOverallAnalysis } = useOverallAnalysis(assetType);
   const { priceData, setPriceData } = usePriceData(assetType);
   const { loading, setLoading } = useLoading();
   const { errors, setError, clearError } = useErrors();
@@ -157,6 +158,26 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       console.log(`   ${analysisResults.filter(a => a.impact === 'positive').length} 条利好, ${analysisResults.filter(a => a.impact === 'negative').length} 条利空, ${analysisResults.filter(a => a.impact === 'neutral').length} 条中性`);
 
       setAnalysis(analysisResults);
+      
+      // 调用整体市场分析（第二次API调用）
+      console.log(`🔍 开始整体市场分析...`);
+      try {
+        const overallAnalysisResult = await analysisService.analyzeOverallMarket(
+          newsItems.map(item => ({
+            title: item.title,
+            content: item.content
+          })),
+          assetType
+        );
+        
+        console.log(`✅ 整体市场分析完成！`);
+        setOverallAnalysis(overallAnalysisResult);
+        
+      } catch (overallError) {
+        console.error('❌ 整体市场分析失败:', overallError);
+        // 整体分析失败不影响单条新闻分析结果
+      }
+      
       onAnalysisComplete?.(analysisResults);
       
       return analysisResults;
@@ -169,7 +190,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setIsAnalyzing(false);
       setLoading({ analysis: false });
     }
-  }, [assetType, setAnalysis, setLoading, setError, clearError, onAnalysisComplete]);
+  }, [assetType, setAnalysis, setOverallAnalysis, setLoading, setError, clearError, onAnalysisComplete]);
 
   /**
    * 获取并分析新闻，同时获取价格数据（带重试机制）

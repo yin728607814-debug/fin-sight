@@ -41,6 +41,23 @@ export interface NewsAnalysis {
   timeframe: TimeFrame;
 }
 
+/**
+ * 整体市场分析接口
+ */
+export interface OverallMarketAnalysis {
+  assetType: AssetType;
+  impact: ImpactType;
+  confidence: number;
+  summary: string; // 综合分析摘要
+  investmentAdvice: string; // 投资建议
+  keyFactors: string[]; // 关键影响因素
+  riskLevel: 'low' | 'medium' | 'high'; // 风险等级
+  timeHorizon: TimeFrame; // 建议持有时间
+  predictedTrend: string; // 预测趋势描述
+  analyzedNewsCount: number; // 分析的新闻数量
+  timestamp: Date; // 分析时间戳
+}
+
 // ============================================================================
 // 价格数据模型
 // ============================================================================
@@ -105,6 +122,10 @@ export interface AppState {
     gold: NewsAnalysis[];
     nasdaq: NewsAnalysis[];
   };
+  overallAnalysis: {
+    gold: OverallMarketAnalysis | null;
+    nasdaq: OverallMarketAnalysis | null;
+  };
   priceData: {
     gold: PriceData[];
     nasdaq: PriceData[];
@@ -158,6 +179,8 @@ export interface AnalysisService {
     overallConfidence: number;
     overallSummary: string;
   }>;
+  
+  analyzeOverallMarket(newsList: Array<{ title: string; content: string }>, assetType: AssetType): Promise<OverallMarketAnalysis>;
 }
 
 // ============================================================================
@@ -252,6 +275,7 @@ export enum AppActionType {
   SET_CURRENT_ASSET = 'SET_CURRENT_ASSET',
   SET_NEWS = 'SET_NEWS',
   SET_ANALYSIS = 'SET_ANALYSIS',
+  SET_OVERALL_ANALYSIS = 'SET_OVERALL_ANALYSIS',
   SET_PRICE_DATA = 'SET_PRICE_DATA',
   SET_LOADING = 'SET_LOADING',
   SET_ERROR = 'SET_ERROR',
@@ -266,6 +290,7 @@ export type AppAction =
   | { type: AppActionType.SET_CURRENT_ASSET; payload: AssetType }
   | { type: AppActionType.SET_NEWS; payload: { assetType: AssetType; news: NewsItem[] } }
   | { type: AppActionType.SET_ANALYSIS; payload: { assetType: AssetType; analysis: NewsAnalysis[] } }
+  | { type: AppActionType.SET_OVERALL_ANALYSIS; payload: { assetType: AssetType; analysis: OverallMarketAnalysis } }
   | { type: AppActionType.SET_PRICE_DATA; payload: { assetType: AssetType; data: PriceData[] } }
   | { type: AppActionType.SET_LOADING; payload: Partial<LoadingState> }
   | { type: AppActionType.SET_ERROR; payload: { key: keyof ErrorState; error: string } }

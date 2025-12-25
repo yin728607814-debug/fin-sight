@@ -9,6 +9,7 @@ export { TrendChart } from './TrendChart';
 export { NewsAnalyzer } from './NewsAnalyzer';
 export { NewsList } from './NewsList';
 export { ImpactIndicator, CompactImpactIndicator } from './ImpactIndicator';
+export { OverallAnalysisCard } from './OverallAnalysisCard';
 
 // 通用组件
 export { 

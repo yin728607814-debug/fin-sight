@@ -11,7 +11,8 @@ import { TrendChart } from '../components/TrendChart';
 import { NewsList } from '../components/NewsList';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
-import { useCurrentAsset, useNews, useAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
+import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
+import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
 import { AssetType } from '../types';
 
@@ -27,6 +28,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   const { setCurrentAsset } = useCurrentAsset();
   const { news, loading: newsLoading, error: newsError } = useNews('gold');
   const { analysis, loading: analysisLoading, error: analysisError } = useAnalysis('gold');
+  const { overallAnalysis } = useOverallAnalysis('gold');
   const { priceData, loading: pricesLoading, error: pricesError } = usePriceData('gold');
   const { loading } = useLoading();
   const { errors } = useErrors();
@@ -137,6 +139,14 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                 />
               </div>
             </div>
+
+            {/* 整体市场分析 */}
+            {overallAnalysis && (
+              <OverallAnalysisCard 
+                analysis={overallAnalysis}
+                loading={analysisLoading || loading.analysis}
+              />
+            )}
 
             {/* 新闻列表 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">

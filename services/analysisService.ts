@@ -982,6 +982,111 @@ ${newsText}
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  /**
+   * 分析整体市场趋势并提供投资建议
+   */
+  async analyzeOverallMarket(
+    newsList: Array<{ title: string; content: string }>, 
+    assetType: import('../types').AssetType
+  ): Promise<import('../types').OverallMarketAnalysis> {
+    console.log(`🔍 开始整体市场分析 (${assetType})，新闻数量: ${newsList.length}`);
+    
+    const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    
+    // 构建提示词
+    const newsText = newsList.map((news, index) => {
+      const fullContent = news.content.length > 800 
+        ? news.content.substring(0, 800) + '...' 
+        : news.content;
+      return `[${index}] ${news.title}\n${fullContent}`;
+    }).join('\n\n');
+    
+    const prompt = `你是一位资深的金融分析师和投资顾问。请基于以下${newsList.length}条最新新闻，对${assetName}进行全面的市场分析并提供专业的投资建议。
+
+新闻内容：
+${newsText}
+
+请提供详细的分析报告，返回JSON格式（无markdown）：
+
+{
+  "impact": "positive/negative/neutral",
+  "confidence": 0.75,
+  "summary": "综合分析摘要（200-300字），包括当前市场状况、主要驱动因素、短期和中期展望",
+  "investmentAdvice": "具体的投资建议（150-200字），包括建议的操作策略、仓位建议、止损止盈建议",
+  "keyFactors": ["关键影响因素1", "关键影响因素2", "关键影响因素3", "关键影响因素4"],
+  "riskLevel": "low/medium/high",
+  "timeHorizon": "short/medium/long",
+  "predictedTrend": "未来趋势预测（100-150字），包括可能的价格走势和关键支撑/阻力位"
+}
+
+分析要求：
+1. summary要全面分析当前市场环境，包括宏观经济、政策面、技术面、资金面等多个维度
+2. investmentAdvice要具体可操作，包括进场时机、仓位管理、风险控制等建议
+3. keyFactors要提炼出4-5个最关键的影响因素
+4. riskLevel要基于市场波动性、不确定性因素综合评估
+5. timeHorizon要根据当前市场状态和新闻内容判断最适合的投资周期
+6. predictedTrend要给出具体的价格走势预测和关键点位
+7. confidence要反映分析的确定性程度（考虑信息完整度、市场共识度等）`;
+
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${this.config.apiKey}`,
+        {
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 4096
+          }
+        },
+        {
+          timeout: 60000
+        }
+      );
+
+      const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      
+      if (!responseText) {
+        throw new Error('整体分析响应为空');
+      }
+
+      // 解析JSON响应
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('无法从响应中提取JSON');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      const overallAnalysis: import('../types').OverallMarketAnalysis = {
+        assetType,
+        impact: parsed.impact || 'neutral',
+        confidence: parsed.confidence || 0.5,
+        summary: parsed.summary || '',
+        investmentAdvice: parsed.investmentAdvice || '',
+        keyFactors: parsed.keyFactors || [],
+        riskLevel: parsed.riskLevel || 'medium',
+        timeHorizon: parsed.timeHorizon || 'medium',
+        predictedTrend: parsed.predictedTrend || '',
+        analyzedNewsCount: newsList.length,
+        timestamp: new Date()
+      };
+
+      console.log(`✅ 整体市场分析完成:`, {
+        impact: overallAnalysis.impact,
+        confidence: overallAnalysis.confidence,
+        riskLevel: overallAnalysis.riskLevel
+      });
+
+      return overallAnalysis;
+      
+    } catch (error) {
+      console.error('❌ 整体市场分析失败:', error);
+      throw error;
+    }
+  }
 }
 
 /**
