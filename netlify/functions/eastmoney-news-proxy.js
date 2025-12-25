@@ -58,15 +58,34 @@ exports.handler = async function(event, context) {
         
         // 过滤掉太短的标题和无效链接
         if (title.length > 10 && url && url.includes('/a/')) {
-          // 更宽松的美股相关过滤
-          const keywords = ['美股', '纳斯达克', '纳指', '道琼斯', '标普', '华尔街', 
-                           '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
-                           'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA',
-                           '科技股', '美国', '上市', '股价', '涨', '跌'];
-          const isRelevant = keywords.some(kw => title.includes(kw));
+          // 美股相关关键词（更精准）
+          const usStockKeywords = ['美股', '纳斯达克', '纳指', '道琼斯', '标普', '华尔街'];
+          const techCompanyKeywords = ['苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
+                                       'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA',
+                                       'Meta', 'Netflix', 'AMD', 'Intel'];
+          const generalKeywords = ['科技股', '美国', '上市', 'IPO', '美联储', '联邦'];
           
-          // URL包含美股路径或标题相关
-          if (isRelevant || url.includes('usstock') || url.includes('mgqb') || url.includes('cgnjj')) {
+          // 检查是否包含美股相关关键词
+          const hasUSStockKeyword = usStockKeywords.some(kw => title.includes(kw));
+          const hasTechCompany = techCompanyKeywords.some(kw => title.includes(kw));
+          const hasGeneralKeyword = generalKeywords.some(kw => title.includes(kw));
+          
+          // URL包含美股路径
+          const hasUSStockURL = url.includes('usstock') || url.includes('mgqb');
+          
+          // 必须满足以下条件之一：
+          // 1. URL明确是美股路径
+          // 2. 标题包含美股关键词
+          // 3. 标题包含科技公司名称
+          // 4. 标题包含通用关键词（但要排除A股相关）
+          const isAStock = title.includes('沪') || title.includes('深') || 
+                          title.includes('A股') || title.includes('创业板') ||
+                          title.includes('科创板');
+          
+          const isRelevant = (hasUSStockURL || hasUSStockKeyword || hasTechCompany || 
+                            (hasGeneralKeyword && !isAStock));
+          
+          if (isRelevant) {
             // 尝试获取时间信息
             const $parent = $link.parent();
             const time = $parent.find('.time, .date, span[class*="time"]').first().text().trim();
