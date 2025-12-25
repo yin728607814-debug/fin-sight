@@ -96,7 +96,7 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取市场新闻
+   * 获取市场新闻（混合策略）
    */
   async fetchMarketNews(assetType: AssetType, limit: number = 50): Promise<NewsItem[]> {
     const cacheKey = `news_${assetType}_${limit}`;
@@ -134,14 +134,9 @@ export class NewsService implements INewsService {
           let newsItems: NewsItem[];
           
           if (assetType === 'nasdaq') {
-            // 纳斯达克：使用Finnhub获取英文新闻，然后翻译
-            console.log('🚀 使用Finnhub获取纳斯达克新闻（将自动翻译）');
-            newsItems = await this.fetchFinnhubNews(limit);
-            
-            // 自动翻译成中文
-            console.log('🌐 开始翻译新闻...');
-            newsItems = await this.translateNewsItems(newsItems);
-            console.log('✅ 翻译完成');
+            // 纳斯达克：使用混合策略（中文源优先）
+            console.log('🚀 使用混合策略获取纳斯达克新闻');
+            newsItems = await this.fetchNasdaqNewsHybrid(limit);
           } else {
             // 黄金：继续使用新浪财经（中文）
             console.log('🚀 使用新浪财经获取黄金新闻');
@@ -177,6 +172,229 @@ export class NewsService implements INewsService {
       },
       { assetType, limit }
     );
+  }
+
+  /**
+   * 混合策略获取纳斯达克新闻（中文源优先）
+   */
+  private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
+    console.log('📡 开始混合策略获取新闻');
+    
+    const allNews: NewsItem[] = [];
+    
+    // 并发获取多个源
+    const sources = await Promise.allSettled([
+      this.fetchSinaUSStockNews(30),      // 新浪财经美股
+      this.fetchEastMoneyNews(30),         // 东方财富美股
+    ]);
+    
+    // 收集成功的新闻
+    sources.forEach((result, index) => {
+      const sourceName = ['新浪财经', '东方财富'][index];
+      if (result.status === 'fulfilled') {
+        console.log(`✅ ${sourceName}获取成功: ${result.value.length}条`);
+        allNews.push(...result.value);
+      } else {
+        console.warn(`⚠️ ${sourceName}获取失败:`, result.reason?.message);
+      }
+    });
+    
+    console.log(`📊 合并前总数: ${allNews.length}条`);
+    
+    // 去重（按URL）
+    const uniqueNews = this.deduplicateNews(allNews);
+    console.log(`🔄 去重后: ${uniqueNews.length}条`);
+    
+    // 计算相关性评分
+    const scoredNews = uniqueNews.map(news => ({
+      ...news,
+      relevanceScore: this.calculateNasdaqRelevanceScore(news)
+    }));
+    
+    // 按相关性排序
+    scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    
+    // 过滤低相关性新闻（阈值40分）
+    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.4);
+    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥40分)`);
+    
+    // 如果中文源不足，补充Finnhub
+    if (filteredNews.length < limit) {
+      const needed = limit - filteredNews.length;
+      console.log(`⚠️ 中文源不足，需要补充${needed}条`);
+      console.log(`🌐 使用Finnhub获取并翻译...`);
+      
+      try {
+        const finnhubNews = await this.fetchFinnhubNews(needed);
+        const translatedNews = await this.translateNewsItems(finnhubNews);
+        filteredNews.push(...translatedNews);
+        console.log(`✅ Finnhub补充完成: ${translatedNews.length}条`);
+      } catch (error) {
+        console.error(`❌ Finnhub补充失败:`, error);
+      }
+    }
+    
+    // 返回前N条
+    const finalNews = filteredNews.slice(0, limit);
+    console.log(`🎯 最终返回: ${finalNews.length}条`);
+    
+    return finalNews;
+  }
+
+  /**
+   * 获取新浪财经美股新闻
+   */
+  private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/.netlify/functions/sina-news-proxy', {
+        params: { 
+          category: 'finance',
+          num: 200  // 获取更多用于过滤
+        },
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      // 只保留美股相关的新闻
+      const usStockNews = response.data.articles
+        .filter((article: any) => {
+          const url = article.url || '';
+          const title = article.title || '';
+          const content = (article.description || article.content || '').toLowerCase();
+          
+          // URL过滤：包含美股路径
+          const hasUSStockURL = url.includes('/stock/usstock/') || 
+                               url.includes('/stock/us/');
+          
+          // 关键词过滤
+          const keywords = ['美股', '纳斯达克', '纳指', '科技股', 'NASDAQ', 
+                           '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
+                           'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA'];
+          const hasKeyword = keywords.some(kw => 
+            title.includes(kw) || content.includes(kw.toLowerCase())
+          );
+          
+          return hasUSStockURL || hasKeyword;
+        })
+        .slice(0, limit)
+        .map((article: any, index: number) => ({
+          id: `sina_us_${Date.now()}_${index}`,
+          title: article.title || '',
+          content: article.description || article.content || article.title || '',
+          source: '新浪财经',
+          publishedAt: new Date(article.publishedAt || Date.now()),
+          url: article.url || '#',
+          relevanceScore: 0.5,
+          image: article.image
+        }));
+
+      return usStockNews;
+    } catch (error) {
+      console.error('新浪财经美股新闻获取失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取东方财富美股新闻
+   */
+  private async fetchEastMoneyNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/.netlify/functions/eastmoney-news-proxy', {
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      return response.data.articles
+        .slice(0, limit)
+        .map((article: any, index: number) => ({
+          id: `eastmoney_${Date.now()}_${index}`,
+          title: article.title || '',
+          content: article.description || article.content || article.title || '',
+          source: '东方财富',
+          publishedAt: new Date(article.publishedAt || Date.now()),
+          url: article.url || '#',
+          relevanceScore: 0.5,
+          image: article.image
+        }));
+    } catch (error) {
+      console.error('东方财富新闻获取失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 计算纳斯达克相关性评分（0-1）
+   */
+  private calculateNasdaqRelevanceScore(news: NewsItem): number {
+    let score = 0;
+    const title = news.title.toLowerCase();
+    const content = news.content.toLowerCase();
+    const url = news.url.toLowerCase();
+    
+    // 1. URL匹配 (30分)
+    if (url.includes('/usstock/') || url.includes('/stock/us')) {
+      score += 0.30;
+    }
+    
+    // 2. 标题关键词 (40分)
+    const titleKeywords = {
+      high: ['纳斯达克', 'nasdaq', '纳指'],  // 15分
+      medium: ['美股', '科技股', '华尔街'],  // 10分
+      companies: ['苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达', 
+                  'apple', 'microsoft', 'google', 'amazon', 'tesla', 'nvidia',
+                  'aapl', 'msft', 'googl', 'amzn', 'tsla', 'nvda']  // 15分
+    };
+    
+    if (titleKeywords.high.some(kw => title.includes(kw))) {
+      score += 0.15;
+    }
+    if (titleKeywords.medium.some(kw => title.includes(kw))) {
+      score += 0.10;
+    }
+    if (titleKeywords.companies.some(kw => title.includes(kw))) {
+      score += 0.15;
+    }
+    
+    // 3. 内容关键词 (20分)
+    const contentKeywords = ['科技', '创新', 'ai', '人工智能', '芯片', '半导体'];
+    if (contentKeywords.some(kw => content.includes(kw))) {
+      score += 0.10;
+    }
+    
+    const stockCodes = ['aapl', 'msft', 'googl', 'amzn', 'tsla', 'nvda', 'meta', 'nflx'];
+    if (stockCodes.some(code => content.includes(code))) {
+      score += 0.10;
+    }
+    
+    // 4. 来源可靠性 (10分)
+    if (news.source === '新浪财经' || news.source === '东方财富') {
+      score += 0.10;
+    }
+    
+    return Math.min(score, 1.0);
+  }
+
+  /**
+   * 去重新闻（按URL）
+   */
+  private deduplicateNews(newsItems: NewsItem[]): NewsItem[] {
+    const seen = new Map<string, NewsItem>();
+    
+    newsItems.forEach(item => {
+      const key = item.url || item.title;
+      if (!seen.has(key)) {
+        seen.set(key, item);
+      }
+    });
+    
+    return Array.from(seen.values());
   }
 
   /**
@@ -338,7 +556,7 @@ ${newsTexts}
 
       // 应用翻译结果
       const translatedItems = newsItems.map((item, index) => {
-        const translation = parsed.translations.find((t: any) => t.newsIndex === index);
+        const translation = parsed.translations.find((t: unknown) => t.newsIndex === index);
         
         if (translation && translation.title && translation.content) {
           return {
