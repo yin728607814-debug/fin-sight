@@ -197,8 +197,8 @@ export class NewsService implements INewsService {
       console.log(`📊 东方财富不足，获取新浪财经新闻`);
       
       try {
-        // 获取更多新闻（至少100条），确保过滤后有足够数量
-        const sinaNews = await this.fetchSinaUSStockNews(limit * 3);
+        // 获取500条新闻用于过滤（因为需要过滤出美股相关的）
+        const sinaNews = await this.fetchSinaUSStockNews(500);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error) {
