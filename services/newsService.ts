@@ -175,41 +175,54 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 混合策略获取纳斯达克新闻（中文源优先，无需翻译）
+   * 混合策略获取纳斯达克新闻（中文源，无需翻译）
    */
   private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
-    console.log('📡 开始获取纳斯达克中文新闻');
+    console.log('📡 开始混合策略获取纳斯达克中文新闻');
     
-    try {
-      // 只使用新浪财经美股频道（最可靠的中文源）
-      const sinaNews = await this.fetchSinaUSStockNews(limit * 2); // 获取更多用于过滤
-      
-      console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
-      
-      // 计算相关性评分
-      const scoredNews = sinaNews.map(news => ({
-        ...news,
-        relevanceScore: this.calculateNasdaqRelevanceScore(news)
-      }));
-      
-      // 按相关性排序
-      scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
-      
-      // 过滤低相关性新闻（阈值30分，更宽松）
-      const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.3);
-      console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥30分)`);
-      
-      // 返回前N条
-      const finalNews = filteredNews.slice(0, limit);
-      console.log(`🎯 最终返回: ${finalNews.length}条`);
-      
-      return finalNews;
-      
-    } catch (error) {
-      console.error('❌ 获取新闻失败:', error);
-      // 如果失败，返回空数组，让上层处理
-      return [];
-    }
+    const allNews: NewsItem[] = [];
+    
+    // 并发获取多个源
+    const sources = await Promise.allSettled([
+      this.fetchSinaUSStockNews(limit * 2),      // 新浪财经美股
+      this.fetchEastMoneyNews(limit),             // 东方财富美股
+    ]);
+    
+    // 收集成功的新闻
+    sources.forEach((result, index) => {
+      const sourceName = ['新浪财经', '东方财富'][index];
+      if (result.status === 'fulfilled') {
+        console.log(`✅ ${sourceName}获取成功: ${result.value.length}条`);
+        allNews.push(...result.value);
+      } else {
+        console.warn(`⚠️ ${sourceName}获取失败:`, result.reason?.message);
+      }
+    });
+    
+    console.log(`📊 合并前总数: ${allNews.length}条`);
+    
+    // 去重（按URL）
+    const uniqueNews = this.deduplicateNews(allNews);
+    console.log(`🔄 去重后: ${uniqueNews.length}条`);
+    
+    // 计算相关性评分
+    const scoredNews = uniqueNews.map(news => ({
+      ...news,
+      relevanceScore: this.calculateNasdaqRelevanceScore(news)
+    }));
+    
+    // 按相关性排序
+    scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    
+    // 过滤低相关性新闻（阈值30分，更宽松）
+    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.3);
+    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥30分)`);
+    
+    // 返回前N条
+    const finalNews = filteredNews.slice(0, limit);
+    console.log(`🎯 最终返回: ${finalNews.length}条`);
+    
+    return finalNews;
   }
 
   /**
@@ -275,33 +288,36 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取东方财富美股新闻 - 已禁用（API不稳定）
+   * 获取东方财富美股新闻
    */
-  // private async fetchEastMoneyNews(limit: number): Promise<NewsItem[]> {
-  //   try {
-  //     const response = await axios.get('/.netlify/functions/eastmoney-news-proxy', {
-  //       timeout: this.config.timeout
-  //     });
-  //     if (!response.data.articles || !Array.isArray(response.data.articles)) {
-  //       return [];
-  //     }
-  //     return response.data.articles
-  //       .slice(0, limit)
-  //       .map((article: any, index: number) => ({
-  //         id: `eastmoney_${Date.now()}_${index}`,
-  //         title: article.title || '',
-  //         content: article.description || article.content || article.title || '',
-  //         source: '东方财富',
-  //         publishedAt: new Date(article.publishedAt || Date.now()),
-  //         url: article.url || '#',
-  //         relevanceScore: 0.5,
-  //         image: article.image
-  //       }));
-  //   } catch (error) {
-  //     console.error('东方财富新闻获取失败:', error);
-  //     return [];
-  //   }
-  // }
+  private async fetchEastMoneyNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/.netlify/functions/eastmoney-news-proxy', {
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        console.warn('东方财富返回数据格式错误');
+        return [];
+      }
+
+      return response.data.articles
+        .slice(0, limit)
+        .map((article: any, index: number) => ({
+          id: `eastmoney_${Date.now()}_${index}`,
+          title: article.title || '',
+          content: article.description || article.content || article.title || '',
+          source: '东方财富',
+          publishedAt: new Date(article.publishedAt || Date.now()),
+          url: article.url || '#',
+          relevanceScore: 0.5,
+          image: article.image
+        }));
+    } catch (error) {
+      console.error('东方财富新闻获取失败:', error);
+      return [];
+    }
+  }
 
   /**
    * 计算纳斯达克相关性评分（0-1）- 优化版
