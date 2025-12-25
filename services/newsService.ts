@@ -179,25 +179,32 @@ export class NewsService implements INewsService {
    */
   private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
     console.log('📡 开始混合策略获取纳斯达克新闻');
+    console.log('📋 优先级: 东方财富 → 新浪财经 → Finnhub');
     
-    const allNews: NewsItem[] = [];
+    let allNews: NewsItem[] = [];
     
-    // 并发获取多个中文源
-    const sources = await Promise.allSettled([
-      this.fetchSinaUSStockNews(limit * 2),      // 新浪财经美股
-      this.fetchEastMoneyNews(limit),             // 东方财富美股
-    ]);
+    // 第一优先级：东方财富美股专页
+    try {
+      const eastmoneyNews = await this.fetchEastMoneyNews(limit);
+      console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
+      allNews.push(...eastmoneyNews);
+    } catch (error) {
+      console.warn(`⚠️ 东方财富获取失败:`, error.message);
+    }
     
-    // 收集成功的新闻
-    sources.forEach((result, index) => {
-      const sourceName = ['新浪财经', '东方财富'][index];
-      if (result.status === 'fulfilled') {
-        console.log(`✅ ${sourceName}获取成功: ${result.value.length}条`);
-        allNews.push(...result.value);
-      } else {
-        console.warn(`⚠️ ${sourceName}获取失败:`, result.reason?.message);
+    // 如果东方财富不足，补充新浪财经
+    if (allNews.length < limit) {
+      const needed = limit - allNews.length;
+      console.log(`📊 东方财富不足，需要新浪财经补充${needed}条`);
+      
+      try {
+        const sinaNews = await this.fetchSinaUSStockNews(needed * 2);
+        console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
+        allNews.push(...sinaNews);
+      } catch (error) {
+        console.warn(`⚠️ 新浪财经获取失败:`, error.message);
       }
-    });
+    }
     
     console.log(`📊 合并前总数: ${allNews.length}条`);
     
@@ -214,14 +221,14 @@ export class NewsService implements INewsService {
     // 按相关性排序
     scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
     
-    // 过滤低相关性新闻（阈值30分，更宽松）
+    // 过滤低相关性新闻（阈值30分）
     const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.3);
     console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥30分)`);
     
-    // 如果中文源不足，补充Finnhub + 翻译
+    // 如果中文源仍然不足，补充Finnhub + 翻译
     if (filteredNews.length < limit) {
       const needed = limit - filteredNews.length;
-      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），需要补充${needed}条`);
+      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），需要Finnhub补充${needed}条`);
       console.log(`🌐 使用Finnhub获取并翻译...`);
       
       try {
@@ -241,6 +248,7 @@ export class NewsService implements INewsService {
     // 返回前N条
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条`);
+    console.log(`📊 来源分布: 东方财富优先 + 新浪财经补充`);
     
     return finalNews;
   }
