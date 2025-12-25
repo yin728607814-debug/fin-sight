@@ -175,14 +175,14 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 混合策略获取纳斯达克新闻（中文源，无需翻译）
+   * 混合策略获取纳斯达克新闻（中文源优先 + Finnhub备用）
    */
   private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
-    console.log('📡 开始混合策略获取纳斯达克中文新闻');
+    console.log('📡 开始混合策略获取纳斯达克新闻');
     
     const allNews: NewsItem[] = [];
     
-    // 并发获取多个源
+    // 并发获取多个中文源
     const sources = await Promise.allSettled([
       this.fetchSinaUSStockNews(limit * 2),      // 新浪财经美股
       this.fetchEastMoneyNews(limit),             // 东方财富美股
@@ -217,6 +217,26 @@ export class NewsService implements INewsService {
     // 过滤低相关性新闻（阈值30分，更宽松）
     const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.3);
     console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥30分)`);
+    
+    // 如果中文源不足，补充Finnhub + 翻译
+    if (filteredNews.length < limit) {
+      const needed = limit - filteredNews.length;
+      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），需要补充${needed}条`);
+      console.log(`🌐 使用Finnhub获取并翻译...`);
+      
+      try {
+        const finnhubNews = await this.fetchFinnhubNews(needed);
+        if (finnhubNews.length > 0) {
+          const translatedNews = await this.translateNewsItems(finnhubNews);
+          filteredNews.push(...translatedNews);
+          console.log(`✅ Finnhub补充完成: ${translatedNews.length}条`);
+        }
+      } catch (error) {
+        console.error(`❌ Finnhub补充失败:`, error);
+      }
+    } else {
+      console.log(`✅ 中文源充足，无需Finnhub补充`);
+    }
     
     // 返回前N条
     const finalNews = filteredNews.slice(0, limit);
@@ -447,7 +467,7 @@ export class NewsService implements INewsService {
         .sort((a, b) => b.datetime - a.datetime)
         .slice(0, limit);
 
-      const newsItems = sortedNews.map((article: any, index: number) => {
+      const newsItems = sortedNews.map((article: unknown, index: number) => {
         return {
           id: `finnhub_news_${Date.now()}_${index}`,
           title: article.headline || 'Untitled',
