@@ -137,9 +137,13 @@ export class NewsService implements INewsService {
             // 纳斯达克：使用混合策略（中文源优先）
             console.log('🚀 使用混合策略获取纳斯达克新闻');
             newsItems = await this.fetchNasdaqNewsHybrid(limit);
+          } else if (assetType === 'gold') {
+            // 黄金：使用混合策略（中文源优先）
+            console.log('🚀 使用混合策略获取黄金新闻');
+            newsItems = await this.fetchGoldNewsHybrid(limit);
           } else {
-            // 黄金：继续使用新浪财经（中文）
-            console.log('🚀 使用新浪财经获取黄金新闻');
+            // 其他资产：使用新浪财经
+            console.log('🚀 使用新浪财经获取新闻');
             newsItems = await this.fetchSinaNews(assetType, limit);
           }
           
@@ -254,6 +258,85 @@ export class NewsService implements INewsService {
   }
 
   /**
+   * 混合策略获取黄金新闻（中文源优先 + Finnhub备用）
+   */
+  private async fetchGoldNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
+    console.log('📡 开始混合策略获取黄金新闻');
+    console.log('📋 优先级: 东方财富黄金频道 → 新浪财经 → Finnhub');
+    
+    let allNews: NewsItem[] = [];
+    
+    // 第一优先级：东方财富黄金频道
+    try {
+      const eastmoneyGoldNews = await this.fetchEastMoneyGoldNews(limit);
+      console.log(`✅ 东方财富黄金频道获取成功: ${eastmoneyGoldNews.length}条`);
+      allNews.push(...eastmoneyGoldNews);
+    } catch (error) {
+      console.warn(`⚠️ 东方财富黄金频道获取失败:`, error.message);
+    }
+    
+    // 第二优先级：新浪财经黄金新闻补充
+    if (allNews.length < limit) {
+      console.log(`📊 东方财富不足，获取新浪财经黄金新闻`);
+      
+      try {
+        // 获取500条新闻用于过滤（因为需要过滤出黄金相关的）
+        const sinaNews = await this.fetchSinaGoldNews(500);
+        console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
+        allNews.push(...sinaNews);
+      } catch (error) {
+        console.warn(`⚠️ 新浪财经获取失败:`, error.message);
+      }
+    }
+    
+    console.log(`📊 合并前总数: ${allNews.length}条`);
+    
+    // 去重（按URL）
+    const uniqueNews = this.deduplicateNews(allNews);
+    console.log(`🔄 去重后: ${uniqueNews.length}条`);
+    
+    // 计算相关性评分
+    const scoredNews = uniqueNews.map(news => ({
+      ...news,
+      relevanceScore: this.calculateGoldRelevanceScore(news)
+    }));
+    
+    // 按相关性排序
+    scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    
+    // 降低过滤阈值，保留更多新闻（阈值10分，更宽松）
+    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
+    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
+    
+    // 如果中文源仍然不足，补充Finnhub + 翻译
+    if (filteredNews.length < limit) {
+      const needed = limit - filteredNews.length;
+      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），需要Finnhub补充${needed}条`);
+      console.log(`🌐 使用Finnhub获取并翻译...`);
+      
+      try {
+        const finnhubNews = await this.fetchFinnhubGoldNews(needed);
+        if (finnhubNews.length > 0) {
+          const translatedNews = await this.translateNewsItems(finnhubNews);
+          filteredNews.push(...translatedNews);
+          console.log(`✅ Finnhub补充完成: ${translatedNews.length}条`);
+        }
+      } catch (error) {
+        console.error(`❌ Finnhub补充失败:`, error);
+      }
+    } else {
+      console.log(`✅ 中文源充足，无需Finnhub补充`);
+    }
+    
+    // 返回前N条
+    const finalNews = filteredNews.slice(0, limit);
+    console.log(`🎯 最终返回: ${finalNews.length}条`);
+    console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经补充`);
+    
+    return finalNews;
+  }
+
+  /**
    * 获取新浪财经美股新闻
    */
   private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
@@ -316,6 +399,59 @@ export class NewsService implements INewsService {
   }
 
   /**
+   * 获取新浪财经黄金新闻
+   */
+  private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/.netlify/functions/sina-news-proxy', {
+        params: { 
+          category: 'finance',
+          num: limit
+        },
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      // 只保留黄金相关的新闻
+      const goldNews = response.data.articles
+        .filter((article: any) => {
+          const url = article.url || '';
+          const title = article.title || '';
+          const content = (article.description || article.content || '').toLowerCase();
+          
+          // 黄金相关关键词
+          const keywords = ['黄金', '金价', '贵金属', '白银', '现货金', 'XAUUSD', 
+                           '伦敦金', '美元金', '金市', '黄金市场', '金银',
+                           '避险', '通胀', '美联储', '央行', '黄金储备'];
+          const hasKeyword = keywords.some(kw => 
+            title.includes(kw) || content.includes(kw.toLowerCase())
+          );
+          
+          return hasKeyword;
+        })
+        .slice(0, limit)
+        .map((article: any, index: number) => ({
+          id: `sina_gold_${Date.now()}_${index}`,
+          title: article.title || '',
+          content: article.description || article.content || article.title || '',
+          source: '新浪财经',
+          publishedAt: new Date(article.publishedAt || Date.now()),
+          url: article.url || '#',
+          relevanceScore: 0.5,
+          image: article.image
+        }));
+
+      return goldNews;
+    } catch (error) {
+      console.error('新浪财经黄金新闻获取失败:', error);
+      return [];
+    }
+  }
+
+  /**
    * 获取东方财富美股新闻
    */
   private async fetchEastMoneyNews(limit: number): Promise<NewsItem[]> {
@@ -343,6 +479,38 @@ export class NewsService implements INewsService {
         }));
     } catch (error) {
       console.error('东方财富新闻获取失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取东方财富黄金新闻
+   */
+  private async fetchEastMoneyGoldNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/.netlify/functions/eastmoney-gold-proxy', {
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        console.warn('东方财富黄金频道返回数据格式错误');
+        return [];
+      }
+
+      return response.data.articles
+        .slice(0, limit)
+        .map((article: any, index: number) => ({
+          id: `eastmoney_gold_${Date.now()}_${index}`,
+          title: article.title || '',
+          content: article.description || article.content || article.title || '',
+          source: '东方财富',
+          publishedAt: new Date(article.publishedAt || Date.now()),
+          url: article.url || '#',
+          relevanceScore: 0.5,
+          image: article.image
+        }));
+    } catch (error) {
+      console.error('东方财富黄金新闻获取失败:', error);
       return [];
     }
   }
@@ -387,6 +555,48 @@ export class NewsService implements INewsService {
     
     // 4. 通用财经关键词 (10分)
     const generalKeywords = ['科技股', '芯片', '半导体', 'ai', '人工智能', '上市', 'ipo', '美联储', '股市', '股价'];
+    if (generalKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
+      score += 0.10;
+    }
+    
+    return Math.min(score, 1.0);
+  }
+
+  /**
+   * 计算黄金相关性评分（0-1）- 优化版
+   */
+  private calculateGoldRelevanceScore(news: NewsItem): number {
+    let score = 0;
+    const title = news.title.toLowerCase();
+    const content = news.content.toLowerCase();
+    const url = news.url.toLowerCase();
+    const source = news.source.toLowerCase();
+    
+    // 1. 来源加分 (40分) - 提高来源权重
+    // 东方财富黄金频道的新闻默认高分
+    if (source.includes('东方财富') || url.includes('gold.eastmoney.com')) {
+      score += 0.40;
+    }
+    // 新浪财经
+    else if (source.includes('新浪') || source.includes('sina') || source.includes('财经')) {
+      score += 0.30;
+    }
+    
+    // 2. 标题核心关键词 (30分)
+    const highPriorityKeywords = ['黄金', '金价', '贵金属', 'xauusd', '现货金', '伦敦金', '美元金'];
+    if (highPriorityKeywords.some(kw => title.includes(kw))) {
+      score += 0.30;
+    }
+    
+    // 3. 相关市场因素 (20分)
+    const marketFactors = ['白银', '金银', '避险', '通胀', '美联储', '央行', '黄金储备', 
+                          '金市', '黄金市场', '金矿', '黄金etf'];
+    if (marketFactors.some(kw => title.includes(kw) || content.includes(kw))) {
+      score += 0.20;
+    }
+    
+    // 4. 通用财经关键词 (10分)
+    const generalKeywords = ['美元', '利率', '通胀', '经济', '投资', '市场', '交易'];
     if (generalKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
       score += 0.10;
     }
@@ -497,6 +707,99 @@ export class NewsService implements INewsService {
       
     } catch (error) {
       console.error('❌ Finnhub API调用失败', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 使用Finnhub获取黄金新闻
+   */
+  private async fetchFinnhubGoldNews(limit: number = 50): Promise<NewsItem[]> {
+    try {
+      console.log('📡 调用Finnhub获取黄金新闻');
+      
+      // 黄金相关的搜索词
+      const categories = ['forex', 'general'];
+      
+      // 获取最近7天的新闻
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 7);
+      
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      
+      // 获取通用新闻，然后过滤黄金相关的
+      const allNews: unknown[] = [];
+      
+      for (const category of categories) {
+        try {
+          const response = await axios.get('https://finnhub.io/api/v1/news', {
+            params: {
+              category: category,
+              token: config.apiKeys.finnhub
+            },
+            timeout: this.config.timeout
+          });
+          
+          if (Array.isArray(response.data)) {
+            allNews.push(...response.data);
+          }
+          
+          // 避免速率限制
+          await this.sleep(1000);
+        } catch (err) {
+          console.warn(`⚠️ 获取${category}新闻失败`, err.message);
+        }
+      }
+
+      console.log('📡 Finnhub黄金新闻响应', { totalNews: allNews.length });
+
+      if (allNews.length === 0) {
+        throw new Error('Finnhub API未返回黄金新闻数据');
+      }
+
+      // 过滤黄金相关新闻
+      const goldRelatedNews = allNews.filter((article: unknown) => {
+        const headline = (article.headline || '').toLowerCase();
+        const summary = (article.summary || '').toLowerCase();
+        const goldKeywords = ['gold', 'xauusd', 'precious metal', 'bullion', 'gold price', 'gold market'];
+        return goldKeywords.some(kw => headline.includes(kw) || summary.includes(kw));
+      });
+
+      console.log('✂️ 黄金相关新闻过滤', { 
+        原始: allNews.length, 
+        过滤后: goldRelatedNews.length 
+      });
+
+      // 去重（按URL）
+      const uniqueNews = Array.from(
+        new Map(goldRelatedNews.map(item => [item.url, item])).values()
+      );
+
+      // 按时间排序，取最新的
+      const sortedNews = uniqueNews
+        .sort((a, b) => b.datetime - a.datetime)
+        .slice(0, limit);
+
+      const newsItems = sortedNews.map((article: unknown, index: number) => {
+        return {
+          id: `finnhub_gold_${Date.now()}_${index}`,
+          title: article.headline || 'Untitled',
+          content: article.summary || article.headline || '',
+          source: article.source || 'Finnhub',
+          publishedAt: new Date(article.datetime * 1000),
+          url: article.url || '#',
+          relevanceScore: 0.8,
+          image: article.image || undefined
+        };
+      });
+
+      console.log('✅ Finnhub黄金新闻转换完成', { count: newsItems.length });
+      
+      return newsItems;
+      
+    } catch (error) {
+      console.error('❌ Finnhub黄金API调用失败', error);
       throw error;
     }
   }
