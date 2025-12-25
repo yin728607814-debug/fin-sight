@@ -192,13 +192,13 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富获取失败:`, error.message);
     }
     
-    // 如果东方财富不足，补充新浪财经
+    // 第二优先级：新浪财经补充（获取足够多的新闻用于过滤）
     if (allNews.length < limit) {
-      const needed = limit - allNews.length;
-      console.log(`📊 东方财富不足，需要新浪财经补充${needed}条`);
+      console.log(`📊 东方财富不足，获取新浪财经新闻`);
       
       try {
-        const sinaNews = await this.fetchSinaUSStockNews(needed * 2);
+        // 获取更多新闻（至少100条），确保过滤后有足够数量
+        const sinaNews = await this.fetchSinaUSStockNews(limit * 3);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error) {
@@ -221,9 +221,9 @@ export class NewsService implements INewsService {
     // 按相关性排序
     scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
     
-    // 过滤低相关性新闻（阈值30分）
-    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.3);
-    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥30分)`);
+    // 降低过滤阈值，保留更多新闻（阈值20分，更宽松）
+    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.2);
+    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥20分)`);
     
     // 如果中文源仍然不足，补充Finnhub + 翻译
     if (filteredNews.length < limit) {
@@ -248,7 +248,7 @@ export class NewsService implements INewsService {
     // 返回前N条
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条`);
-    console.log(`📊 来源分布: 东方财富优先 + 新浪财经补充`);
+    console.log(`📊 来源: 东方财富优先 + 新浪财经补充`);
     
     return finalNews;
   }
@@ -355,36 +355,41 @@ export class NewsService implements INewsService {
     const title = news.title.toLowerCase();
     const content = news.content.toLowerCase();
     const url = news.url.toLowerCase();
+    const source = news.source.toLowerCase();
     
-    // 1. URL匹配 (40分) - 提高权重
-    if (url.includes('/usstock/') || url.includes('/stock/us')) {
-      score += 0.40;
+    // 1. 来源加分 (30分)
+    // 东方财富美股专页的新闻默认高分
+    if (source.includes('东方财富') || url.includes('eastmoney.com')) {
+      score += 0.30;
+    }
+    // 新浪财经美股路径
+    else if (url.includes('/usstock/') || url.includes('/stock/us')) {
+      score += 0.30;
     }
     
-    // 2. 标题关键词 (40分)
-    const titleKeywords = {
-      high: ['纳斯达克', 'nasdaq', '纳指', '美股'],  // 20分
-      companies: ['苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达', 
-                  'apple', 'microsoft', 'google', 'amazon', 'tesla', 'nvidia',
-                  'aapl', 'msft', 'googl', 'amzn', 'tsla', 'nvda',
-                  '华尔街', '道琼斯', '标普', '科技股']  // 20分
-    };
+    // 2. 标题核心关键词 (40分)
+    const highPriorityKeywords = ['纳斯达克', 'nasdaq', '纳指', '美股', '华尔街', '道琼斯', '标普'];
+    if (highPriorityKeywords.some(kw => title.includes(kw))) {
+      score += 0.25;
+    }
     
-    if (titleKeywords.high.some(kw => title.includes(kw))) {
+    // 3. 科技公司和股票代码 (20分)
+    const companies = ['苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达', 
+                      'apple', 'microsoft', 'google', 'amazon', 'tesla', 'nvidia',
+                      'aapl', 'msft', 'googl', 'amzn', 'tsla', 'nvda', 'meta', 'nflx'];
+    if (companies.some(kw => title.includes(kw) || content.includes(kw))) {
       score += 0.20;
     }
-    if (titleKeywords.companies.some(kw => title.includes(kw))) {
-      score += 0.20;
-    }
     
-    // 3. 内容关键词 (20分)
-    const contentKeywords = ['科技', '创新', 'ai', '人工智能', '芯片', '半导体', '股市', '交易'];
-    if (contentKeywords.some(kw => content.includes(kw))) {
+    // 4. 通用财经关键词 (10分)
+    const generalKeywords = ['科技股', '芯片', '半导体', 'ai', '人工智能', '上市', 'ipo', '美联储'];
+    if (generalKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
       score += 0.10;
     }
     
-    const stockCodes = ['aapl', 'msft', 'googl', 'amzn', 'tsla', 'nvda', 'meta', 'nflx'];
-    if (stockCodes.some(code => content.includes(code))) {
+    // 5. 美国相关 (10分)
+    const usKeywords = ['美国', '联邦', '华盛顿', 'us', 'america'];
+    if (usKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
       score += 0.10;
     }
     
