@@ -13,6 +13,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { SentimentIndex } from '../components/SentimentIndex';
 import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
 import { AssetType } from '../types';
@@ -186,12 +187,12 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
           {/* 右侧：价格趋势 - 平板横屏时保持合适比例 */}
           <div className="md:col-span-1 lg:col-span-1 xl:col-span-2 space-y-6 order-2">
             {/* 价格趋势图表 */}
-            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
-              <div className="px-4 sm:px-6 py-4 border-b border-white/20">
-                <h2 className="text-lg font-semibold text-gray-900">
+            <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20">
+              <div className="px-4 sm:px-6 py-4 border-b border-white/20 dark:border-gray-700/20">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   价格趋势
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   过去5天的黄金价格走势
                 </p>
               </div>
@@ -207,12 +208,33 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                     timeRange={5}
                   />
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     暂无价格数据
                   </div>
                 )}
               </div>
             </div>
+
+            {/* 情绪指数 */}
+            {analysis.length > 0 && (
+              <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20">
+                <div className="px-4 sm:px-6 py-4 border-b border-white/20 dark:border-gray-700/20">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    市场情绪指数
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    基于AI分析的市场情绪量化指标
+                  </p>
+                </div>
+                <div className="p-4 sm:p-6">
+                  <SentimentIndex 
+                    analyses={analysis} 
+                    assetType="gold"
+                    autoSave={true}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* 市场概览 - 平板优化 */}
             <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">

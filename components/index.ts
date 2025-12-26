@@ -11,6 +11,10 @@ export { NewsList } from './NewsList';
 export { ImpactIndicator, CompactImpactIndicator } from './ImpactIndicator';
 export { OverallAnalysisCard } from './OverallAnalysisCard';
 export { ThemeToggle } from './ThemeToggle';
+export { SentimentIndex } from './SentimentIndex';
+export { SentimentGauge } from './SentimentGauge';
+export { SentimentTrend } from './SentimentTrend';
+export { SentimentDetails } from './SentimentDetails';
 
 // 通用组件
 export { 
