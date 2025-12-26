@@ -113,9 +113,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
     } catch (error) {
       console.error('发送消息失败:', error);
       
+      // 详细的错误信息
+      let errorDetails = '';
+      if (error instanceof Error) {
+        errorDetails = error.message;
+      }
+      
+      // 检查是否是API密钥问题
+      if (errorDetails.includes('401') || errorDetails.includes('403')) {
+        errorDetails = 'API密钥无效或未配置';
+      } else if (errorDetails.includes('429')) {
+        errorDetails = 'API调用次数超限，请稍后再试';
+      } else if (errorDetails.includes('timeout')) {
+        errorDetails = '请求超时，请检查网络连接';
+      }
+      
       // 创建错误消息
       const errorMessage = chatService.createAssistantMessage(
-        '抱歉，我遇到了一些问题，无法回答您的问题。请稍后再试，或者尝试重新表述您的问题。\n\n可能的原因：\n- AI服务暂时不可用\n- 网络连接问题\n- API配额已用完',
+        `抱歉，我遇到了一些问题，无法回答您的问题。请稍后再试，或者尝试重新表述您的问题。\n\n可能的原因：\n- AI服务暂时不可用\n- 网络连接问题\n- API配额已用完${errorDetails ? `\n\n错误详情：${errorDetails}` : ''}`,
         context
       );
       
