@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环境变量测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 环境变量测试</h1>
+    
+    <div class="card">
+        <h2>Gemini API密钥状态</h2>
+        <div id="gemini-status">检查中...</div>
+    </div>
+
+    <div class="card">
+        <h2>所有环境变量</h2>
+        <pre id="all-env"></pre>
+    </div>
+
+    <div class="card">
+        <h2>测试API调用</h2>
+        <button onclick="testGeminiAPI()">测试Gemini API</button>
+        <div id="api-result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script type="module">
+        // 导入配置
+        import { config } from './config/env.ts';
+
+        // 检查Gemini API密钥
+        const geminiKey = config.apiKeys.gemini;
+        const statusDiv = document.getElementById('gemini-status');
+        
+        if (geminiKey && geminiKey.length > 0) {
+            statusDiv.innerHTML = `
+                <p>✅ API密钥已配置 <span class="status ok">OK</span></p>
+                <p>密钥前缀: ${geminiKey.substring(0, 10)}...</p>
+                <p>密钥长度: ${geminiKey.length} 字符</p>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <p>❌ API密钥未配置 <span class="status error">ERROR</span></p>
+                <p>请检查 .env 文件中的 VITE_GEMINI_API_KEY</p>
+            `;
+        }
+
+        // 显示所有环境变量
+        const envDiv = document.getElementById('all-env');
+        envDiv.textContent = JSON.stringify({
+            gemini: geminiKey ? geminiKey.substring(0, 10) + '...' : 'undefined',
+            news: config.apiKeys.news ? config.apiKeys.news.substring(0, 10) + '...' : 'undefined',
+            alphaVantage: config.apiKeys.alphaVantage ? config.apiKeys.alphaVantage.substring(0, 10) + '...' : 'undefined',
+            finnhub: config.apiKeys.finnhub ? config.apiKeys.finnhub.substring(0, 10) + '...' : 'undefined',
+        }, null, 2);
+
+        // 测试API调用
+        window.testGeminiAPI = async function() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '<p>🔄 测试中...</p>';
+
+            if (!geminiKey) {
+                resultDiv.innerHTML = '<p style="color: red;">❌ API密钥未配置，无法测试</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiKey}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: 'Hello, this is a test.'
+                                }]
+                            }]
+                        })
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p style="color: green;">✅ API调用成功！</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `
+                        <p style="color: red;">❌ API调用失败</p>
+                        <p>状态码: ${response.status}</p>
+                        <pre>${error}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p style="color: red;">❌ 请求失败</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

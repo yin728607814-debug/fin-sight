@@ -29,7 +29,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
   const [isLoading, setIsLoading] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const analysisService = useRef(new AnalysisService({ apiKey: config.geminiApiKey }));
+  const analysisService = useRef(new AnalysisService({ apiKey: config.apiKeys.gemini }));
 
   /**
    * 加载历史消息
