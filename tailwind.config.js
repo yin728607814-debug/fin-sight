@@ -1,10 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class', // 启用深色模式（基于 class）
   content: [
     "./index.html",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./services/**/*.{js,ts,jsx,tsx}",
     "./utils/**/*.{js,ts,jsx,tsx}",
+    "./pages/**/*.{js,ts,jsx,tsx}",
     "./App.tsx",
     "./index.tsx",
   ],

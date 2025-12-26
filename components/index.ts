@@ -10,6 +10,7 @@ export { NewsAnalyzer } from './NewsAnalyzer';
 export { NewsList } from './NewsList';
 export { ImpactIndicator, CompactImpactIndicator } from './ImpactIndicator';
 export { OverallAnalysisCard } from './OverallAnalysisCard';
+export { ThemeToggle } from './ThemeToggle';
 
 // 通用组件
 export { 
