@@ -70,15 +70,33 @@ exports.handler = async function(event, context) {
         
         // 过滤掉太短的标题
         if (title.length > 15 && href) {
-          // 尝试获取时间信息
-          const $parent = $link.parent();
-          const time = $parent.find('.time, .date, span[class*="time"]').first().text().trim();
+          // 尝试从URL中提取日期（格式：/a/202512033600991432.html）
+          let publishedAt = new Date().toISOString();
+          const urlDateMatch = href.match(/\/a\/(\d{8})\d+\.html/);
+          if (urlDateMatch) {
+            const dateStr = urlDateMatch[1]; // 例如：20251203
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            publishedAt = new Date(`${year}-${month}-${day}`).toISOString();
+            
+            if (articles.length < 3) {
+              console.log(`  提取日期: ${year}-${month}-${day}`);
+            }
+          } else {
+            // 尝试获取页面上的时间信息
+            const $parent = $link.parent();
+            const time = $parent.find('.time, .date, span[class*="time"]').first().text().trim();
+            if (time) {
+              publishedAt = time;
+            }
+          }
           
           articles.push({
             title: title,
             description: title,
             url: href,
-            publishedAt: time || new Date().toISOString(),
+            publishedAt: publishedAt,
             source: '东方财富',
             image: ''
           });
