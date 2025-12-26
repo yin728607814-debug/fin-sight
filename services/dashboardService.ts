@@ -4,6 +4,7 @@
  */
 
 import { logInfo, logError } from './logger';
+import { safeLocalStorage } from '../utils/performance';
 
 /**
  * 卡片类型
@@ -134,9 +135,9 @@ class DashboardService {
    */
   getLayouts(): DashboardLayout[] {
     try {
-      const data = localStorage.getItem(this.STORAGE_KEY);
+      const data = safeLocalStorage.getItem(this.STORAGE_KEY);
       if (!data) return [];
-      
+
       const layouts = JSON.parse(data);
       logInfo('Loaded dashboard layouts', { count: layouts.length });
       return layouts;
@@ -151,17 +152,17 @@ class DashboardService {
    */
   getCurrentLayout(): DashboardLayout {
     try {
-      const currentId = localStorage.getItem(this.CURRENT_LAYOUT_KEY);
+      const currentId = safeLocalStorage.getItem(this.CURRENT_LAYOUT_KEY);
       const layouts = this.getLayouts();
-      
+
       if (currentId) {
-        const layout = layouts.find(l => l.id === currentId);
+        const layout = layouts.find((l) => l.id === currentId);
         if (layout) {
           logInfo('Loaded current dashboard layout', { id: currentId });
           return layout;
         }
       }
-      
+
       // 返回默认布局
       return this.getDefaultLayout();
     } catch (error) {
@@ -189,25 +190,25 @@ class DashboardService {
   saveLayout(layout: DashboardLayout): void {
     try {
       const layouts = this.getLayouts();
-      const existingIndex = layouts.findIndex(l => l.id === layout.id);
-      
+      const existingIndex = layouts.findIndex((l) => l.id === layout.id);
+
       const updatedLayout = {
         ...layout,
         updatedAt: new Date().toISOString(),
       };
-      
+
       if (existingIndex >= 0) {
         layouts[existingIndex] = updatedLayout;
       } else {
         layouts.push(updatedLayout);
-        
+
         // 限制布局数量
         if (layouts.length > this.MAX_LAYOUTS) {
           layouts.shift();
         }
       }
-      
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(layouts));
+
+      safeLocalStorage.setItem(this.STORAGE_KEY, JSON.stringify(layouts));
       logInfo('Saved dashboard layout', { id: layout.id });
     } catch (error) {
       logError('Failed to save dashboard layout', error);
@@ -219,7 +220,7 @@ class DashboardService {
    */
   setCurrentLayout(layoutId: string): void {
     try {
-      localStorage.setItem(this.CURRENT_LAYOUT_KEY, layoutId);
+      safeLocalStorage.setItem(this.CURRENT_LAYOUT_KEY, layoutId);
       logInfo('Set current dashboard layout', { id: layoutId });
     } catch (error) {
       logError('Failed to set current dashboard layout', error);
@@ -232,16 +233,16 @@ class DashboardService {
   deleteLayout(layoutId: string): void {
     try {
       const layouts = this.getLayouts();
-      const filtered = layouts.filter(l => l.id !== layoutId);
-      
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
-      
+      const filtered = layouts.filter((l) => l.id !== layoutId);
+
+      safeLocalStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+
       // 如果删除的是当前布局，切换到默认布局
-      const currentId = localStorage.getItem(this.CURRENT_LAYOUT_KEY);
+      const currentId = safeLocalStorage.getItem(this.CURRENT_LAYOUT_KEY);
       if (currentId === layoutId) {
-        localStorage.removeItem(this.CURRENT_LAYOUT_KEY);
+        safeLocalStorage.removeItem(this.CURRENT_LAYOUT_KEY);
       }
-      
+
       logInfo('Deleted dashboard layout', { id: layoutId });
     } catch (error) {
       logError('Failed to delete dashboard layout', error);

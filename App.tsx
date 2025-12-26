@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './utils/context';
 import { ThemeProvider } from './utils/ThemeContext';
-import { HomePage, GoldAnalysisPage, NasdaqAnalysisPage, AIChatPage, PortfolioPage, DashboardPage } from './pages';
 import { DebugPanel } from './components/DebugPanel';
+import { PageLoading } from './components/LoadingSpinner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { logInfo } from './services/logger';
+
+// 懒加载页面组件
+const HomePage = lazy(() => import('./pages/HomePage'));
+const GoldAnalysisPage = lazy(() => import('./pages/GoldAnalysisPage'));
+const NasdaqAnalysisPage = lazy(() => import('./pages/NasdaqAnalysisPage'));
+const AIChatPage = lazy(() => import('./pages/AIChatPage'));
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 
 const App: React.FC = () => {
   React.useEffect(() => {
@@ -12,21 +21,25 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <ThemeProvider>
-      <AppProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/gold" element={<GoldAnalysisPage />} />
-            <Route path="/nasdaq" element={<NasdaqAnalysisPage />} />
-            <Route path="/ai-chat" element={<AIChatPage />} />
-            <Route path="/portfolio" element={<PortfolioPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-          </Routes>
-          <DebugPanel />
-        </Router>
-      </AppProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AppProvider>
+          <Router>
+            <Suspense fallback={<PageLoading />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/gold" element={<GoldAnalysisPage />} />
+                <Route path="/nasdaq" element={<NasdaqAnalysisPage />} />
+                <Route path="/ai-chat" element={<AIChatPage />} />
+                <Route path="/portfolio" element={<PortfolioPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+              </Routes>
+            </Suspense>
+            <DebugPanel />
+          </Router>
+        </AppProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 
