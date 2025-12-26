@@ -12,6 +12,7 @@ import { NewsList } from '../components/NewsList';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
 import { AssetType } from '../types';
@@ -61,46 +62,47 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                      errors.news || errors.analysis || errors.prices;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* 装饰性背景 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-400/20 dark:bg-yellow-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-400/20 dark:bg-orange-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-amber-400/10 dark:bg-amber-600/5 rounded-full blur-3xl"></div>
       </div>
 
       {/* Header - 移动端优化 */}
-      <header className="relative bg-white/40 backdrop-blur-xl shadow-lg border-b border-white/20">
+      <header className="relative bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl shadow-lg border-b border-white/20 dark:border-gray-700/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 sm:py-0 sm:h-16 gap-4 sm:gap-0">
             <div className="flex items-center">
               <Link
                 to="/"
-                className="flex items-center text-gray-700 hover:text-gray-900 transition-colors touch-manipulation"
+                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors touch-manipulation"
               >
                 <ArrowLeftIcon className="h-5 w-5 mr-2" />
                 返回首页
               </Link>
-              <div className="ml-6 h-6 border-l border-gray-300/50 hidden sm:block" />
-              <h1 className="ml-0 sm:ml-6 text-lg sm:text-xl font-bold text-gray-900 flex items-center mt-2 sm:mt-0">
+              <div className="ml-6 h-6 border-l border-gray-300/50 dark:border-gray-600/50 hidden sm:block" />
+              <h1 className="ml-0 sm:ml-6 text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center mt-2 sm:mt-0">
                 <span className="inline-block w-3 h-3 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full mr-3 shadow-lg"></span>
                 现货黄金分析
               </h1>
             </div>
             
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-              <div className="text-sm text-gray-500 text-center sm:text-left">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                 {formatUpdateTime(lastUpdated)}
               </div>
               {isDataExpired(lastUpdated, 30) && (
-                <div className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded text-center sm:text-left">
+                <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded text-center sm:text-left">
                   {formatExpirationWarning(lastUpdated, 30)}
                 </div>
               )}
+              <ThemeToggle />
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white/60 backdrop-blur-sm border border-white/40 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
               >
                 <svg className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

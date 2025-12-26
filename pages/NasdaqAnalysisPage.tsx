@@ -61,28 +61,28 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                      errors.news || errors.analysis || errors.prices;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* 装饰性背景 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-400/10 dark:bg-indigo-600/5 rounded-full blur-3xl"></div>
       </div>
 
       {/* Header */}
-      <header className="relative bg-white/40 backdrop-blur-xl shadow-lg border-b border-white/20">
+      <header className="relative bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl shadow-lg border-b border-white/20 dark:border-gray-700/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <Link
                 to="/"
-                className="flex items-center text-gray-700 hover:text-gray-900 transition-colors"
+                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
               >
                 <ArrowLeftIcon className="h-5 w-5 mr-2" />
                 返回首页
               </Link>
-              <div className="ml-6 h-6 border-l border-gray-300/50" />
-              <h1 className="ml-6 text-xl font-bold text-gray-900 flex items-center">
+              <div className="ml-6 h-6 border-l border-gray-300/50 dark:border-gray-600/50" />
+              <h1 className="ml-6 text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
                 <span className="inline-block w-3 h-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mr-3 shadow-lg"></span>
                 纳斯达克100分析
               </h1>
