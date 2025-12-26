@@ -994,22 +994,30 @@ ${newsText}
     
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 构建提示词 - 减少每条新闻的内容长度以避免403错误
+    // 优化策略：使用标题+简短摘要（200字），保留核心信息
+    // 原因：
+    // 1. 财经新闻的核心信息通常在标题和前几句
+    // 2. 200字足够包含：标题(30字) + 核心内容(170字)
+    // 3. AI模型对简洁输入的理解更准确，避免信息过载
+    // 4. 减少token消耗，降低触发API限制的风险
     const newsText = newsList.map((news, index) => {
-      // 每条新闻最多300字，避免内容过长
-      const shortContent = news.content.length > 300 
-        ? news.content.substring(0, 300) + '...' 
+      // 提取标题和简短内容（200字）
+      const shortContent = news.content.length > 200 
+        ? news.content.substring(0, 200) + '...' 
         : news.content;
       return `[${index}] ${news.title}\n${shortContent}`;
     }).join('\n\n');
     
     // 检查总长度，如果太长则进一步截断
-    const maxPromptLength = 30000; // 设置最大prompt长度
+    // 50条新闻 × 230字 ≈ 11,500字，加上prompt模板约15,000字，安全范围内
+    const maxPromptLength = 20000; // 降低到20000字，更保守的限制
     let finalNewsText = newsText;
     if (newsText.length > maxPromptLength) {
       console.warn(`⚠️ 新闻内容过长 (${newsText.length}字)，截断到${maxPromptLength}字`);
       finalNewsText = newsText.substring(0, maxPromptLength) + '\n\n[内容过长，已截断...]';
     }
+    
+    console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
     const prompt = `你是一位资深的金融分析师和投资顾问。请基于以下${newsList.length}条最新新闻，对${assetName}进行全面的市场分析并提供专业的投资建议。
 
