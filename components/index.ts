@@ -61,3 +61,9 @@ export { ProgressiveFallback, createStandardFallbackLevels } from './Progressive
 // 现有组件
 export { FeatureCard } from './FeatureCard';
 export { DebugPanel } from './DebugPanel';
+
+// 仪表盘组件
+export { DashboardCard } from './DashboardCard';
+export { DashboardGrid } from './DashboardGrid';
+export { CardSelector } from './CardSelector';
+export { LayoutManager } from './LayoutManager';

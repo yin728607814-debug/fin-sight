@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowTrendingUpIcon, GlobeAltIcon, ChartBarIcon, NewspaperIcon } from '@heroicons/react/24/outline';
+import { ArrowTrendingUpIcon, GlobeAltIcon, ChartBarIcon, NewspaperIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 import { ApiStatusIndicator } from '../components/ApiStatusIndicator';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -47,13 +47,22 @@ const navigationCards: NavigationCard[] = [
     bgColor: 'bg-blue-50 hover:bg-blue-100'
   },
   {
+    id: 'dashboard',
+    title: '个性化仪表盘',
+    description: '自定义您的仪表盘布局，一站式查看所有重要信息',
+    path: '/dashboard',
+    icon: Squares2X2Icon,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 hover:bg-purple-100'
+  },
+  {
     id: 'ai-chat',
     title: 'AI投资顾问',
     description: '与AI助手对话，获取专业的投资建议和市场分析',
     path: '/ai-chat',
     icon: GlobeAltIcon,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50 hover:bg-purple-100'
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50 hover:bg-indigo-100'
   },
   {
     id: 'portfolio',
