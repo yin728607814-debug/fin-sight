@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { SunIcon, MoonIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '../utils/ThemeContext';
 import { Theme } from '../services/themeService';
@@ -14,6 +15,8 @@ import { Theme } from '../services/themeService';
 export const ThemeToggle: React.FC = () => {
   const { theme, effectiveTheme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = React.useState(false);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = React.useState({ top: 0, right: 0 });
 
   /**
    * 主题选项
@@ -55,12 +58,26 @@ export const ThemeToggle: React.FC = () => {
   };
 
   /**
+   * 切换下拉菜单
+   */
+  const toggleMenu = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
+  /**
    * 关闭下拉菜单（点击外部）
    */
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.theme-toggle-container')) {
+      if (!target.closest('.theme-toggle-container') && !target.closest('.theme-toggle-menu')) {
         setIsOpen(false);
       }
     };
@@ -72,39 +89,27 @@ export const ThemeToggle: React.FC = () => {
   }, [isOpen]);
 
   return (
-    <div className="relative theme-toggle-container">
-      {/* 切换按钮 */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center p-2 text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all shadow-lg"
-        aria-label="切换主题"
-        title="切换主题"
-        id="theme-toggle-button"
-      >
-        {getCurrentIcon()}
-      </button>
+    <>
+      <div className="relative theme-toggle-container">
+        {/* 切换按钮 */}
+        <button
+          ref={buttonRef}
+          onClick={toggleMenu}
+          className="flex items-center justify-center p-2 text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all shadow-lg"
+          aria-label="切换主题"
+          title="切换主题"
+        >
+          {getCurrentIcon()}
+        </button>
+      </div>
 
-      {/* 下拉菜单 - 使用 fixed 定位避免被遮挡 */}
-      {isOpen && (
+      {/* 下拉菜单 - 使用 Portal 渲染到 body */}
+      {isOpen && createPortal(
         <div 
-          className="fixed w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"
+          className="theme-toggle-menu fixed w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"
           style={{
-            top: (() => {
-              const button = document.getElementById('theme-toggle-button');
-              if (button) {
-                const rect = button.getBoundingClientRect();
-                return `${rect.bottom + 8}px`;
-              }
-              return '60px';
-            })(),
-            right: (() => {
-              const button = document.getElementById('theme-toggle-button');
-              if (button) {
-                const rect = button.getBoundingClientRect();
-                return `${window.innerWidth - rect.right}px`;
-              }
-              return '16px';
-            })()
+            top: `${menuPosition.top}px`,
+            right: `${menuPosition.right}px`
           }}
         >
           {themes.map((themeOption) => (
@@ -134,8 +139,9 @@ export const ThemeToggle: React.FC = () => {
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
