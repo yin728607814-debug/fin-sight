@@ -994,18 +994,27 @@ ${newsText}
     
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 构建提示词
+    // 构建提示词 - 减少每条新闻的内容长度以避免403错误
     const newsText = newsList.map((news, index) => {
-      const fullContent = news.content.length > 800 
-        ? news.content.substring(0, 800) + '...' 
+      // 每条新闻最多300字，避免内容过长
+      const shortContent = news.content.length > 300 
+        ? news.content.substring(0, 300) + '...' 
         : news.content;
-      return `[${index}] ${news.title}\n${fullContent}`;
+      return `[${index}] ${news.title}\n${shortContent}`;
     }).join('\n\n');
+    
+    // 检查总长度，如果太长则进一步截断
+    const maxPromptLength = 30000; // 设置最大prompt长度
+    let finalNewsText = newsText;
+    if (newsText.length > maxPromptLength) {
+      console.warn(`⚠️ 新闻内容过长 (${newsText.length}字)，截断到${maxPromptLength}字`);
+      finalNewsText = newsText.substring(0, maxPromptLength) + '\n\n[内容过长，已截断...]';
+    }
     
     const prompt = `你是一位资深的金融分析师和投资顾问。请基于以下${newsList.length}条最新新闻，对${assetName}进行全面的市场分析并提供专业的投资建议。
 
 新闻内容：
-${newsText}
+${finalNewsText}
 
 请提供详细的分析报告，返回JSON格式（无markdown）：
 
@@ -1028,6 +1037,8 @@ ${newsText}
 5. timeHorizon要根据当前市场状态和新闻内容判断最适合的投资周期
 6. predictedTrend要给出具体的价格走势预测和关键点位
 7. confidence要反映分析的确定性程度（考虑信息完整度、市场共识度等）`;
+
+    console.log(`📊 Prompt总长度: ${prompt.length}字`);
 
     try {
       const response = await axios.post(
@@ -1084,6 +1095,27 @@ ${newsText}
       
     } catch (error) {
       console.error('❌ 整体市场分析失败:', error);
+      
+      // 详细的错误日志
+      if (axios.isAxiosError(error)) {
+        console.error('API错误详情:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message
+        });
+        
+        // 403错误特殊处理
+        if (error.response?.status === 403) {
+          console.error('🚫 Gemini API 403错误 - 可能的原因：');
+          console.error('1. API密钥无效或已过期');
+          console.error('2. API密钥没有权限访问此模型');
+          console.error('3. 请求内容违反了安全策略');
+          console.error('4. 地区限制或IP被封禁');
+          console.error('当前API密钥:', this.config.apiKey?.substring(0, 10) + '...');
+        }
+      }
+      
       throw error;
     }
   }
