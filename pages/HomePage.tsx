@@ -86,7 +86,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* 主题切换按钮 - 固定在右上角 */}
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-[9998]">
         <ThemeToggle />
       </div>
 

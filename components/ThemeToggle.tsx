@@ -85,7 +85,7 @@ export const ThemeToggle: React.FC = () => {
 
       {/* 下拉菜单 */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
           {themes.map((themeOption) => (
             <button
               key={themeOption.value}
