@@ -130,7 +130,9 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
                 </button>
               </div>
               
-              <ThemeToggle />
+              <div className="relative z-[9998]">
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>

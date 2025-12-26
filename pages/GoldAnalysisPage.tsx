@@ -99,7 +99,9 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                   {formatExpirationWarning(lastUpdated, 30)}
                 </div>
               )}
-              <ThemeToggle />
+              <div className="relative z-[9998]">
+                <ThemeToggle />
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || hasAnyLoading}
