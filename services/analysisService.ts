@@ -126,19 +126,13 @@ export class AnalysisService implements IAnalysisService {
     this.errorHandler = ErrorHandler.getInstance();
     this.cache = new Map();
     
-    // 调试：输出API密钥状态
-    console.log('🔧 AnalysisService 初始化:', {
-      model: this.config.model,
-      baseURL: this.config.baseURL,
-      hasApiKey: !!this.config.apiKey,
-      apiKeyPrefix: this.config.apiKey?.substring(0, 10) + '...',
-      apiKeyLength: this.config.apiKey?.length
-    });
-    
-    logInfo('AnalysisService initialized with Gemini AI', { 
-      model: this.config.model,
-      hasApiKey: !!this.config.apiKey
-    });
+    // 仅在开发环境输出初始化日志
+    if (process.env.NODE_ENV === 'development') {
+      logInfo('AnalysisService initialized with Gemini AI', { 
+        model: this.config.model,
+        hasApiKey: !!this.config.apiKey
+      });
+    }
   }
 
   /**

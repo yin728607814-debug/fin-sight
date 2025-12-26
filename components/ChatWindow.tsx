@@ -10,8 +10,7 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { AnalysisService } from '../services/analysisService';
-import { config } from '../config/env';
+import { analysisService } from '../services/analysisService';
 
 /**
  * 聊天窗口组件Props
@@ -29,7 +28,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
   const [isLoading, setIsLoading] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const analysisService = useRef(new AnalysisService({ apiKey: config.apiKeys.gemini }));
 
   /**
    * 加载历史消息
@@ -72,7 +70,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
       );
 
       // 调用AI服务
-      const response = await analysisService.current.makeGeminiRequest({
+      const response = await analysisService.makeGeminiRequest({
         contents: [
           {
             parts: [
