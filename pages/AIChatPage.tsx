@@ -66,8 +66,10 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
    * 当资产类型或数据变化时更新上下文
    */
   useEffect(() => {
-    setChatContext(buildChatContext());
-  }, [assetType, buildChatContext, news, priceData]);
+    const newContext = buildChatContext();
+    setChatContext(newContext);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType, news, priceData]);
 
   /**
    * 切换资产类型
