@@ -6,22 +6,37 @@
 
 ## ✨ 功能特性
 
+### 核心功能
 - 📰 **实时金融新闻**: 聚合来自多个权威源的最新市场新闻
 - 🤖 **AI智能分析**: 使用Google Gemini AI分析新闻情感和市场影响
 - 📊 **交互式图表**: 实时价格走势和技术指标可视化
 - 📈 **多资产支持**: 黄金、纳斯达克等多种投资标的
+
+### 高级功能
+- 🌓 **深色模式**: 支持浅色/深色/跟随系统三种主题模式
+- 📉 **新闻情绪指数**: 基于AI分析的市场情绪量化指标（0-100分）
+- 💬 **AI投资顾问**: 智能问答助手，提供个性化投资建议
+- 💼 **投资组合追踪**: 实时追踪持仓收益和盈亏情况
+- 🎨 **个性化仪表盘**: 可拖拽的自定义布局，一站式查看所有信息
+
+### 技术特性
 - 🌐 **响应式设计**: 完美适配桌面和移动设备
-- ⚡ **实时更新**: 自动刷新数据，把握市场脉搏
+- ⚡ **性能优化**: 路由懒加载、防抖节流、智能缓存
+- 🛡️ **错误处理**: 全局错误边界、友好的错误提示
+- 💾 **数据持久化**: localStorage自动保存用户配置和数据
+- 🔄 **实时更新**: 自动刷新数据，把握市场脉搏
 
 ## 🛠️ 技术栈
 
-- **前端**: React 18 + TypeScript + Vite
-- **样式**: Tailwind CSS
-- **图表**: Recharts
+- **前端框架**: React 18 + TypeScript + Vite
+- **样式方案**: Tailwind CSS
+- **图表库**: Recharts
+- **布局系统**: react-grid-layout
 - **状态管理**: React Context + Hooks
 - **数据验证**: Zod
 - **HTTP客户端**: Axios
-- **部署**: Netlify + Serverless Functions
+- **AI服务**: Google Gemini AI
+- **部署平台**: Netlify + Serverless Functions
 
 ## 🚀 快速开始
 
@@ -124,15 +139,39 @@ investment-news-analyzer/
 ├── components/              # React组件
 │   ├── NewsAnalyzer.tsx    # 新闻分析组件
 │   ├── TrendChart.tsx      # 价格图表组件
-│   └── ...
+│   ├── ThemeToggle.tsx     # 主题切换组件
+│   ├── SentimentIndex.tsx  # 情绪指数组件
+│   ├── ChatWindow.tsx      # AI聊天窗口
+│   ├── PortfolioSummary.tsx # 投资组合总览
+│   ├── DashboardGrid.tsx   # 仪表盘网格
+│   ├── ErrorBoundary.tsx   # 错误边界
+│   └── dashboard/          # 仪表盘卡片
+│       ├── NewsListCard.tsx
+│       ├── PriceChartCard.tsx
+│       ├── SentimentCard.tsx
+│       ├── PortfolioCard.tsx
+│       ├── AIChatCard.tsx
+│       └── MarketOverviewCard.tsx
 ├── pages/                  # 页面组件
-│   ├── NasdaqAnalysisPage.tsx
-│   └── GoldAnalysisPage.tsx
+│   ├── HomePage.tsx        # 首页
+│   ├── NasdaqAnalysisPage.tsx # 纳斯达克分析页
+│   ├── GoldAnalysisPage.tsx   # 黄金分析页
+│   ├── AIChatPage.tsx      # AI助手页
+│   ├── PortfolioPage.tsx   # 投资组合页
+│   └── DashboardPage.tsx   # 仪表盘页
 ├── services/               # API服务
 │   ├── newsService.ts      # 新闻服务
 │   ├── priceService.ts     # 价格服务
-│   └── analysisService.ts  # 分析服务
+│   ├── analysisService.ts  # 分析服务
+│   ├── sentimentService.ts # 情绪服务
+│   ├── chatService.ts      # 聊天服务
+│   ├── portfolioService.ts # 投资组合服务
+│   ├── dashboardService.ts # 仪表盘服务
+│   └── themeService.ts     # 主题服务
 ├── utils/                  # 工具函数
+│   ├── context.tsx         # 全局状态管理
+│   ├── ThemeContext.tsx    # 主题上下文
+│   └── performance.ts      # 性能优化工具
 ├── netlify/functions/      # Netlify函数
 │   └── news-proxy.js       # 新闻API代理
 ├── types.ts               # TypeScript类型
@@ -179,17 +218,48 @@ node --version  # 需要18+
 
 ## 📊 功能演示
 
-### 新闻分析
+### 1. 深色模式
+- 三种主题模式：浅色、深色、跟随系统
+- 全站适配，所有组件支持
+- localStorage持久化，记住用户偏好
+
+### 2. 新闻情绪指数
+- 基于AI分析的市场情绪量化（0-100分）
+- 圆形仪表盘可视化
+- 7天历史趋势图
+- 情绪分布和关键影响因素分析
+
+### 3. AI投资顾问
+- 智能问答，结合最新新闻和价格数据
+- 多轮对话上下文管理
+- 快速问题建议
+- 对话历史持久化
+
+### 4. 投资组合追踪
+- 持仓管理（添加、编辑、删除）
+- 实时价格更新和盈亏计算
+- 资产分布饼图
+- 30天收益曲线图
+- 投资组合统计信息
+- 导出功能（JSON格式）
+
+### 5. 个性化仪表盘
+- 可拖拽的网格布局
+- 6种卡片类型：新闻列表、价格图表、情绪指数、投资组合、AI助手、市场概览
+- 多布局管理（最多5个自定义布局）
+- 布局持久化和重置功能
+
+### 6. 新闻分析
 - 实时获取金融新闻
 - AI情感分析（积极/消极/中性）
 - 影响预测和置信度评分
 
-### 价格图表
+### 7. 价格图表
 - 5天价格走势
 - 技术指标显示
 - 交互式图表操作
 
-### 智能洞察
+### 8. 智能洞察
 - 市场趋势分析
 - 新闻事件影响评估
 - 投资建议生成
