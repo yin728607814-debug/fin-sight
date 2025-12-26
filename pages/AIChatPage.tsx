@@ -67,7 +67,7 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
    */
   useEffect(() => {
     setChatContext(buildChatContext());
-  }, [assetType, news, priceData]);
+  }, [assetType, buildChatContext, news, priceData]);
 
   /**
    * 切换资产类型

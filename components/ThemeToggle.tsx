@@ -79,13 +79,34 @@ export const ThemeToggle: React.FC = () => {
         className="flex items-center justify-center p-2 text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all shadow-lg"
         aria-label="切换主题"
         title="切换主题"
+        id="theme-toggle-button"
       >
         {getCurrentIcon()}
       </button>
 
-      {/* 下拉菜单 */}
+      {/* 下拉菜单 - 使用 fixed 定位避免被遮挡 */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div 
+          className="fixed w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"
+          style={{
+            top: (() => {
+              const button = document.getElementById('theme-toggle-button');
+              if (button) {
+                const rect = button.getBoundingClientRect();
+                return `${rect.bottom + 8}px`;
+              }
+              return '60px';
+            })(),
+            right: (() => {
+              const button = document.getElementById('theme-toggle-button');
+              if (button) {
+                const rect = button.getBoundingClientRect();
+                return `${window.innerWidth - rect.right}px`;
+              }
+              return '16px';
+            })()
+          }}
+        >
           {themes.map((themeOption) => (
             <button
               key={themeOption.value}

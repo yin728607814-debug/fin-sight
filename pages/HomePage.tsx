@@ -54,6 +54,15 @@ const navigationCards: NavigationCard[] = [
     icon: GlobeAltIcon,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50 hover:bg-purple-100'
+  },
+  {
+    id: 'portfolio',
+    title: '投资组合追踪',
+    description: '管理您的投资组合，实时追踪收益和盈亏情况',
+    path: '/portfolio',
+    icon: ArrowTrendingUpIcon,
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 hover:bg-green-100'
   }
 ];
 
@@ -130,7 +139,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
           {navigationCards.map((card) => {
             const IconComponent = card.icon;
             return (

@@ -21,6 +21,13 @@ export { ChatWindow } from './ChatWindow';
 export { ChatInput } from './ChatInput';
 export { MessageBubble } from './MessageBubble';
 
+// 投资组合组件
+export { PortfolioSummary } from './PortfolioSummary';
+export { PositionList } from './PositionList';
+export { PortfolioChart } from './PortfolioChart';
+export { AddPositionModal } from './AddPositionModal';
+export { EditPositionModal } from './EditPositionModal';
+
 // 通用组件
 export { 
   LoadingSpinner, 
