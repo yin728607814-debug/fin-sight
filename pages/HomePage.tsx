@@ -45,6 +45,15 @@ const navigationCards: NavigationCard[] = [
     icon: ChartBarIcon,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 hover:bg-blue-100'
+  },
+  {
+    id: 'ai-chat',
+    title: 'AI投资顾问',
+    description: '与AI助手对话，获取专业的投资建议和市场分析',
+    path: '/ai-chat',
+    icon: GlobeAltIcon,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 hover:bg-purple-100'
   }
 ];
 
@@ -121,7 +130,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {navigationCards.map((card) => {
             const IconComponent = card.icon;
             return (

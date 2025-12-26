@@ -373,8 +373,9 @@ ${newsText}
 
   /**
    * 发起 Gemini API 请求（带队列控制）
+   * 公共方法，可供外部调用
    */
-  private async makeGeminiRequest(request: GeminiRequest): Promise<AxiosResponse<GeminiResponse>> {
+  public async makeGeminiRequest(request: GeminiRequest): Promise<AxiosResponse<GeminiResponse>> {
     // 将请求加入队列，确保串行执行
     // 关键：使用独立的 Promise 链，避免错误传播阻塞队列
     const currentRequest = this.executeGeminiRequest(request);

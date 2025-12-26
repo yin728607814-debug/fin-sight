@@ -16,6 +16,11 @@ export { SentimentGauge } from './SentimentGauge';
 export { SentimentTrend } from './SentimentTrend';
 export { SentimentDetails } from './SentimentDetails';
 
+// AI聊天组件
+export { ChatWindow } from './ChatWindow';
+export { ChatInput } from './ChatInput';
+export { MessageBubble } from './MessageBubble';
+
 // 通用组件
 export { 
   LoadingSpinner, 
