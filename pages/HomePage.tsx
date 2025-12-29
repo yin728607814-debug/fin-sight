@@ -6,7 +6,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  ArrowTrendingUpIcon, 
   ChartBarIcon, 
   NewspaperIcon, 
   Squares2X2Icon,
@@ -17,7 +16,6 @@ import {
   ChatBubbleLeftRightIcon,
   BriefcaseIcon
 } from '@heroicons/react/24/outline';
-import { ApiStatusIndicator } from '../components/ApiStatusIndicator';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 /**
@@ -218,11 +216,6 @@ export const HomePage: React.FC<HomePageProps> = () => {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* API Status */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <ApiStatusIndicator />
       </section>
 
       {/* Navigation Cards - 重新设计 */}

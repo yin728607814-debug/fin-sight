@@ -46,13 +46,13 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ onRemove }) => {
             <div className="p-3 bg-white/50 dark:bg-gray-700/50 rounded-lg">
               <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">总投资</div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                ${portfolio.totalInvested.toLocaleString()}
+                ${(portfolio.totalInvestment || 0).toLocaleString()}
               </div>
             </div>
             <div className="p-3 bg-white/50 dark:bg-gray-700/50 rounded-lg">
               <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">当前价值</div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                ${portfolio.currentValue.toLocaleString()}
+                ${(portfolio.currentValue || 0).toLocaleString()}
               </div>
             </div>
           </div>
@@ -62,18 +62,18 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ onRemove }) => {
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">总收益</div>
             <div className="flex items-baseline gap-2">
               <span className={`text-2xl font-bold ${
-                portfolio.totalReturn >= 0
+                (portfolio.totalProfitLoss || 0) >= 0
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-red-600 dark:text-red-400'
               }`}>
-                {portfolio.totalReturn >= 0 ? '+' : ''}${portfolio.totalReturn.toLocaleString()}
+                {(portfolio.totalProfitLoss || 0) >= 0 ? '+' : ''}${(portfolio.totalProfitLoss || 0).toLocaleString()}
               </span>
               <span className={`text-sm ${
-                portfolio.returnPercentage >= 0
+                (portfolio.totalProfitLossPercent || 0) >= 0
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-red-600 dark:text-red-400'
               }`}>
-                ({portfolio.returnPercentage >= 0 ? '+' : ''}{portfolio.returnPercentage.toFixed(2)}%)
+                ({(portfolio.totalProfitLossPercent || 0) >= 0 ? '+' : ''}{(portfolio.totalProfitLossPercent || 0).toFixed(2)}%)
               </span>
             </div>
           </div>
