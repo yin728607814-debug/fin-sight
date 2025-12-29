@@ -5,9 +5,8 @@
 
 import React, { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { AssetType, FundProduct, AutoInvestPlan } from '../types';
+import { AssetType, AutoInvestPlan } from '../types';
 import { Position } from '../services/portfolioService';
-import { FundSelector } from './FundSelector';
 import { AutoInvestSettings } from './AutoInvestSettings';
 
 /**
@@ -28,11 +27,17 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   onAdd
 }) => {
   const [assetType, setAssetType] = useState<AssetType>('nasdaq');
-  const [selectedFund, setSelectedFund] = useState<FundProduct | undefined>();
-  const [quantity, setQuantity] = useState('');
-  const [buyPrice, setBuyPrice] = useState('');
-  const [buyDate, setBuyDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // 纳斯达克字段
+  const [fundName, setFundName] = useState('');
+  const [nasdaqInvestment, setNasdaqInvestment] = useState('');
+  const [nasdaqProfit, setNasdaqProfit] = useState('');
   const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
+  
+  // 黄金字段
+  const [goldGrams, setGoldGrams] = useState('');
+  const [goldInvestment, setGoldInvestment] = useState('');
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   /**
@@ -41,21 +46,23 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // 纳斯达克必须选择基金
-    if (assetType === 'nasdaq' && !selectedFund) {
-      newErrors.fund = '请选择基金产品';
-    }
-
-    if (!quantity || parseFloat(quantity) <= 0) {
-      newErrors.quantity = assetType === 'gold' ? '克数必须大于0' : '份额必须大于0';
-    }
-
-    if (!buyPrice || parseFloat(buyPrice) <= 0) {
-      newErrors.buyPrice = '买入价格必须大于0';
-    }
-
-    if (!buyDate) {
-      newErrors.buyDate = '请选择买入日期';
+    if (assetType === 'nasdaq') {
+      if (!fundName.trim()) {
+        newErrors.fundName = '请输入基金名称';
+      }
+      if (!nasdaqInvestment || parseFloat(nasdaqInvestment) <= 0) {
+        newErrors.investment = '持仓金额必须大于0';
+      }
+      if (!nasdaqProfit || parseFloat(nasdaqProfit) === 0) {
+        newErrors.profit = '请输入持仓收益';
+      }
+    } else {
+      if (!goldGrams || parseFloat(goldGrams) <= 0) {
+        newErrors.grams = '克数必须大于0';
+      }
+      if (!goldInvestment || parseFloat(goldInvestment) <= 0) {
+        newErrors.investment = '持仓金额必须大于0';
+      }
     }
 
     setErrors(newErrors);
@@ -72,37 +79,52 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
       return;
     }
 
-    let assetName = '';
-    let fundCode: string | undefined;
-    let fundName: string | undefined;
+    const now = new Date();
 
-    if (assetType === 'gold') {
-      assetName = '现货黄金';
+    if (assetType === 'nasdaq') {
+      onAdd({
+        assetType: 'nasdaq',
+        assetName: fundName.trim(),
+        fundName: fundName.trim(),
+        investmentAmount: parseFloat(nasdaqInvestment),
+        profitLoss: parseFloat(nasdaqProfit),
+        autoInvest,
+        createdAt: now,
+        updatedAt: now
+      });
     } else {
-      assetName = selectedFund?.shortName || '纳斯达克100';
-      fundCode = selectedFund?.code;
-      fundName = selectedFund?.name;
+      const grams = parseFloat(goldGrams);
+      const investment = parseFloat(goldInvestment);
+      const averagePrice = investment / grams;
+      
+      onAdd({
+        assetType: 'gold',
+        assetName: '现货黄金',
+        quantity: grams,
+        averageBuyPrice: averagePrice,
+        investmentAmount: investment,
+        profitLoss: 0, // 初始收益为0，后续根据当前价格计算
+        createdAt: now,
+        updatedAt: now
+      });
     }
 
-    onAdd({
-      assetType,
-      assetName,
-      fundCode,
-      fundName,
-      quantity: parseFloat(quantity),
-      buyPrice: parseFloat(buyPrice),
-      buyDate: new Date(buyDate),
-      autoInvest
-    });
-
     // 重置表单
-    setSelectedFund(undefined);
-    setQuantity('');
-    setBuyPrice('');
-    setBuyDate(new Date().toISOString().split('T')[0]);
+    resetForm();
+    onClose();
+  };
+
+  /**
+   * 重置表单
+   */
+  const resetForm = () => {
+    setFundName('');
+    setNasdaqInvestment('');
+    setNasdaqProfit('');
+    setGoldGrams('');
+    setGoldInvestment('');
     setAutoInvest(undefined);
     setErrors({});
-    onClose();
   };
 
   /**
@@ -110,15 +132,14 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
    */
   const handleAssetTypeChange = (newType: AssetType) => {
     setAssetType(newType);
-    setSelectedFund(undefined);
-    setErrors({});
+    resetForm();
   };
 
   /**
    * 处理关闭
    */
   const handleClose = () => {
-    setErrors({});
+    resetForm();
     onClose();
   };
 
@@ -149,8 +170,8 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
           </div>
 
           {/* 表单 */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 资产类型 */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* 资产类型选择 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 资产类型
@@ -161,8 +182,8 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                   onClick={() => handleAssetTypeChange('nasdaq')}
                   className={`px-4 py-3 rounded-lg border-2 transition-all ${
                     assetType === 'nasdaq'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   纳斯达克100
@@ -172,8 +193,8 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                   onClick={() => handleAssetTypeChange('gold')}
                   className={`px-4 py-3 rounded-lg border-2 transition-all ${
                     assetType === 'gold'
-                      ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                      ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   现货黄金
@@ -181,104 +202,128 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
               </div>
             </div>
 
-            {/* 基金选择（仅纳斯达克） */}
+            {/* 纳斯达克表单 */}
             {assetType === 'nasdaq' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  选择基金产品
-                </label>
-                <FundSelector
-                  selectedFund={selectedFund}
-                  onSelect={setSelectedFund}
+              <>
+                {/* 基金名称 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    基金名称
+                  </label>
+                  <input
+                    type="text"
+                    value={fundName}
+                    onChange={(e) => setFundName(e.target.value)}
+                    placeholder="例如：广发纳斯达克100ETF联接(QDII)C人民币"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.fundName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.fundName && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fundName}</p>
+                  )}
+                </div>
+
+                {/* 持仓金额 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓金额（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={nasdaqInvestment}
+                    onChange={(e) => setNasdaqInvestment(e.target.value)}
+                    placeholder="例如：10000"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.investment ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.investment && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investment}</p>
+                  )}
+                </div>
+
+                {/* 持仓收益 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓收益（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={nasdaqProfit}
+                    onChange={(e) => setNasdaqProfit(e.target.value)}
+                    placeholder="例如：500（可以是负数）"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.profit ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.profit && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.profit}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    盈利输入正数，亏损输入负数
+                  </p>
+                </div>
+
+                {/* 定投设置 */}
+                <AutoInvestSettings
+                  value={autoInvest}
+                  onChange={setAutoInvest}
                 />
-                {errors.fund && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fund}</p>
-                )}
-              </div>
+              </>
             )}
 
-            {/* 数量 */}
-            <div>
-              <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {assetType === 'gold' ? '克数' : '份额'}
-              </label>
-              <input
-                type="number"
-                id="quantity"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                step="0.01"
-                min="0"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.quantity
-                    ? 'border-red-500 dark:border-red-400'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-                placeholder={assetType === 'gold' ? '请输入克数' : '请输入份额'}
-              />
-              {errors.quantity && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.quantity}</p>
-              )}
-            </div>
+            {/* 黄金表单 */}
+            {assetType === 'gold' && (
+              <>
+                {/* 克数 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓克数
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={goldGrams}
+                    onChange={(e) => setGoldGrams(e.target.value)}
+                    placeholder="例如：10"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.grams ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.grams && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.grams}</p>
+                  )}
+                </div>
 
-            {/* 买入价格 */}
-            <div>
-              <label htmlFor="buyPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                买入价格 {assetType === 'gold' && <span className="text-xs text-gray-500">(人民币/克)</span>}
-              </label>
-              <input
-                type="number"
-                id="buyPrice"
-                value={buyPrice}
-                onChange={(e) => setBuyPrice(e.target.value)}
-                step="0.01"
-                min="0"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.buyPrice
-                    ? 'border-red-500 dark:border-red-400'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-                placeholder={assetType === 'gold' ? '例如: 520.50' : '请输入买入价格'}
-              />
-              {errors.buyPrice && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.buyPrice}</p>
-              )}
-              {assetType === 'gold' && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  💡 提示：请输入人民币/克价格，例如当前黄金约520元/克
-                </p>
-              )}
-            </div>
-
-            {/* 买入日期 */}
-            <div>
-              <label htmlFor="buyDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                买入日期
-              </label>
-              <input
-                type="date"
-                id="buyDate"
-                value={buyDate}
-                onChange={(e) => setBuyDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.buyDate
-                    ? 'border-red-500 dark:border-red-400'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-              />
-              {errors.buyDate && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.buyDate}</p>
-              )}
-            </div>
-
-            {/* 定投设置 */}
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <AutoInvestSettings
-                autoInvest={autoInvest}
-                onChange={setAutoInvest}
-              />
-            </div>
+                {/* 持仓金额 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓金额（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={goldInvestment}
+                    onChange={(e) => setGoldInvestment(e.target.value)}
+                    placeholder="例如：5200"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.investment ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.investment && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investment}</p>
+                  )}
+                  {goldGrams && goldInvestment && parseFloat(goldGrams) > 0 && parseFloat(goldInvestment) > 0 && (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      均价：¥{(parseFloat(goldInvestment) / parseFloat(goldGrams)).toFixed(2)}/克
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* 按钮 */}
             <div className="flex space-x-3 pt-4">
@@ -291,7 +336,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors shadow-sm"
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 添加
               </button>

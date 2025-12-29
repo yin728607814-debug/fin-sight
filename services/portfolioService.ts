@@ -7,28 +7,37 @@ import { AssetType, EnhancedPosition, AutoInvestPlan, GoldStats, AssetStats, Pos
 import { goldPriceConverter } from './goldPriceConverter';
 
 /**
- * 持仓接口（保留向后兼容）
+ * 持仓接口
  */
 export interface Position {
   id: string;
   assetType: AssetType;
   assetName: string;
-  quantity: number;
-  buyPrice: number;
-  buyDate: Date;
-  currentPrice?: number;
-  currentValue?: number;
-  profitLoss?: number;
-  profitLossPercent?: number;
   
-  // 新增字段
-  fundCode?: string;
-  fundName?: string;
-  investmentAmount?: number;
-  holdingDays?: number;
-  dailyProfitLoss?: number;
-  annualizedReturn?: number;
+  // 纳斯达克基金信息
+  fundName?: string;           // 用户自定义基金名称
+  
+  // 黄金信息
+  quantity?: number;           // 黄金克数（仅黄金）
+  averageBuyPrice?: number;    // 黄金均价（仅黄金，人民币/克）
+  
+  // 通用信息
+  investmentAmount: number;    // 持仓金额（元）
+  profitLoss: number;          // 持仓收益（元）
+  
+  // 计算字段
+  currentPrice?: number;       // 当前价格
+  currentValue?: number;       // 当前市值
+  profitLossPercent?: number;  // 收益率
+  dailyProfitLoss?: number;    // 当日收益（元）
+  dailyChange?: number;        // 当日涨跌幅（%）
+  
+  // 定投计划（仅纳斯达克）
   autoInvest?: AutoInvestPlan;
+  
+  // 元数据
+  createdAt: Date;             // 创建时间
+  updatedAt: Date;             // 更新时间
 }
 
 /**
@@ -177,29 +186,34 @@ export class PortfolioService {
    */
   public calculatePortfolio(
     positions: Position[],
-    prices: Map<AssetType, number>
+    prices: Map<AssetType, number>,
+    previousPrices?: Map<AssetType, number>
   ): Portfolio {
     let totalInvestment = 0;
     let currentValue = 0;
 
     // 计算每个持仓的当前价值和盈亏
     const updatedPositions = positions.map(position => {
-      const investment = position.quantity * position.buyPrice;
+      const investment = position.investmentAmount;
       totalInvestment += investment;
 
-      // 计算持有天数
-      const holdingDays = this.calculateHoldingDays(position.buyDate);
-
       const currentPrice = prices.get(position.assetType);
-      if (currentPrice !== undefined) {
-        const positionValue = position.quantity * currentPrice;
-        const profitLoss = positionValue - investment;
-        const profitLossPercent = (profitLoss / investment) * 100;
+      const previousPrice = previousPrices?.get(position.assetType);
 
-        // 计算年化收益率（持有超过30天）
-        const annualizedReturn = holdingDays >= 30 
-          ? this.calculateAnnualizedReturn(profitLossPercent, holdingDays)
-          : undefined;
+      if (position.assetType === 'nasdaq') {
+        // 纳斯达克：持仓金额 + 持仓收益 = 当前市值
+        const positionValue = investment + position.profitLoss;
+        const profitLossPercent = investment > 0 ? (position.profitLoss / investment) * 100 : 0;
+
+        // 计算当日收益（基于涨跌幅）
+        let dailyProfitLoss: number | undefined;
+        let dailyChange: number | undefined;
+        
+        if (currentPrice !== undefined && previousPrice !== undefined && previousPrice > 0) {
+          dailyChange = ((currentPrice - previousPrice) / previousPrice) * 100;
+          // 当日收益 = 持仓金额 × 当日涨跌幅
+          dailyProfitLoss = investment * (dailyChange / 100);
+        }
 
         currentValue += positionValue;
 
@@ -207,25 +221,37 @@ export class PortfolioService {
           ...position,
           currentPrice,
           currentValue: positionValue,
-          profitLoss,
           profitLossPercent,
-          investmentAmount: investment,
-          holdingDays,
-          annualizedReturn
+          dailyProfitLoss,
+          dailyChange
+        };
+      } else {
+        // 黄金：根据均价和当前价格计算收益
+        if (currentPrice !== undefined && position.quantity && position.averageBuyPrice) {
+          const positionValue = position.quantity * currentPrice;
+          const profitLoss = positionValue - investment;
+          const profitLossPercent = investment > 0 ? (profitLoss / investment) * 100 : 0;
+
+          currentValue += positionValue;
+
+          return {
+            ...position,
+            currentPrice,
+            currentValue: positionValue,
+            profitLoss,
+            profitLossPercent
+          };
+        }
+
+        // 如果没有当前价格，使用持仓金额
+        currentValue += investment;
+        return {
+          ...position,
+          currentValue: investment,
+          profitLoss: position.profitLoss || 0,
+          profitLossPercent: investment > 0 ? ((position.profitLoss || 0) / investment) * 100 : 0
         };
       }
-
-      // 如果没有当前价格，使用买入价格
-      currentValue += investment;
-      return {
-        ...position,
-        currentPrice: position.buyPrice,
-        currentValue: investment,
-        profitLoss: 0,
-        profitLossPercent: 0,
-        investmentAmount: investment,
-        holdingDays
-      };
     });
 
     const totalProfitLoss = currentValue - totalInvestment;

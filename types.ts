@@ -409,27 +409,30 @@ export interface EnhancedPosition {
   id: string;
   assetType: AssetType;
   
-  // 基金信息（纳斯达克）
-  fundCode?: string;
-  fundName?: string;
+  // 纳斯达克基金信息
+  fundName?: string;           // 用户自定义基金名称
   
-  // 基本信息
-  quantity: number;
-  buyPrice: number;
-  buyDate: Date;
+  // 黄金信息
+  quantity?: number;           // 黄金克数（仅黄金）
+  averageBuyPrice?: number;    // 黄金均价（仅黄金，人民币/克）
+  
+  // 通用信息
+  investmentAmount: number;    // 持仓金额（元）
+  profitLoss: number;          // 持仓收益（元）
   
   // 计算字段
-  investmentAmount: number;    // 持仓金额
-  currentPrice?: number;
+  currentPrice?: number;       // 当前价格
   currentValue?: number;       // 当前市值
-  profitLoss?: number;         // 持有收益
   profitLossPercent?: number;  // 收益率
-  holdingDays: number;         // 持有天数
-  dailyProfitLoss?: number;    // 日收益
-  annualizedReturn?: number;   // 年化收益率
+  dailyProfitLoss?: number;    // 当日收益（元）
+  dailyChange?: number;        // 当日涨跌幅（%）
   
-  // 定投计划
+  // 定投计划（仅纳斯达克）
   autoInvest?: AutoInvestPlan;
+  
+  // 元数据
+  createdAt: Date;             // 创建时间
+  updatedAt: Date;             // 更新时间
 }
 
 /**

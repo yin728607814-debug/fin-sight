@@ -25,7 +25,6 @@ export const PortfolioPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [previousPrices, setPreviousPrices] = useState<Map<string, number>>(new Map());
-  const [dailyReturns, setDailyReturns] = useState<Map<string, number>>(new Map());
   const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -49,7 +48,20 @@ export const PortfolioPage: React.FC = () => {
       prices.set('gold', gold.currentPrice);
     }
 
-    const calculatedPortfolio = portfolioService.calculatePortfolio(positions, prices);
+    // 获取前一次价格（用于计算当日收益）
+    const prevPrices = new Map();
+    if (previousPrices.has('nasdaq')) {
+      prevPrices.set('nasdaq', previousPrices.get('nasdaq'));
+    }
+    if (previousPrices.has('gold')) {
+      prevPrices.set('gold', previousPrices.get('gold'));
+    }
+
+    const calculatedPortfolio = portfolioService.calculatePortfolio(
+      positions, 
+      prices,
+      prevPrices.size > 0 ? prevPrices : undefined
+    );
     setPortfolio(calculatedPortfolio);
 
     // 保存快照
@@ -60,6 +72,15 @@ export const PortfolioPage: React.FC = () => {
     // 更新价格更新时间
     if (prices.size > 0) {
       setLastPriceUpdate(new Date());
+    }
+
+    // 更新前一次价格记录
+    if (prices.size > 0) {
+      const newPreviousPrices = new Map(previousPrices);
+      prices.forEach((price, assetType) => {
+        newPreviousPrices.set(assetType, price);
+      });
+      setPreviousPrices(newPreviousPrices);
     }
   };
 
@@ -80,68 +101,11 @@ export const PortfolioPage: React.FC = () => {
   };
 
   /**
-   * 计算日收益
-   * 对比当前价格和前一次价格
-   */
-  const calculateDailyReturns = () => {
-    if (!portfolio) return;
-
-    const newDailyReturns = new Map<string, number>();
-
-    portfolio.positions.forEach(position => {
-      const currentPrice = position.currentPrice;
-      const previousPrice = previousPrices.get(position.id);
-
-      if (currentPrice && previousPrice && previousPrice !== currentPrice) {
-        const dailyReturn = ((currentPrice - previousPrice) / previousPrice) * 100;
-        newDailyReturns.set(position.id, dailyReturn);
-      }
-    });
-
-    setDailyReturns(newDailyReturns);
-  };
-
-  /**
-   * 更新前一次价格记录
-   */
-  const updatePreviousPrices = () => {
-    if (!portfolio) return;
-
-    const newPreviousPrices = new Map<string, number>();
-    portfolio.positions.forEach(position => {
-      if (position.currentPrice) {
-        newPreviousPrices.set(position.id, position.currentPrice);
-      }
-    });
-
-    setPreviousPrices(newPreviousPrices);
-  };
-
-  /**
    * 初始加载
    */
   useEffect(() => {
     loadPortfolio();
   }, [nasdaq.currentPrice, gold.currentPrice]);
-
-  /**
-   * 价格变化时计算日收益
-   */
-  useEffect(() => {
-    if (portfolio && previousPrices.size > 0) {
-      calculateDailyReturns();
-    }
-    updatePreviousPrices();
-  }, [nasdaq.currentPrice, gold.currentPrice]);
-
-  /**
-   * 初始化前一次价格
-   */
-  useEffect(() => {
-    if (portfolio && previousPrices.size === 0) {
-      updatePreviousPrices();
-    }
-  }, [portfolio]);
 
   /**
    * 添加持仓
@@ -333,7 +297,6 @@ export const PortfolioPage: React.FC = () => {
                     setIsEditModalOpen(true);
                   }}
                   onDelete={handleDeletePosition}
-                  dailyReturns={dailyReturns}
                 />
               )}
             </div>
