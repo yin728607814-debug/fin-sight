@@ -11,11 +11,28 @@ interface NewsListCardProps {
   onRemove?: () => void;
 }
 
+interface NewsItemWithType {
+  headline: string;
+  datetime: number | string | Date;
+  type: 'nasdaq' | 'gold';
+}
+
 export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
   const { news: nasdaqNews } = useNews('nasdaq');
   const { news: goldNews } = useNews('gold');
   
-  const allNews = [...nasdaqNews, ...goldNews]
+  // 给新闻添加类型标签
+  const nasdaqNewsWithType: NewsItemWithType[] = nasdaqNews.map(item => ({
+    ...item,
+    type: 'nasdaq' as const
+  }));
+  
+  const goldNewsWithType: NewsItemWithType[] = goldNews.map(item => ({
+    ...item,
+    type: 'gold' as const
+  }));
+  
+  const allNews = [...nasdaqNewsWithType, ...goldNewsWithType]
     .sort((a, b) => {
       const timeA = typeof a.datetime === 'number' ? a.datetime * 1000 : new Date(a.datetime).getTime();
       const timeB = typeof b.datetime === 'number' ? b.datetime * 1000 : new Date(b.datetime).getTime();
@@ -42,7 +59,6 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
       }
       
       return date.toLocaleString('zh-CN', {
-        year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
@@ -55,7 +71,7 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
 
   return (
     <DashboardCard title="最新新闻" onRemove={onRemove}>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {allNews.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
             暂无新闻
@@ -66,22 +82,44 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
               key={index}
               className="p-3 bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white/70 dark:hover:bg-gray-700/70 transition-colors"
             >
-              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-1">
+              {/* 标签和日期 */}
+              <div className="flex items-center justify-between mb-2">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                  item.type === 'nasdaq'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                }`}>
+                  {item.type === 'nasdaq' ? '纳斯达克' : '黄金'}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatDate(item.datetime)}
+                </span>
+              </div>
+              
+              {/* 标题 */}
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
                 {item.headline}
               </h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {formatDate(item.datetime)}
-              </p>
             </div>
           ))
         )}
         
-        <Link
-          to="/nasdaq"
-          className="block text-center text-sm text-blue-600 dark:text-blue-400 hover:underline mt-4"
-        >
-          查看更多 →
-        </Link>
+        {/* 查看更多链接 */}
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <Link
+            to="/nasdaq"
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            纳斯达克新闻 →
+          </Link>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <Link
+            to="/gold"
+            className="text-xs text-amber-600 dark:text-amber-400 hover:underline"
+          >
+            黄金新闻 →
+          </Link>
+        </div>
       </div>
     </DashboardCard>
   );
