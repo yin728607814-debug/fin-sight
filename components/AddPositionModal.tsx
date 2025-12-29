@@ -5,8 +5,10 @@
 
 import React, { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { AssetType } from '../types';
+import { AssetType, FundProduct, AutoInvestPlan } from '../types';
 import { Position } from '../services/portfolioService';
+import { FundSelector } from './FundSelector';
+import { AutoInvestSettings } from './AutoInvestSettings';
 
 /**
  * 添加持仓弹窗Props
@@ -26,9 +28,11 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   onAdd
 }) => {
   const [assetType, setAssetType] = useState<AssetType>('nasdaq');
+  const [selectedFund, setSelectedFund] = useState<FundProduct | undefined>();
   const [quantity, setQuantity] = useState('');
   const [buyPrice, setBuyPrice] = useState('');
   const [buyDate, setBuyDate] = useState(new Date().toISOString().split('T')[0]);
+  const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   /**
@@ -37,8 +41,13 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // 纳斯达克必须选择基金
+    if (assetType === 'nasdaq' && !selectedFund) {
+      newErrors.fund = '请选择基金产品';
+    }
+
     if (!quantity || parseFloat(quantity) <= 0) {
-      newErrors.quantity = '数量必须大于0';
+      newErrors.quantity = assetType === 'gold' ? '克数必须大于0' : '份额必须大于0';
     }
 
     if (!buyPrice || parseFloat(buyPrice) <= 0) {
@@ -63,22 +72,46 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
       return;
     }
 
-    const assetName = assetType === 'gold' ? '现货黄金' : '纳斯达克100';
+    let assetName = '';
+    let fundCode: string | undefined;
+    let fundName: string | undefined;
+
+    if (assetType === 'gold') {
+      assetName = '现货黄金';
+    } else {
+      assetName = selectedFund?.shortName || '纳斯达克100';
+      fundCode = selectedFund?.code;
+      fundName = selectedFund?.name;
+    }
 
     onAdd({
       assetType,
       assetName,
+      fundCode,
+      fundName,
       quantity: parseFloat(quantity),
       buyPrice: parseFloat(buyPrice),
-      buyDate: new Date(buyDate)
+      buyDate: new Date(buyDate),
+      autoInvest
     });
 
     // 重置表单
+    setSelectedFund(undefined);
     setQuantity('');
     setBuyPrice('');
     setBuyDate(new Date().toISOString().split('T')[0]);
+    setAutoInvest(undefined);
     setErrors({});
     onClose();
+  };
+
+  /**
+   * 处理资产类型切换
+   */
+  const handleAssetTypeChange = (newType: AssetType) => {
+    setAssetType(newType);
+    setSelectedFund(undefined);
+    setErrors({});
   };
 
   /**
@@ -125,7 +158,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setAssetType('nasdaq')}
+                  onClick={() => handleAssetTypeChange('nasdaq')}
                   className={`px-4 py-3 rounded-lg border-2 transition-all ${
                     assetType === 'nasdaq'
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
@@ -136,7 +169,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAssetType('gold')}
+                  onClick={() => handleAssetTypeChange('gold')}
                   className={`px-4 py-3 rounded-lg border-2 transition-all ${
                     assetType === 'gold'
                       ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
@@ -148,10 +181,26 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
               </div>
             </div>
 
+            {/* 基金选择（仅纳斯达克） */}
+            {assetType === 'nasdaq' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  选择基金产品
+                </label>
+                <FundSelector
+                  selectedFund={selectedFund}
+                  onSelect={setSelectedFund}
+                />
+                {errors.fund && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fund}</p>
+                )}
+              </div>
+            )}
+
             {/* 数量 */}
             <div>
               <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                数量
+                {assetType === 'gold' ? '克数' : '份额'}
               </label>
               <input
                 type="number"
@@ -165,7 +214,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                     ? 'border-red-500 dark:border-red-400'
                     : 'border-gray-300 dark:border-gray-600'
                 }`}
-                placeholder="请输入数量"
+                placeholder={assetType === 'gold' ? '请输入克数' : '请输入份额'}
               />
               {errors.quantity && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.quantity}</p>
@@ -175,7 +224,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
             {/* 买入价格 */}
             <div>
               <label htmlFor="buyPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                买入价格
+                买入价格 {assetType === 'gold' && <span className="text-xs text-gray-500">(人民币/克)</span>}
               </label>
               <input
                 type="number"
@@ -189,10 +238,15 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                     ? 'border-red-500 dark:border-red-400'
                     : 'border-gray-300 dark:border-gray-600'
                 }`}
-                placeholder="请输入买入价格"
+                placeholder={assetType === 'gold' ? '例如: 520.50' : '请输入买入价格'}
               />
               {errors.buyPrice && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.buyPrice}</p>
+              )}
+              {assetType === 'gold' && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  💡 提示：请输入人民币/克价格，例如当前黄金约520元/克
+                </p>
               )}
             </div>
 
@@ -216,6 +270,14 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
               {errors.buyDate && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.buyDate}</p>
               )}
+            </div>
+
+            {/* 定投设置 */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <AutoInvestSettings
+                autoInvest={autoInvest}
+                onChange={setAutoInvest}
+              />
             </div>
 
             {/* 按钮 */}

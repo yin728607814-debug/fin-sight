@@ -13,6 +13,7 @@ import { PortfolioChart } from '../components/PortfolioChart';
 import { AddPositionModal } from '../components/AddPositionModal';
 import { EditPositionModal } from '../components/EditPositionModal';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
+import { goldPriceConverter } from '../services/goldPriceConverter';
 import { usePriceData } from '../utils/context';
 
 /**
@@ -39,7 +40,10 @@ export const PortfolioPage: React.FC = () => {
       prices.set('nasdaq', nasdaqPrices[nasdaqPrices.length - 1].close);
     }
     if (goldPrices.length > 0) {
-      prices.set('gold', goldPrices[goldPrices.length - 1].close);
+      // 黄金价格转换：美元/盎司 -> 人民币/克
+      const goldUsdPerOz = goldPrices[goldPrices.length - 1].close;
+      const goldCnyPerGram = goldPriceConverter.convertUsdPerOzToCnyPerGram(goldUsdPerOz);
+      prices.set('gold', goldCnyPerGram);
     }
 
     const calculatedPortfolio = portfolioService.calculatePortfolio(positions, prices);

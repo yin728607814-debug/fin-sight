@@ -3,15 +3,16 @@
  * 负责管理用户的投资组合和持仓信息
  */
 
-import { AssetType } from '../types';
+import { AssetType, EnhancedPosition, AutoInvestPlan, GoldStats, AssetStats, PositionStatistics } from '../types';
+import { goldPriceConverter } from './goldPriceConverter';
 
 /**
- * 持仓接口
+ * 持仓接口（保留向后兼容）
  */
 export interface Position {
   id: string;
   assetType: AssetType;
-  assetName: string; // "现货黄金" | "纳斯达克100"
+  assetName: string;
   quantity: number;
   buyPrice: number;
   buyDate: Date;
@@ -19,6 +20,15 @@ export interface Position {
   currentValue?: number;
   profitLoss?: number;
   profitLossPercent?: number;
+  
+  // 新增字段
+  fundCode?: string;
+  fundName?: string;
+  investmentAmount?: number;
+  holdingDays?: number;
+  dailyProfitLoss?: number;
+  annualizedReturn?: number;
+  autoInvest?: AutoInvestPlan;
 }
 
 /**
@@ -115,7 +125,9 @@ export class PortfolioService {
     
     const newPosition: Position = {
       ...position,
-      id: this.generatePositionId()
+      id: this.generatePositionId(),
+      investmentAmount: position.quantity * position.buyPrice,
+      holdingDays: this.calculateHoldingDays(position.buyDate)
     };
 
     positions.push(newPosition);
@@ -175,11 +187,19 @@ export class PortfolioService {
       const investment = position.quantity * position.buyPrice;
       totalInvestment += investment;
 
+      // 计算持有天数
+      const holdingDays = this.calculateHoldingDays(position.buyDate);
+
       const currentPrice = prices.get(position.assetType);
       if (currentPrice !== undefined) {
         const positionValue = position.quantity * currentPrice;
         const profitLoss = positionValue - investment;
         const profitLossPercent = (profitLoss / investment) * 100;
+
+        // 计算年化收益率（持有超过30天）
+        const annualizedReturn = holdingDays >= 30 
+          ? this.calculateAnnualizedReturn(profitLossPercent, holdingDays)
+          : undefined;
 
         currentValue += positionValue;
 
@@ -188,7 +208,10 @@ export class PortfolioService {
           currentPrice,
           currentValue: positionValue,
           profitLoss,
-          profitLossPercent
+          profitLossPercent,
+          investmentAmount: investment,
+          holdingDays,
+          annualizedReturn
         };
       }
 
@@ -199,7 +222,9 @@ export class PortfolioService {
         currentPrice: position.buyPrice,
         currentValue: investment,
         profitLoss: 0,
-        profitLossPercent: 0
+        profitLossPercent: 0,
+        investmentAmount: investment,
+        holdingDays
       };
     });
 
@@ -416,6 +441,185 @@ export class PortfolioService {
       biggestGainer,
       biggestLoser
     };
+  }
+
+  /**
+   * 计算持有天数
+   */
+  public calculateHoldingDays(buyDate: Date): number {
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - buyDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  /**
+   * 计算年化收益率
+   */
+  public calculateAnnualizedReturn(profitLossPercent: number, holdingDays: number): number {
+    if (holdingDays < 30) return 0; // 少于30天不计算年化
+    const years = holdingDays / 365;
+    return (Math.pow(1 + profitLossPercent / 100, 1 / years) - 1) * 100;
+  }
+
+  /**
+   * 计算黄金均价
+   */
+  public calculateGoldAveragePrice(positions: Position[]): number {
+    const goldPositions = positions.filter(p => p.assetType === 'gold');
+    
+    if (goldPositions.length === 0) return 0;
+    
+    let totalCost = 0;
+    let totalQuantity = 0;
+    
+    goldPositions.forEach(position => {
+      totalCost += position.quantity * position.buyPrice;
+      totalQuantity += position.quantity;
+    });
+    
+    return totalQuantity > 0 ? totalCost / totalQuantity : 0;
+  }
+
+  /**
+   * 获取黄金统计信息
+   */
+  public getGoldStats(portfolio: Portfolio): GoldStats {
+    const goldPositions = portfolio.positions.filter(p => p.assetType === 'gold');
+    
+    let investment = 0;
+    let currentValue = 0;
+    let totalGrams = 0;
+    
+    goldPositions.forEach(position => {
+      investment += position.investmentAmount || 0;
+      currentValue += position.currentValue || 0;
+      totalGrams += position.quantity;
+    });
+    
+    const averagePrice = this.calculateGoldAveragePrice(portfolio.positions);
+    const currentPrice = goldPositions.length > 0 && goldPositions[0].currentPrice 
+      ? goldPositions[0].currentPrice 
+      : 0;
+    
+    return {
+      count: goldPositions.length,
+      investment,
+      currentValue,
+      profitLoss: currentValue - investment,
+      totalGrams,
+      averagePrice,
+      currentPrice
+    };
+  }
+
+  /**
+   * 获取纳斯达克统计信息
+   */
+  public getNasdaqStats(portfolio: Portfolio): AssetStats {
+    const nasdaqPositions = portfolio.positions.filter(p => p.assetType === 'nasdaq');
+    
+    let investment = 0;
+    let currentValue = 0;
+    
+    nasdaqPositions.forEach(position => {
+      investment += position.investmentAmount || 0;
+      currentValue += position.currentValue || 0;
+    });
+    
+    return {
+      count: nasdaqPositions.length,
+      investment,
+      currentValue,
+      profitLoss: currentValue - investment
+    };
+  }
+
+  /**
+   * 获取完整的持仓统计
+   */
+  public getPositionStatistics(portfolio: Portfolio): PositionStatistics {
+    const goldStats = this.getGoldStats(portfolio);
+    const nasdaqStats = this.getNasdaqStats(portfolio);
+    
+    // 统计定投计划
+    const autoInvestPositions = portfolio.positions.filter(p => p.autoInvest?.enabled);
+    const autoInvestCount = autoInvestPositions.length;
+    
+    // 找到最近的下次扣款日期
+    let nextAutoInvestDate: Date | undefined;
+    autoInvestPositions.forEach(position => {
+      if (position.autoInvest?.nextDate) {
+        const nextDate = position.autoInvest.nextDate;
+        if (!nextAutoInvestDate || nextDate < nextAutoInvestDate) {
+          nextAutoInvestDate = nextDate;
+        }
+      }
+    });
+    
+    return {
+      totalPositions: portfolio.positions.length,
+      totalInvestment: portfolio.totalInvestment,
+      currentValue: portfolio.currentValue,
+      totalProfitLoss: portfolio.totalProfitLoss,
+      totalProfitLossPercent: portfolio.totalProfitLossPercent,
+      nasdaqStats,
+      goldStats,
+      autoInvestCount,
+      nextAutoInvestDate
+    };
+  }
+
+  /**
+   * 计算下次定投日期
+   */
+  public calculateNextAutoInvestDate(
+    lastDate: Date,
+    frequency: 'weekly' | 'monthly' | 'quarterly'
+  ): Date {
+    const next = new Date(lastDate);
+    
+    switch (frequency) {
+      case 'weekly':
+        next.setDate(next.getDate() + 7);
+        break;
+      case 'monthly':
+        next.setMonth(next.getMonth() + 1);
+        break;
+      case 'quarterly':
+        next.setMonth(next.getMonth() + 3);
+        break;
+    }
+    
+    return next;
+  }
+
+  /**
+   * 更新定投计划的下次扣款日期
+   */
+  public updateAutoInvestDates(): void {
+    const positions = this.getPositions();
+    let updated = false;
+    
+    const now = new Date();
+    
+    positions.forEach(position => {
+      if (position.autoInvest?.enabled && position.autoInvest.nextDate) {
+        // 如果下次扣款日期已过，更新到下一个周期
+        if (position.autoInvest.nextDate <= now) {
+          position.autoInvest.lastExecutedDate = position.autoInvest.nextDate;
+          position.autoInvest.nextDate = this.calculateNextAutoInvestDate(
+            position.autoInvest.nextDate,
+            position.autoInvest.frequency
+          );
+          updated = true;
+        }
+      }
+    });
+    
+    if (updated) {
+      this.savePositions(positions);
+    }
   }
 }
 

@@ -373,3 +373,100 @@ export interface Feature {
   status: FeatureStatus;
   icon: string;
 }
+
+// ============================================================================
+// 投资组合增强类型定义
+// ============================================================================
+
+/**
+ * 基金产品接口
+ */
+export interface FundProduct {
+  code: string;           // 基金代码
+  name: string;           // 基金全称
+  shortName: string;      // 基金简称
+  type: 'nasdaq' | 'gold'; // 基金类型
+  company: string;        // 基金公司
+  trackingIndex: string;  // 跟踪指数
+}
+
+/**
+ * 定投计划接口
+ */
+export interface AutoInvestPlan {
+  enabled: boolean;
+  amount: number;              // 定投金额
+  frequency: 'weekly' | 'monthly' | 'quarterly'; // 周期
+  startDate: Date;             // 首次扣款日期
+  nextDate: Date;              // 下次扣款日期
+  lastExecutedDate?: Date;     // 上次执行日期
+}
+
+/**
+ * 增强的持仓接口
+ */
+export interface EnhancedPosition {
+  id: string;
+  assetType: AssetType;
+  
+  // 基金信息（纳斯达克）
+  fundCode?: string;
+  fundName?: string;
+  
+  // 基本信息
+  quantity: number;
+  buyPrice: number;
+  buyDate: Date;
+  
+  // 计算字段
+  investmentAmount: number;    // 持仓金额
+  currentPrice?: number;
+  currentValue?: number;       // 当前市值
+  profitLoss?: number;         // 持有收益
+  profitLossPercent?: number;  // 收益率
+  holdingDays: number;         // 持有天数
+  dailyProfitLoss?: number;    // 日收益
+  annualizedReturn?: number;   // 年化收益率
+  
+  // 定投计划
+  autoInvest?: AutoInvestPlan;
+}
+
+/**
+ * 资产统计接口
+ */
+export interface AssetStats {
+  count: number;
+  investment: number;
+  currentValue: number;
+  profitLoss: number;
+}
+
+/**
+ * 黄金统计接口
+ */
+export interface GoldStats extends AssetStats {
+  totalGrams: number;        // 总克数
+  averagePrice: number;      // 均价（人民币/克）
+  currentPrice: number;      // 当前价格（人民币/克）
+}
+
+/**
+ * 持仓统计接口
+ */
+export interface PositionStatistics {
+  // 基本统计
+  totalPositions: number;
+  totalInvestment: number;
+  currentValue: number;
+  totalProfitLoss: number;
+  totalProfitLossPercent: number;
+  
+  // 分类统计
+  nasdaqStats: AssetStats;
+  goldStats: GoldStats;
+  
+  // 定投统计
+  autoInvestCount: number;
+  nextAutoInvestDate?: Date;
+}
