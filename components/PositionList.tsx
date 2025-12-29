@@ -14,6 +14,7 @@ interface PositionListProps {
   positions: Position[];
   onEdit: (position: Position) => void;
   onDelete: (id: string) => void;
+  dailyReturns?: Map<string, number>;
 }
 
 /**
@@ -22,7 +23,8 @@ interface PositionListProps {
 export const PositionList: React.FC<PositionListProps> = ({
   positions,
   onEdit,
-  onDelete
+  onDelete,
+  dailyReturns
 }) => {
   if (positions.length === 0) {
     return (
@@ -46,6 +48,7 @@ export const PositionList: React.FC<PositionListProps> = ({
           position={position}
           onEdit={onEdit}
           onDelete={onDelete}
+          dailyReturn={dailyReturns?.get(position.id)}
         />
       ))}
     </div>

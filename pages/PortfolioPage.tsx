@@ -14,8 +14,7 @@ import { AddPositionModal } from '../components/AddPositionModal';
 import { EditPositionModal } from '../components/EditPositionModal';
 import { GoldSummary } from '../components/GoldSummary';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
-import { goldPriceConverter } from '../services/goldPriceConverter';
-import { usePriceData } from '../utils/context';
+import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion';
 
 /**
  * 投资组合页面组件
@@ -25,9 +24,14 @@ export const PortfolioPage: React.FC = () => {
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [previousPrices, setPreviousPrices] = useState<Map<string, number>>(new Map());
+  const [dailyReturns, setDailyReturns] = useState<Map<string, number>>(new Map());
+  const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { priceData: nasdaqPrices } = usePriceData('nasdaq');
-  const { priceData: goldPrices } = usePriceData('gold');
+  // 使用增强的价格数据hook（自动处理黄金价格转换）
+  const nasdaq = usePriceDataWithConversion('nasdaq');
+  const gold = usePriceDataWithConversion('gold');
 
   /**
    * 加载和计算投资组合
@@ -35,16 +39,14 @@ export const PortfolioPage: React.FC = () => {
   const loadPortfolio = () => {
     const positions = portfolioService.getPositions();
     
-    // 获取最新价格
+    // 获取最新价格（已自动转换）
     const prices = new Map();
-    if (nasdaqPrices.length > 0) {
-      prices.set('nasdaq', nasdaqPrices[nasdaqPrices.length - 1].close);
+    if (nasdaq.currentPrice !== null) {
+      prices.set('nasdaq', nasdaq.currentPrice);
     }
-    if (goldPrices.length > 0) {
-      // 黄金价格转换：美元/盎司 -> 人民币/克
-      const goldUsdPerOz = goldPrices[goldPrices.length - 1].close;
-      const goldCnyPerGram = goldPriceConverter.convertUsdPerOzToCnyPerGram(goldUsdPerOz);
-      prices.set('gold', goldCnyPerGram);
+    if (gold.currentPrice !== null) {
+      // 黄金价格已经转换为人民币/克
+      prices.set('gold', gold.currentPrice);
     }
 
     const calculatedPortfolio = portfolioService.calculatePortfolio(positions, prices);
@@ -54,6 +56,65 @@ export const PortfolioPage: React.FC = () => {
     if (positions.length > 0) {
       portfolioService.savePortfolioSnapshot(calculatedPortfolio);
     }
+
+    // 更新价格更新时间
+    if (prices.size > 0) {
+      setLastPriceUpdate(new Date());
+    }
+  };
+
+  /**
+   * 手动刷新价格
+   */
+  const handleRefreshPrices = async () => {
+    setIsRefreshing(true);
+    try {
+      // 触发页面刷新以重新获取价格
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.location.reload();
+    } catch (error) {
+      console.error('刷新失败:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  /**
+   * 计算日收益
+   * 对比当前价格和前一次价格
+   */
+  const calculateDailyReturns = () => {
+    if (!portfolio) return;
+
+    const newDailyReturns = new Map<string, number>();
+
+    portfolio.positions.forEach(position => {
+      const currentPrice = position.currentPrice;
+      const previousPrice = previousPrices.get(position.id);
+
+      if (currentPrice && previousPrice && previousPrice !== currentPrice) {
+        const dailyReturn = ((currentPrice - previousPrice) / previousPrice) * 100;
+        newDailyReturns.set(position.id, dailyReturn);
+      }
+    });
+
+    setDailyReturns(newDailyReturns);
+  };
+
+  /**
+   * 更新前一次价格记录
+   */
+  const updatePreviousPrices = () => {
+    if (!portfolio) return;
+
+    const newPreviousPrices = new Map<string, number>();
+    portfolio.positions.forEach(position => {
+      if (position.currentPrice) {
+        newPreviousPrices.set(position.id, position.currentPrice);
+      }
+    });
+
+    setPreviousPrices(newPreviousPrices);
   };
 
   /**
@@ -61,7 +122,26 @@ export const PortfolioPage: React.FC = () => {
    */
   useEffect(() => {
     loadPortfolio();
-  }, [nasdaqPrices, goldPrices]);
+  }, [nasdaq.currentPrice, gold.currentPrice]);
+
+  /**
+   * 价格变化时计算日收益
+   */
+  useEffect(() => {
+    if (portfolio && previousPrices.size > 0) {
+      calculateDailyReturns();
+    }
+    updatePreviousPrices();
+  }, [nasdaq.currentPrice, gold.currentPrice]);
+
+  /**
+   * 初始化前一次价格
+   */
+  useEffect(() => {
+    if (portfolio && previousPrices.size === 0) {
+      updatePreviousPrices();
+    }
+  }, [portfolio]);
 
   /**
    * 添加持仓
@@ -154,6 +234,69 @@ export const PortfolioPage: React.FC = () => {
         </div>
       </header>
 
+      {/* 价格错误提示 */}
+      {(nasdaq.hasError || gold.hasError) && (
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex items-start">
+              <svg className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                  价格数据获取异常
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 space-y-1">
+                  {nasdaq.hasError && (
+                    <p>• 纳斯达克: {nasdaq.conversionError || nasdaq.error || '数据获取失败'}</p>
+                  )}
+                  {gold.hasError && (
+                    <p>• 黄金: {gold.conversionError || gold.error || '数据获取失败'}</p>
+                  )}
+                  <p className="mt-2">系统将使用上次成功获取的价格数据。您可以刷新页面重试。</p>
+                  {lastPriceUpdate && (
+                    <p className="text-xs mt-1">
+                      上次更新: {lastPriceUpdate.toLocaleString('zh-CN')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleRefreshPrices}
+                disabled={isRefreshing}
+                className="ml-3 px-3 py-1.5 text-xs font-medium text-yellow-800 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/40 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRefreshing ? '刷新中...' : '刷新'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 价格更新时间显示（无错误时） */}
+      {!nasdaq.hasError && !gold.hasError && lastPriceUpdate && portfolio && portfolio.positions.length > 0 && (
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center space-x-2">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>价格更新时间: {lastPriceUpdate.toLocaleString('zh-CN')}</span>
+            </div>
+            <button
+              onClick={handleRefreshPrices}
+              disabled={isRefreshing}
+              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+            >
+              <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>{isRefreshing ? '刷新中' : '手动刷新'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -190,6 +333,7 @@ export const PortfolioPage: React.FC = () => {
                     setIsEditModalOpen(true);
                   }}
                   onDelete={handleDeletePosition}
+                  dailyReturns={dailyReturns}
                 />
               )}
             </div>

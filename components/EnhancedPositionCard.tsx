@@ -14,6 +14,7 @@ interface EnhancedPositionCardProps {
   position: Position;
   onEdit: (position: Position) => void;
   onDelete: (id: string) => void;
+  dailyReturn?: number;
 }
 
 /**
@@ -22,7 +23,8 @@ interface EnhancedPositionCardProps {
 export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
   position,
   onEdit,
-  onDelete
+  onDelete,
+  dailyReturn
 }) => {
   const isProfitable = (position.profitLoss || 0) >= 0;
   const profitColor = isProfitable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -148,6 +150,14 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             {position.profitLossPercent !== undefined ? formatPercent(position.profitLossPercent) : '-'}
           </span>
         </div>
+        {dailyReturn !== undefined && (
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-xs text-gray-600 dark:text-gray-400">日收益</span>
+            <span className={`text-sm font-semibold ${dailyReturn >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {formatPercent(dailyReturn)}
+            </span>
+          </div>
+        )}
         {position.annualizedReturn !== undefined && position.annualizedReturn !== 0 && (
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs text-gray-600 dark:text-gray-400">年化收益率</span>
