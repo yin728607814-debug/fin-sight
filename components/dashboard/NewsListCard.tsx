@@ -16,8 +16,42 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
   const { news: goldNews } = useNews('gold');
   
   const allNews = [...nasdaqNews, ...goldNews]
-    .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())
+    .sort((a, b) => {
+      const timeA = typeof a.datetime === 'number' ? a.datetime * 1000 : new Date(a.datetime).getTime();
+      const timeB = typeof b.datetime === 'number' ? b.datetime * 1000 : new Date(b.datetime).getTime();
+      return timeB - timeA;
+    })
     .slice(0, 5);
+
+  /**
+   * 格式化日期
+   */
+  const formatDate = (datetime: number | string | Date): string => {
+    try {
+      let date: Date;
+      if (typeof datetime === 'number') {
+        // Unix 时间戳（秒），转换为毫秒
+        date = new Date(datetime * 1000);
+      } else {
+        date = new Date(datetime);
+      }
+      
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        return '日期未知';
+      }
+      
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return '日期未知';
+    }
+  };
 
   return (
     <DashboardCard title="最新新闻" onRemove={onRemove}>
@@ -36,7 +70,7 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
                 {item.headline}
               </h4>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {new Date(item.datetime).toLocaleString('zh-CN')}
+                {formatDate(item.datetime)}
               </p>
             </div>
           ))
