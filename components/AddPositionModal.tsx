@@ -74,7 +74,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
       if (!nasdaqInvestment || parseFloat(nasdaqInvestment) <= 0) {
         newErrors.investment = '持仓金额必须大于0';
       }
-      if (!nasdaqProfit || parseFloat(nasdaqProfit) === 0) {
+      if (nasdaqProfit === '' || isNaN(parseFloat(nasdaqProfit))) {
         newErrors.profit = '请输入持仓收益';
       }
     } else {
