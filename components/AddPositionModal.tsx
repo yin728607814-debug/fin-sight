@@ -3,11 +3,13 @@
  * 用于添加新的投资持仓
  */
 
-import React, { useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { XMarkIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { AssetType, AutoInvestPlan } from '../types';
 import { Position } from '../services/portfolioService';
 import { AutoInvestSettings } from './AutoInvestSettings';
+import { fundConfigService, FundConfig } from '../services/fundConfigService';
+import { Link } from 'react-router-dom';
 
 /**
  * 添加持仓弹窗Props
@@ -29,7 +31,9 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   const [assetType, setAssetType] = useState<AssetType>('nasdaq');
   
   // 纳斯达克字段
-  const [fundName, setFundName] = useState('');
+  const [funds, setFunds] = useState<FundConfig[]>([]);
+  const [selectedFundId, setSelectedFundId] = useState('');
+  const [fundSearchQuery, setFundSearchQuery] = useState('');
   const [nasdaqInvestment, setNasdaqInvestment] = useState('');
   const [nasdaqProfit, setNasdaqProfit] = useState('');
   const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
@@ -40,6 +44,23 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // 加载基金列表
+  useEffect(() => {
+    if (isOpen && assetType === 'nasdaq') {
+      loadFunds();
+    }
+  }, [isOpen, assetType]);
+
+  const loadFunds = () => {
+    const allFunds = fundConfigService.getFunds();
+    setFunds(allFunds);
+  };
+
+  // 搜索基金
+  const filteredFunds = fundSearchQuery.trim()
+    ? fundConfigService.searchFunds(fundSearchQuery)
+    : funds;
+
   /**
    * 验证表单
    */
@@ -47,8 +68,8 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (assetType === 'nasdaq') {
-      if (!fundName.trim()) {
-        newErrors.fundName = '请输入基金名称';
+      if (!selectedFundId) {
+        newErrors.fund = '请选择基金';
       }
       if (!nasdaqInvestment || parseFloat(nasdaqInvestment) <= 0) {
         newErrors.investment = '持仓金额必须大于0';
@@ -82,10 +103,13 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
     const now = new Date();
 
     if (assetType === 'nasdaq') {
+      const selectedFund = funds.find(f => f.id === selectedFundId);
+      if (!selectedFund) return;
+
       onAdd({
         assetType: 'nasdaq',
-        assetName: fundName.trim(),
-        fundName: fundName.trim(),
+        assetName: selectedFund.name,
+        fundName: selectedFund.name,
         investmentAmount: parseFloat(nasdaqInvestment),
         profitLoss: parseFloat(nasdaqProfit),
         autoInvest,
@@ -103,7 +127,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
         quantity: grams,
         averageBuyPrice: averagePrice,
         investmentAmount: investment,
-        profitLoss: 0, // 初始收益为0，后续根据当前价格计算
+        profitLoss: 0,
         createdAt: now,
         updatedAt: now
       });
@@ -118,7 +142,8 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
    * 重置表单
    */
   const resetForm = () => {
-    setFundName('');
+    setSelectedFundId('');
+    setFundSearchQuery('');
     setNasdaqInvestment('');
     setNasdaqProfit('');
     setGoldGrams('');
@@ -205,22 +230,55 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
             {/* 纳斯达克表单 */}
             {assetType === 'nasdaq' && (
               <>
-                {/* 基金名称 */}
+                {/* 基金选择 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    基金名称
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      选择基金
+                    </label>
+                    <Link
+                      to="/fund-config"
+                      className="flex items-center text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                      onClick={onClose}
+                    >
+                      <Cog6ToothIcon className="h-4 w-4 mr-1" />
+                      配置基金
+                    </Link>
+                  </div>
+                  
+                  {/* 搜索框 */}
                   <input
                     type="text"
-                    value={fundName}
-                    onChange={(e) => setFundName(e.target.value)}
-                    placeholder="例如：广发纳斯达克100ETF联接(QDII)C人民币"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
-                      errors.fundName ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    value={fundSearchQuery}
+                    onChange={(e) => setFundSearchQuery(e.target.value)}
+                    placeholder="搜索基金名称..."
+                    className="w-full px-4 py-2 mb-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
-                  {errors.fundName && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fundName}</p>
+                  
+                  {/* 下拉选择 */}
+                  <select
+                    value={selectedFundId}
+                    onChange={(e) => setSelectedFundId(e.target.value)}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.fund ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">请选择基金</option>
+                    {filteredFunds.map((fund) => (
+                      <option key={fund.id} value={fund.id}>
+                        {fund.name}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {errors.fund && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fund}</p>
+                  )}
+                  
+                  {funds.length === 0 && (
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      还没有配置基金，点击右上角&ldquo;配置基金&rdquo;添加
+                    </p>
                   )}
                 </div>
 
@@ -269,7 +327,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
 
                 {/* 定投设置 */}
                 <AutoInvestSettings
-                  value={autoInvest}
+                  autoInvest={autoInvest}
                   onChange={setAutoInvest}
                 />
               </>

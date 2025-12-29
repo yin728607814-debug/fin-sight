@@ -14,6 +14,7 @@ const NasdaqAnalysisPage = lazy(() => import('./pages/NasdaqAnalysisPage'));
 const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const FundConfigPage = lazy(() => import('./pages/FundConfigPage'));
 
 const App: React.FC = () => {
   React.useEffect(() => {
@@ -32,6 +33,7 @@ const App: React.FC = () => {
                 <Route path="/nasdaq" element={<NasdaqAnalysisPage />} />
                 <Route path="/ai-chat" element={<AIChatPage />} />
                 <Route path="/portfolio" element={<PortfolioPage />} />
+                <Route path="/fund-config" element={<FundConfigPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
               </Routes>
             </Suspense>
