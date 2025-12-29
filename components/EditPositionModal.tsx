@@ -6,6 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Position } from '../services/portfolioService';
+import { AutoInvestSettings } from './AutoInvestSettings';
+import { AutoInvestPlan } from '../types';
 
 /**
  * 编辑持仓弹窗Props
@@ -26,9 +28,15 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   onClose,
   onSave
 }) => {
-  const [quantity, setQuantity] = useState('');
-  const [buyPrice, setBuyPrice] = useState('');
-  const [buyDate, setBuyDate] = useState('');
+  // 纳斯达克字段
+  const [nasdaqInvestment, setNasdaqInvestment] = useState('');
+  const [nasdaqProfit, setNasdaqProfit] = useState('');
+  const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
+  
+  // 黄金字段
+  const [goldGrams, setGoldGrams] = useState('');
+  const [goldInvestment, setGoldInvestment] = useState('');
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   /**
@@ -36,9 +44,14 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
    */
   useEffect(() => {
     if (position) {
-      setQuantity(position.quantity.toString());
-      setBuyPrice(position.buyPrice.toString());
-      setBuyDate(new Date(position.buyDate).toISOString().split('T')[0]);
+      if (position.assetType === 'nasdaq') {
+        setNasdaqInvestment(position.investmentAmount.toString());
+        setNasdaqProfit(position.profitLoss.toString());
+        setAutoInvest(position.autoInvest);
+      } else if (position.assetType === 'gold') {
+        setGoldGrams(position.quantity?.toString() || '');
+        setGoldInvestment(position.investmentAmount.toString());
+      }
     }
   }, [position]);
 
@@ -48,16 +61,22 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!quantity || parseFloat(quantity) <= 0) {
-      newErrors.quantity = '数量必须大于0';
-    }
+    if (!position) return false;
 
-    if (!buyPrice || parseFloat(buyPrice) <= 0) {
-      newErrors.buyPrice = '买入价格必须大于0';
-    }
-
-    if (!buyDate) {
-      newErrors.buyDate = '请选择买入日期';
+    if (position.assetType === 'nasdaq') {
+      if (!nasdaqInvestment || parseFloat(nasdaqInvestment) <= 0) {
+        newErrors.investment = '持仓金额必须大于0';
+      }
+      if (nasdaqProfit === '' || isNaN(parseFloat(nasdaqProfit))) {
+        newErrors.profit = '请输入持仓收益';
+      }
+    } else if (position.assetType === 'gold') {
+      if (!goldGrams || parseFloat(goldGrams) <= 0) {
+        newErrors.grams = '克数必须大于0';
+      }
+      if (!goldInvestment || parseFloat(goldInvestment) <= 0) {
+        newErrors.investment = '持仓金额必须大于0';
+      }
     }
 
     setErrors(newErrors);
@@ -74,11 +93,25 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       return;
     }
 
-    onSave(position.id, {
-      quantity: parseFloat(quantity),
-      buyPrice: parseFloat(buyPrice),
-      buyDate: new Date(buyDate)
-    });
+    if (position.assetType === 'nasdaq') {
+      onSave(position.id, {
+        investmentAmount: parseFloat(nasdaqInvestment),
+        profitLoss: parseFloat(nasdaqProfit),
+        autoInvest,
+        updatedAt: new Date()
+      });
+    } else if (position.assetType === 'gold') {
+      const grams = parseFloat(goldGrams);
+      const investment = parseFloat(goldInvestment);
+      const averagePrice = investment / grams;
+      
+      onSave(position.id, {
+        quantity: grams,
+        averageBuyPrice: averagePrice,
+        investmentAmount: investment,
+        updatedAt: new Date()
+      });
+    }
 
     setErrors({});
     onClose();
@@ -124,76 +157,110 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
           </div>
 
           {/* 表单 */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 数量 */}
-            <div>
-              <label htmlFor="edit-quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                数量
-              </label>
-              <input
-                type="number"
-                id="edit-quantity"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                step="0.01"
-                min="0"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.quantity
-                    ? 'border-red-500 dark:border-red-400'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-                placeholder="请输入数量"
-              />
-              {errors.quantity && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.quantity}</p>
-              )}
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* 纳斯达克表单 */}
+            {position.assetType === 'nasdaq' && (
+              <>
+                {/* 持仓金额 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓金额（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={nasdaqInvestment}
+                    onChange={(e) => setNasdaqInvestment(e.target.value)}
+                    placeholder="例如：10000"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.investment ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.investment && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investment}</p>
+                  )}
+                </div>
 
-            {/* 买入价格 */}
-            <div>
-              <label htmlFor="edit-buyPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                买入价格
-              </label>
-              <input
-                type="number"
-                id="edit-buyPrice"
-                value={buyPrice}
-                onChange={(e) => setBuyPrice(e.target.value)}
-                step="0.01"
-                min="0"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.buyPrice
-                    ? 'border-red-500 dark:border-red-400'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-                placeholder="请输入买入价格"
-              />
-              {errors.buyPrice && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.buyPrice}</p>
-              )}
-            </div>
+                {/* 持仓收益 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓收益（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={nasdaqProfit}
+                    onChange={(e) => setNasdaqProfit(e.target.value)}
+                    placeholder="例如：500（可以是负数）"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.profit ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.profit && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.profit}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    盈利输入正数，亏损输入负数
+                  </p>
+                </div>
 
-            {/* 买入日期 */}
-            <div>
-              <label htmlFor="edit-buyDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                买入日期
-              </label>
-              <input
-                type="date"
-                id="edit-buyDate"
-                value={buyDate}
-                onChange={(e) => setBuyDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.buyDate
-                    ? 'border-red-500 dark:border-red-400'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-              />
-              {errors.buyDate && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.buyDate}</p>
-              )}
-            </div>
+                {/* 定投设置 */}
+                <AutoInvestSettings
+                  autoInvest={autoInvest}
+                  onChange={setAutoInvest}
+                />
+              </>
+            )}
+
+            {/* 黄金表单 */}
+            {position.assetType === 'gold' && (
+              <>
+                {/* 克数 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓克数
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={goldGrams}
+                    onChange={(e) => setGoldGrams(e.target.value)}
+                    placeholder="例如：10"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.grams ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.grams && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.grams}</p>
+                  )}
+                </div>
+
+                {/* 持仓金额 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓金额（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={goldInvestment}
+                    onChange={(e) => setGoldInvestment(e.target.value)}
+                    placeholder="例如：5200"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.investment ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.investment && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.investment}</p>
+                  )}
+                  {goldGrams && goldInvestment && parseFloat(goldGrams) > 0 && parseFloat(goldInvestment) > 0 && (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      均价：¥{(parseFloat(goldInvestment) / parseFloat(goldGrams)).toFixed(2)}/克
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* 按钮 */}
             <div className="flex space-x-3 pt-4">

@@ -98,7 +98,8 @@ export class PortfolioService {
       const parsed = JSON.parse(stored);
       return parsed.map((pos: any) => ({
         ...pos,
-        buyDate: new Date(pos.buyDate)
+        createdAt: pos.createdAt ? new Date(pos.createdAt) : new Date(),
+        updatedAt: pos.updatedAt ? new Date(pos.updatedAt) : new Date()
       }));
     } catch (error) {
       console.error('获取持仓失败:', error);
@@ -113,7 +114,8 @@ export class PortfolioService {
     try {
       const toSave = positions.map(pos => ({
         ...pos,
-        buyDate: pos.buyDate.toISOString()
+        createdAt: pos.createdAt.toISOString(),
+        updatedAt: pos.updatedAt.toISOString()
       }));
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(toSave));
     } catch (error) {
@@ -134,9 +136,7 @@ export class PortfolioService {
     
     const newPosition: Position = {
       ...position,
-      id: this.generatePositionId(),
-      investmentAmount: position.quantity * position.buyPrice,
-      holdingDays: this.calculateHoldingDays(position.buyDate)
+      id: this.generatePositionId()
     };
 
     positions.push(newPosition);
@@ -363,7 +363,8 @@ export class PortfolioService {
       // 验证并转换数据
       const positions: Position[] = data.positions.map((pos: any) => ({
         ...pos,
-        buyDate: new Date(pos.buyDate)
+        createdAt: pos.createdAt ? new Date(pos.createdAt) : new Date(),
+        updatedAt: pos.updatedAt ? new Date(pos.updatedAt) : new Date()
       }));
 
       this.savePositions(positions);
@@ -500,8 +501,10 @@ export class PortfolioService {
     let totalQuantity = 0;
     
     goldPositions.forEach(position => {
-      totalCost += position.quantity * position.buyPrice;
-      totalQuantity += position.quantity;
+      if (position.quantity && position.averageBuyPrice) {
+        totalCost += position.quantity * position.averageBuyPrice;
+        totalQuantity += position.quantity;
+      }
     });
     
     return totalQuantity > 0 ? totalCost / totalQuantity : 0;
