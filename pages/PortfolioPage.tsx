@@ -12,6 +12,7 @@ import { PositionList } from '../components/PositionList';
 import { PortfolioChart } from '../components/PortfolioChart';
 import { AddPositionModal } from '../components/AddPositionModal';
 import { EditPositionModal } from '../components/EditPositionModal';
+import { GoldSummary } from '../components/GoldSummary';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
 import { goldPriceConverter } from '../services/goldPriceConverter';
 import { usePriceData } from '../utils/context';
@@ -196,6 +197,12 @@ export const PortfolioPage: React.FC = () => {
 
           {/* 右侧：统计信息 */}
           <div className="space-y-6">
+            {/* 黄金持仓总览 */}
+            {portfolio && (() => {
+              const goldStats = portfolioService.getGoldStats(portfolio);
+              return goldStats.count > 0 ? <GoldSummary goldStats={goldStats} /> : null;
+            })()}
+
             {/* 统计卡片 */}
             {portfolio && portfolio.positions.length > 0 && (
               <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 p-6">
