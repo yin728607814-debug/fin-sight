@@ -13,7 +13,7 @@ interface SentimentCardProps {
 
 export const SentimentCard: React.FC<SentimentCardProps> = ({ onRemove }) => {
   const [selectedAsset, setSelectedAsset] = useState<'nasdaq' | 'gold'>('nasdaq');
-  const { analyses } = useAnalysis(selectedAsset);
+  const { analyses, loading } = useAnalysis(selectedAsset);
   const [sentiment, setSentiment] = useState<SentimentData | null>(null);
 
   useEffect(() => {
@@ -65,7 +65,14 @@ export const SentimentCard: React.FC<SentimentCardProps> = ({ onRemove }) => {
         </div>
 
         {/* 情绪分数 */}
-        {sentiment ? (
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              加载中...
+            </p>
+          </div>
+        ) : sentiment ? (
           <div className="text-center py-4">
             <div className={`text-5xl font-bold ${getScoreColor(sentiment.score)}`}>
               {sentiment.score}
@@ -78,9 +85,14 @@ export const SentimentCard: React.FC<SentimentCardProps> = ({ onRemove }) => {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-            暂无数据
-          </p>
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              暂无{selectedAsset === 'nasdaq' ? '纳斯达克' : '黄金'}情绪数据
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-600">
+              请先访问{selectedAsset === 'nasdaq' ? '纳斯达克' : '黄金'}页面加载新闻
+            </p>
+          </div>
         )}
       </div>
     </DashboardCard>

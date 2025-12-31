@@ -20,12 +20,18 @@ import { dashboardService, DashboardLayout, LayoutItem } from '../services/dashb
  * 仪表盘页面
  */
 export const DashboardPage: React.FC = () => {
-  const [currentLayout, setCurrentLayout] = useState<DashboardLayout>(
+  const [currentLayout, setCurrentLayout] = useState<DashboardLayout>(() =>
     dashboardService.getCurrentLayout()
   );
   const [isEditMode, setIsEditMode] = useState(false);
   const [showCardSelector, setShowCardSelector] = useState(false);
   const [showLayoutManager, setShowLayoutManager] = useState(false);
+
+  // 组件挂载时重新加载布局
+  React.useEffect(() => {
+    const layout = dashboardService.getCurrentLayout();
+    setCurrentLayout(layout);
+  }, []);
 
   /**
    * 布局变化处理
