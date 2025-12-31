@@ -225,34 +225,71 @@ interface PersistableState {
 const DATA_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * 验证持久化数据的有效性
+ */
+function validatePersistedData(stored: any): boolean {
+  if (!stored || typeof stored !== 'object') return false;
+  
+  // 检查版本
+  if (stored.version !== STORAGE_VERSION) return false;
+  
+  // 检查必需字段
+  if (!stored.currentAsset) return false;
+  
+  // 检查数据结构
+  if (!stored.news || typeof stored.news !== 'object') return false;
+  if (!stored.analysis || typeof stored.analysis !== 'object') return false;
+  if (!stored.priceData || typeof stored.priceData !== 'object') return false;
+  
+  // 检查数组类型
+  if (!Array.isArray(stored.news.gold) || !Array.isArray(stored.news.nasdaq)) return false;
+  if (!Array.isArray(stored.analysis.gold) || !Array.isArray(stored.analysis.nasdaq)) return false;
+  if (!Array.isArray(stored.priceData.gold) || !Array.isArray(stored.priceData.nasdaq)) return false;
+  
+  return true;
+}
+
+/**
  * 从本地存储加载状态
  */
 function loadPersistedState(): Partial<AppState> {
   try {
     const stored = getLocalStorage<PersistableState | null>(STORAGE_KEY, null);
     
-    if (stored && stored.version === STORAGE_VERSION) {
-      // 检查数据是否过期
-      const now = Date.now();
-      const isExpired = stored.timestamp && (now - stored.timestamp > DATA_EXPIRATION_MS);
-      
-      if (isExpired) {
-        console.log('持久化数据已过期，使用初始状态');
-        return {
-          currentAsset: stored.currentAsset
-        };
-      }
-      
+    // 验证数据有效性
+    if (!validatePersistedData(stored)) {
+      console.warn('持久化数据无效，使用初始状态');
+      // 清除无效数据
+      localStorage.removeItem(STORAGE_KEY);
+      return {};
+    }
+    
+    // 检查数据是否过期
+    const now = Date.now();
+    const isExpired = stored!.timestamp && (now - stored!.timestamp > DATA_EXPIRATION_MS);
+    
+    if (isExpired) {
+      console.log('持久化数据已过期，使用初始状态');
       return {
-        currentAsset: stored.currentAsset,
-        news: stored.news,
-        analysis: stored.analysis,
-        overallAnalysis: stored.overallAnalysis,
-        priceData: stored.priceData
+        currentAsset: stored!.currentAsset
       };
     }
+    
+    return {
+      currentAsset: stored!.currentAsset,
+      news: stored!.news,
+      analysis: stored!.analysis,
+      overallAnalysis: stored!.overallAnalysis,
+      priceData: stored!.priceData
+    };
   } catch (error) {
-    console.warn('加载持久化状态失败:', error);
+    console.error('加载持久化状态失败:', error);
+    // 清除损坏的数据
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error('清除损坏数据失败:', e);
+    }
   }
   
   return {};

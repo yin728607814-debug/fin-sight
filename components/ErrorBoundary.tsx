@@ -39,9 +39,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logError('React Error Boundary caught an error', error, {
-      componentStack: errorInfo.componentStack,
-    });
+    const errorMessage = `React Error Boundary caught an error: ${error.message}\nComponent Stack: ${errorInfo.componentStack}`;
+    logError(errorMessage, error);
 
     this.setState({
       error,
@@ -55,6 +54,33 @@ export class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
     });
+  };
+
+  handleClearDataAndReset = () => {
+    try {
+      // 保留重要数据
+      const keysToKeep = [
+        'theme',
+        'dashboard_layouts',
+        'dashboard_current_layout',
+        'portfolio_positions',
+        'fund_config',
+      ];
+      
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (!keysToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // 刷新页面
+      window.location.reload();
+    } catch (error) {
+      console.error('清除数据失败:', error);
+      // 如果清除失败，直接刷新
+      window.location.reload();
+    }
   };
 
   render() {
@@ -108,16 +134,22 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3">
               <button
                 onClick={this.handleReset}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 重试
               </button>
               <button
+                onClick={this.handleClearDataAndReset}
+                className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+              >
+                清除缓存并重新加载
+              </button>
+              <button
                 onClick={() => (window.location.href = '/')}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
               >
                 返回首页
               </button>

@@ -4,7 +4,7 @@
  */
 
 const MIGRATION_VERSION_KEY = 'data-migration-version';
-const CURRENT_VERSION = '2.0';
+const CURRENT_VERSION = '2.1'; // 升级到 2.1，修复 timestamp 问题
 
 /**
  * 执行数据迁移
@@ -23,6 +23,10 @@ export function migrateData(): void {
     // 执行迁移步骤
     if (!currentVersion || currentVersion < '2.0') {
       migrateToV2();
+    }
+    
+    if (!currentVersion || currentVersion < '2.1') {
+      migrateToV21();
     }
     
     // 更新版本号
@@ -87,6 +91,95 @@ function migrateToV2(): void {
 }
 
 /**
+ * 迁移到 v2.1
+ * 修复所有可能导致崩溃的数据问题
+ */
+function migrateToV21(): void {
+  console.log('📦 迁移到 v2.1: 修复数据兼容性问题');
+  
+  // 1. 验证并修复应用状态
+  const appStateKey = 'investment-news-analyzer-state';
+  try {
+    const appState = localStorage.getItem(appStateKey);
+    if (appState) {
+      const parsed = JSON.parse(appState);
+      
+      // 验证数据结构
+      if (!isValidAppState(parsed)) {
+        console.log('  - 应用状态数据无效，清除');
+        localStorage.removeItem(appStateKey);
+      } else {
+        // 更新版本号
+        parsed.version = '2.1';
+        localStorage.setItem(appStateKey, JSON.stringify(parsed));
+      }
+    }
+  } catch (error) {
+    console.error('  - 验证应用状态失败，清除:', error);
+    localStorage.removeItem(appStateKey);
+  }
+  
+  // 2. 清除可能损坏的情绪历史数据
+  const sentimentHistoryKey = 'sentiment-history';
+  try {
+    const sentimentHistory = localStorage.getItem(sentimentHistoryKey);
+    if (sentimentHistory) {
+      const parsed = JSON.parse(sentimentHistory);
+      
+      // 验证情绪历史数据
+      if (!isValidSentimentHistory(parsed)) {
+        console.log('  - 情绪历史数据无效，清除');
+        localStorage.removeItem(sentimentHistoryKey);
+      }
+    }
+  } catch (error) {
+    console.error('  - 验证情绪历史失败，清除:', error);
+    localStorage.removeItem(sentimentHistoryKey);
+  }
+}
+
+/**
+ * 验证应用状态数据结构
+ */
+function isValidAppState(state: any): boolean {
+  if (!state || typeof state !== 'object') return false;
+  
+  // 检查必需的字段
+  const requiredFields = ['currentAsset', 'news', 'analysis', 'priceData'];
+  for (const field of requiredFields) {
+    if (!(field in state)) return false;
+  }
+  
+  // 检查 news 和 analysis 结构
+  if (!state.news.gold || !state.news.nasdaq) return false;
+  if (!state.analysis.gold || !state.analysis.nasdaq) return false;
+  
+  return true;
+}
+
+/**
+ * 验证情绪历史数据结构
+ */
+function isValidSentimentHistory(history: any): boolean {
+  if (!history || typeof history !== 'object') return false;
+  
+  // 检查每个资产类型的数据
+  for (const assetType in history) {
+    const data = history[assetType];
+    if (!Array.isArray(data)) return false;
+    
+    // 检查每个快照的结构
+    for (const snapshot of data) {
+      if (!snapshot.date || !snapshot.score || !snapshot.level || !snapshot.timestamp) {
+        return false;
+      }
+    }
+  }
+  
+  return true;
+}
+
+/**
  * 清除所有数据
  */
 function clearAllData(): void {
@@ -95,6 +188,7 @@ function clearAllData(): void {
     'dashboard_layouts', // 保留仪表盘布局
     'dashboard_current_layout', // 保留当前布局
     'portfolio_positions', // 保留投资组合
+    'fund_config', // 保留基金配置
   ];
   
   const allKeys = Object.keys(localStorage);

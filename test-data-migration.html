@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据迁移测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 8px 8px 8px 0;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
+        }
+        button.success {
+            background: #10b981;
+        }
+        button.success:hover {
+            background: #059669;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        pre {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 数据迁移测试工具</h1>
+        <p>测试新的数据迁移和错误恢复机制</p>
+    </div>
+
+    <div class="container">
+        <h2>1. 当前状态检查</h2>
+        <button onclick="checkCurrentState()">检查当前状态</button>
+        <div id="currentState"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. 模拟损坏数据</h2>
+        <div class="test-section">
+            <p><strong>测试场景：</strong>模拟各种损坏的数据情况</p>
+            <button onclick="simulateInvalidJSON()">无效 JSON</button>
+            <button onclick="simulateInvalidStructure()">无效数据结构</button>
+            <button onclick="simulateOldVersion()">旧版本数据</button>
+            <button onclick="simulateMissingFields()">缺少必需字段</button>
+        </div>
+        <div id="simulateResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. 测试数据验证</h2>
+        <button onclick="testDataValidation()">运行验证测试</button>
+        <div id="validationResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>4. 测试数据保护</h2>
+        <div class="test-section">
+            <p><strong>验证：</strong>清除数据时是否保留重要配置</p>
+            <button onclick="setupProtectedData()">设置测试数据</button>
+            <button onclick="testDataProtection()">测试数据保护</button>
+        </div>
+        <div id="protectionResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>5. 清理操作</h2>
+        <button class="danger" onclick="clearAllData()">清除所有数据</button>
+        <button class="success" onclick="clearAndReload()">清除并重新加载</button>
+        <div id="cleanupResult"></div>
+    </div>
+
+    <script>
+        // 检查当前状态
+        function checkCurrentState() {
+            const output = document.getElementById('currentState');
+            const keys = Object.keys(localStorage);
+            
+            let html = '<div class="status info">';
+            html += `<strong>localStorage 项目数：</strong> ${keys.length}<br><br>`;
+            
+            // 检查关键数据
+            const importantKeys = [
+                'data-migration-version',
+                'investment-news-analyzer-state',
+                'sentiment-history',
+                'theme',
+                'dashboard_layouts',
+                'portfolio_positions',
+                'fund_config'
+            ];
+            
+            html += '<strong>关键数据状态：</strong><br>';
+            importantKeys.forEach(key => {
+                const exists = localStorage.getItem(key) !== null;
+                const icon = exists ? '✅' : '❌';
+                html += `${icon} ${key}<br>`;
+                
+                if (exists && key === 'data-migration-version') {
+                    html += `   版本: ${localStorage.getItem(key)}<br>`;
+                }
+            });
+            
+            html += '</div>';
+            
+            // 显示所有键
+            html += '<pre>' + JSON.stringify(keys, null, 2) + '</pre>';
+            
+            output.innerHTML = html;
+        }
+
+        // 模拟无效 JSON
+        function simulateInvalidJSON() {
+            localStorage.setItem('investment-news-analyzer-state', 'invalid-json-{{{');
+            showResult('simulateResult', 'success', '已设置无效 JSON 数据。刷新页面测试恢复机制。');
+        }
+
+        // 模拟无效数据结构
+        function simulateInvalidStructure() {
+            const invalidData = {
+                version: '2.1',
+                currentAsset: 'gold',
+                // 缺少必需的 news, analysis, priceData
+            };
+            localStorage.setItem('investment-news-analyzer-state', JSON.stringify(invalidData));
+            showResult('simulateResult', 'success', '已设置无效数据结构。刷新页面测试恢复机制。');
+        }
+
+        // 模拟旧版本数据
+        function simulateOldVersion() {
+            const oldData = {
+                version: '1.0',
+                currentAsset: 'gold',
+                news: { gold: [], nasdaq: [] },
+                analysis: { gold: [], nasdaq: [] },
+                priceData: { gold: [], nasdaq: [] },
+                timestamp: Date.now()
+            };
+            localStorage.setItem('investment-news-analyzer-state', JSON.stringify(oldData));
+            localStorage.setItem('data-migration-version', '1.0');
+            showResult('simulateResult', 'success', '已设置旧版本数据。刷新页面测试迁移机制。');
+        }
+
+        // 模拟缺少必需字段
+        function simulateMissingFields() {
+            const incompleteData = {
+                version: '2.1',
+                currentAsset: 'gold',
+                news: { gold: [] }, // 缺少 nasdaq
+                analysis: { gold: [], nasdaq: [] },
+                priceData: { gold: [], nasdaq: [] },
+                timestamp: Date.now()
+            };
+            localStorage.setItem('investment-news-analyzer-state', JSON.stringify(incompleteData));
+            showResult('simulateResult', 'success', '已设置不完整数据。刷新页面测试验证机制。');
+        }
+
+        // 测试数据验证
+        function testDataValidation() {
+            const output = document.getElementById('validationResult');
+            let html = '<div class="status info"><strong>验证测试结果：</strong><br><br>';
+            
+            // 测试用例
+            const testCases = [
+                { name: '有效数据', data: createValidData(), expected: true },
+                { name: '空对象', data: {}, expected: false },
+                { name: '缺少 currentAsset', data: { ...createValidData(), currentAsset: undefined }, expected: false },
+                { name: '缺少 news', data: { ...createValidData(), news: undefined }, expected: false },
+                { name: '错误的版本', data: { ...createValidData(), version: '1.0' }, expected: false },
+            ];
+            
+            testCases.forEach(test => {
+                const result = validateData(test.data);
+                const icon = result === test.expected ? '✅' : '❌';
+                html += `${icon} ${test.name}: ${result ? '有效' : '无效'}<br>`;
+            });
+            
+            html += '</div>';
+            output.innerHTML = html;
+        }
+
+        // 创建有效数据
+        function createValidData() {
+            return {
+                version: '2.1',
+                currentAsset: 'gold',
+                news: { gold: [], nasdaq: [] },
+                analysis: { gold: [], nasdaq: [] },
+                priceData: { gold: [], nasdaq: [] },
+                overallAnalysis: { gold: null, nasdaq: null },
+                timestamp: Date.now()
+            };
+        }
+
+        // 简化的验证函数
+        function validateData(data) {
+            if (!data || typeof data !== 'object') return false;
+            if (data.version !== '2.1') return false;
+            if (!data.currentAsset) return false;
+            if (!data.news || !data.news.gold || !data.news.nasdaq) return false;
+            if (!data.analysis || !data.analysis.gold || !data.analysis.nasdaq) return false;
+            if (!data.priceData || !data.priceData.gold || !data.priceData.nasdaq) return false;
+            return true;
+        }
+
+        // 设置受保护的测试数据
+        function setupProtectedData() {
+            localStorage.setItem('theme', 'dark');
+            localStorage.setItem('dashboard_layouts', JSON.stringify({ test: 'layout' }));
+            localStorage.setItem('dashboard_current_layout', 'default');
+            localStorage.setItem('portfolio_positions', JSON.stringify([{ id: 1, name: 'Test' }]));
+            localStorage.setItem('fund_config', JSON.stringify({ test: 'config' }));
+            localStorage.setItem('should_be_deleted', 'test');
+            
+            showResult('protectionResult', 'success', '已设置测试数据（包括应该保留和应该删除的）');
+        }
+
+        // 测试数据保护
+        function testDataProtection() {
+            const output = document.getElementById('protectionResult');
+            
+            // 模拟清除操作
+            const keysToKeep = [
+                'theme',
+                'dashboard_layouts',
+                'dashboard_current_layout',
+                'portfolio_positions',
+                'fund_config',
+            ];
+            
+            const beforeKeys = Object.keys(localStorage);
+            
+            // 执行清除
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(key => {
+                if (!keysToKeep.includes(key)) {
+                    localStorage.removeItem(key);
+                }
+            });
+            
+            const afterKeys = Object.keys(localStorage);
+            
+            let html = '<div class="status success"><strong>数据保护测试结果：</strong><br><br>';
+            html += `清除前: ${beforeKeys.length} 项<br>`;
+            html += `清除后: ${afterKeys.length} 项<br><br>`;
+            html += '<strong>保留的数据：</strong><br>';
+            
+            keysToKeep.forEach(key => {
+                const exists = localStorage.getItem(key) !== null;
+                const icon = exists ? '✅' : '❌';
+                html += `${icon} ${key}<br>`;
+            });
+            
+            html += '<br><strong>删除的数据：</strong><br>';
+            const deleted = beforeKeys.filter(k => !afterKeys.includes(k));
+            deleted.forEach(key => {
+                html += `✅ ${key}<br>`;
+            });
+            
+            html += '</div>';
+            output.innerHTML = html;
+        }
+
+        // 清除所有数据
+        function clearAllData() {
+            if (confirm('确定要清除所有 localStorage 数据吗？')) {
+                localStorage.clear();
+                showResult('cleanupResult', 'success', '已清除所有数据');
+                setTimeout(checkCurrentState, 100);
+            }
+        }
+
+        // 清除并重新加载
+        function clearAndReload() {
+            if (confirm('确定要清除数据并重新加载页面吗？')) {
+                const keysToKeep = [
+                    'theme',
+                    'dashboard_layouts',
+                    'dashboard_current_layout',
+                    'portfolio_positions',
+                    'fund_config',
+                ];
+                
+                const allKeys = Object.keys(localStorage);
+                allKeys.forEach(key => {
+                    if (!keysToKeep.includes(key)) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                location.reload();
+            }
+        }
+
+        // 显示结果
+        function showResult(elementId, type, message) {
+            const output = document.getElementById(elementId);
+            output.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 页面加载时检查状态
+        window.addEventListener('load', checkCurrentState);
+    </script>
+</body>
+</html>
