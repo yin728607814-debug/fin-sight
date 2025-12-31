@@ -46,8 +46,8 @@ export const MarketOverviewCard: React.FC<MarketOverviewCardProps> = ({ onRemove
               </div>
               <div className={`text-sm font-medium ${
                 nasdaqChange.value >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                  ? 'text-red-600 dark:text-red-400'    // 上涨 = 红色
+                  : 'text-green-600 dark:text-green-400' // 下跌 = 绿色
               }`}>
                 {nasdaqChange.value >= 0 ? '+' : ''}{nasdaqChange.value.toFixed(2)} 
                 ({nasdaqChange.percentage >= 0 ? '+' : ''}{nasdaqChange.percentage.toFixed(2)}%)
@@ -68,8 +68,8 @@ export const MarketOverviewCard: React.FC<MarketOverviewCardProps> = ({ onRemove
               </div>
               <div className={`text-sm font-medium ${
                 goldChange.value >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                  ? 'text-red-600 dark:text-red-400'    // 上涨 = 红色
+                  : 'text-green-600 dark:text-green-400' // 下跌 = 绿色
               }`}>
                 {goldChange.value >= 0 ? '+' : ''}${goldChange.value.toFixed(2)} 
                 ({goldChange.percentage >= 0 ? '+' : ''}{goldChange.percentage.toFixed(2)}%)
