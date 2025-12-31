@@ -194,15 +194,35 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 // ============================================================================
 
 const STORAGE_KEY = 'investment-news-analyzer-state';
-const STORAGE_VERSION = '1.0';
+const STORAGE_VERSION = '2.0'; // 升级版本号
 
 /**
  * 可持久化的状态字段
  */
 interface PersistableState {
   currentAsset: AssetType;
+  news: {
+    gold: NewsItem[];
+    nasdaq: NewsItem[];
+  };
+  analysis: {
+    gold: NewsAnalysis[];
+    nasdaq: NewsAnalysis[];
+  };
+  overallAnalysis: {
+    gold: import('../types').OverallMarketAnalysis | null;
+    nasdaq: import('../types').OverallMarketAnalysis | null;
+  };
+  priceData: {
+    gold: PriceData[];
+    nasdaq: PriceData[];
+  };
+  timestamp: number; // 添加时间戳，用于判断数据是否过期
   version: string;
 }
+
+// 数据过期时间：24小时
+const DATA_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 
 /**
  * 从本地存储加载状态
@@ -212,8 +232,23 @@ function loadPersistedState(): Partial<AppState> {
     const stored = getLocalStorage<PersistableState | null>(STORAGE_KEY, null);
     
     if (stored && stored.version === STORAGE_VERSION) {
+      // 检查数据是否过期
+      const now = Date.now();
+      const isExpired = stored.timestamp && (now - stored.timestamp > DATA_EXPIRATION_MS);
+      
+      if (isExpired) {
+        console.log('持久化数据已过期，使用初始状态');
+        return {
+          currentAsset: stored.currentAsset
+        };
+      }
+      
       return {
-        currentAsset: stored.currentAsset
+        currentAsset: stored.currentAsset,
+        news: stored.news,
+        analysis: stored.analysis,
+        overallAnalysis: stored.overallAnalysis,
+        priceData: stored.priceData
       };
     }
   } catch (error) {
@@ -230,12 +265,29 @@ function savePersistedState(state: AppState): void {
   try {
     const persistableState: PersistableState = {
       currentAsset: state.currentAsset,
+      news: state.news,
+      analysis: state.analysis,
+      overallAnalysis: state.overallAnalysis,
+      priceData: state.priceData,
+      timestamp: Date.now(),
       version: STORAGE_VERSION
     };
     
     setLocalStorage(STORAGE_KEY, persistableState);
   } catch (error) {
     console.warn('保存持久化状态失败:', error);
+    
+    // 如果存储失败（可能是数据太大），尝试只保存关键数据
+    try {
+      const minimalState: Partial<PersistableState> = {
+        currentAsset: state.currentAsset,
+        timestamp: Date.now(),
+        version: STORAGE_VERSION
+      };
+      setLocalStorage(STORAGE_KEY, minimalState);
+    } catch (fallbackError) {
+      console.error('保存最小化状态也失败:', fallbackError);
+    }
   }
 }
 
@@ -266,12 +318,19 @@ export function AppProvider({
 
   const [state, dispatch] = useReducer(appReducer, mergedInitialState);
 
-  // 持久化状态变化
+  // 持久化状态变化（使用防抖避免频繁保存）
   useEffect(() => {
-    if (enablePersistence) {
+    if (!enablePersistence) return;
+    
+    const timeoutId = setTimeout(() => {
       savePersistedState(state);
-    }
-  }, [state.currentAsset, enablePersistence]);
+    }, 500); // 500ms 防抖
+    
+    return () => clearTimeout(timeoutId);
+  }, [
+    state,
+    enablePersistence
+  ]);
 
   const contextValue: AppContextType = {
     state,
@@ -353,7 +412,7 @@ export function useAnalysis(assetType?: AssetType) {
   }, [dispatch, targetAsset]);
 
   return {
-    analysis: state.analysis[targetAsset],
+    analyses: state.analysis[targetAsset], // 注意：这里改为 analyses（复数）
     setAnalysis,
     loading: state.loading.analysis,
     error: state.errors.analysis
