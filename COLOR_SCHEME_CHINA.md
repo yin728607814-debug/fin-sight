@@ -120,6 +120,27 @@ stats.isPositive
 4. ✅ `pages/NasdaqAnalysisPage.tsx` - 纳斯达克分析页面
 5. ✅ `pages/GoldAnalysisPage.tsx` - 黄金分析页面
 6. ✅ `components/TrendChart.tsx` - 价格趋势图
+7. ✅ `components/dashboard/SentimentCard.tsx` - 情绪指数卡片
+
+### 4. 情绪指数相关
+
+#### ✅ SentimentCard.tsx（情绪指数卡片）
+```typescript
+// 修改前：乐观绿色，悲观红色
+if (score >= 70) return 'text-green-600 dark:text-green-400';  // 乐观
+if (score >= 40) return 'text-yellow-600 dark:text-yellow-400'; // 中性
+return 'text-red-600 dark:text-red-400';                        // 悲观
+
+// 修改后：乐观红色，悲观绿色
+if (score >= 70) return 'text-red-600 dark:text-red-400';      // 乐观 = 红色（上涨）
+if (score >= 40) return 'text-yellow-600 dark:text-yellow-400'; // 中性 = 黄色
+return 'text-green-600 dark:text-green-400';                    // 悲观 = 绿色（下跌）
+```
+
+**说明**：
+- 情绪指数 >= 70：乐观 → 红色（市场看涨）
+- 情绪指数 40-70：中性 → 黄色
+- 情绪指数 < 40：悲观 → 绿色（市场看跌）
 
 ## 未修改的部分
 

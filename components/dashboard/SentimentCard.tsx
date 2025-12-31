@@ -26,9 +26,9 @@ export const SentimentCard: React.FC<SentimentCardProps> = ({ onRemove }) => {
   }, [analysis]);
 
   const getScoreColor = (score: number) => {
-    if (score >= 70) return 'text-green-600 dark:text-green-400';
-    if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (score >= 70) return 'text-red-600 dark:text-red-400';      // 乐观 = 红色（上涨）
+    if (score >= 40) return 'text-yellow-600 dark:text-yellow-400'; // 中性 = 黄色
+    return 'text-green-600 dark:text-green-400';                    // 悲观 = 绿色（下跌）
   };
 
   const getScoreLabel = (score: number) => {
