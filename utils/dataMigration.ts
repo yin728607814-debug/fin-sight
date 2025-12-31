@@ -4,7 +4,8 @@
  */
 
 const MIGRATION_VERSION_KEY = 'data-migration-version';
-const CURRENT_VERSION = '2.3'; // 升级到 2.3，强制清除所有情绪历史数据
+const CURRENT_VERSION = '2.4'; // 升级到 2.4，添加运行时数据验证
+const SENTIMENT_STORAGE_KEY = 'sentiment-history';
 
 /**
  * 执行数据迁移
@@ -13,8 +14,10 @@ export function migrateData(): void {
   try {
     const currentVersion = localStorage.getItem(MIGRATION_VERSION_KEY);
     
-    // 如果已经是最新版本，跳过
+    // 即使是最新版本，也执行运行时验证
     if (currentVersion === CURRENT_VERSION) {
+      // 运行时验证：检查情绪历史数据是否有效
+      validateAndCleanSentimentHistory();
       return;
     }
     
@@ -37,6 +40,10 @@ export function migrateData(): void {
       migrateToV23();
     }
     
+    if (!currentVersion || currentVersion < '2.4') {
+      migrateToV24();
+    }
+    
     // 更新版本号
     localStorage.setItem(MIGRATION_VERSION_KEY, CURRENT_VERSION);
     console.log('✅ 数据迁移完成');
@@ -46,6 +53,67 @@ export function migrateData(): void {
     // 迁移失败时，清除所有数据以避免错误
     console.warn('⚠️ 清除所有数据以避免兼容性问题');
     clearAllData();
+  }
+}
+
+/**
+ * 运行时验证和清理情绪历史数据
+ * 这个函数会在每次应用启动时运行，确保数据格式正确
+ */
+function validateAndCleanSentimentHistory(): void {
+  try {
+    const stored = localStorage.getItem(SENTIMENT_STORAGE_KEY);
+    if (!stored) {
+      return; // 没有数据，无需验证
+    }
+    
+    const parsed = JSON.parse(stored);
+    let needsCleaning = false;
+    
+    // 检查每个资产类型的数据
+    for (const assetType in parsed) {
+      if (!Array.isArray(parsed[assetType])) {
+        needsCleaning = true;
+        break;
+      }
+      
+      // 检查每个快照
+      for (const snapshot of parsed[assetType]) {
+        // 检查 date 字段是否为字符串
+        if (typeof snapshot.date !== 'string') {
+          console.warn('⚠️ 发现无效的日期格式，需要清理数据');
+          needsCleaning = true;
+          break;
+        }
+        
+        // 检查 timestamp 字段是否为数字
+        if (typeof snapshot.timestamp !== 'number') {
+          console.warn('⚠️ 发现无效的时间戳格式，需要清理数据');
+          needsCleaning = true;
+          break;
+        }
+        
+        // 检查必需字段
+        if (!snapshot.score || !snapshot.level) {
+          console.warn('⚠️ 发现缺失必需字段，需要清理数据');
+          needsCleaning = true;
+          break;
+        }
+      }
+      
+      if (needsCleaning) break;
+    }
+    
+    // 如果发现问题，清除数据
+    if (needsCleaning) {
+      console.log('🧹 清除无效的情绪历史数据');
+      localStorage.removeItem(SENTIMENT_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.error('❌ 验证情绪历史数据失败:', error);
+    // 如果验证失败，清除数据
+    console.log('🧹 清除损坏的情绪历史数据');
+    localStorage.removeItem(SENTIMENT_STORAGE_KEY);
   }
 }
 
@@ -264,6 +332,48 @@ function migrateToV23(): void {
   }
   
   console.log('  ✅ v2.3 迁移完成 - 所有情绪历史数据已强制清除');
+}
+
+/**
+ * 迁移到 v2.4
+ * 添加运行时数据验证机制
+ */
+function migrateToV24(): void {
+  console.log('📦 迁移到 v2.4: 添加运行时数据验证');
+  
+  // 强制清除情绪历史数据，确保干净的开始
+  console.log('  - 强制清除所有情绪历史数据');
+  localStorage.removeItem(SENTIMENT_STORAGE_KEY);
+  
+  // 清除应用状态中的分析数据
+  const appStateKey = 'investment-news-analyzer-state';
+  try {
+    const appState = localStorage.getItem(appStateKey);
+    if (appState) {
+      const parsed = JSON.parse(appState);
+      
+      if (parsed.analysis) {
+        parsed.analysis = {
+          gold: [],
+          nasdaq: []
+        };
+      }
+      if (parsed.overallAnalysis) {
+        parsed.overallAnalysis = {
+          gold: null,
+          nasdaq: null
+        };
+      }
+      
+      parsed.version = '2.4';
+      localStorage.setItem(appStateKey, JSON.stringify(parsed));
+    }
+  } catch (error) {
+    console.error('  - 清理应用状态失败:', error);
+    localStorage.removeItem(appStateKey);
+  }
+  
+  console.log('  ✅ v2.4 迁移完成 - 已添加运行时验证机制');
 }
 
 /**
