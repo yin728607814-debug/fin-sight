@@ -412,7 +412,7 @@ export function useAnalysis(assetType?: AssetType) {
   }, [dispatch, targetAsset]);
 
   return {
-    analyses: state.analysis[targetAsset], // 注意：这里改为 analyses（复数）
+    analysis: state.analysis[targetAsset], // 保持原来的名称
     setAnalysis,
     loading: state.loading.analysis,
     error: state.errors.analysis

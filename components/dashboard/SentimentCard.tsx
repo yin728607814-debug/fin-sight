@@ -13,17 +13,17 @@ interface SentimentCardProps {
 
 export const SentimentCard: React.FC<SentimentCardProps> = ({ onRemove }) => {
   const [selectedAsset, setSelectedAsset] = useState<'nasdaq' | 'gold'>('nasdaq');
-  const { analyses, loading } = useAnalysis(selectedAsset);
+  const { analysis, loading } = useAnalysis(selectedAsset);
   const [sentiment, setSentiment] = useState<SentimentData | null>(null);
 
   useEffect(() => {
-    if (analyses && analyses.length > 0) {
-      const data = sentimentService.calculateSentiment(analyses);
+    if (analysis && analysis.length > 0) {
+      const data = sentimentService.calculateSentiment(analysis);
       setSentiment(data);
     } else {
       setSentiment(null);
     }
-  }, [analyses]);
+  }, [analysis]);
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return 'text-green-600 dark:text-green-400';
