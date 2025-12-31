@@ -6,6 +6,7 @@ import { DebugPanel } from './components/DebugPanel';
 import { PageLoading } from './components/LoadingSpinner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { logInfo } from './services/logger';
+import { migrateData } from './utils/dataMigration';
 
 // 懒加载页面组件
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -18,6 +19,9 @@ const FundConfigPage = lazy(() => import('./pages/FundConfigPage'));
 
 const App: React.FC = () => {
   React.useEffect(() => {
+    // 执行数据迁移
+    migrateData();
+    
     logInfo('Investment News Analyzer Application mounted');
   }, []);
 
