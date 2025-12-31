@@ -194,7 +194,7 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 // ============================================================================
 
 const STORAGE_KEY = 'investment-news-analyzer-state';
-const STORAGE_VERSION = '2.0'; // 升级版本号
+const STORAGE_VERSION = '2.2'; // 升级版本号，匹配迁移版本
 
 /**
  * 可持久化的状态字段

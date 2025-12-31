@@ -126,7 +126,7 @@ export class SentimentService {
     return {
       score,
       level,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(), // 直接存储为 ISO 字符串
       distribution,
       keyFactors,
       newsCount: analyses.length,
@@ -191,7 +191,7 @@ export class SentimentService {
     return {
       score: 50,
       level: 'neutral',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(), // 直接存储为 ISO 字符串
       distribution: {
         positive: 0,
         neutral: 0,
@@ -290,7 +290,7 @@ export class SentimentService {
         // 验证和修复数据
         for (const assetType in parsed) {
           if (Array.isArray(parsed[assetType])) {
-            parsed[assetType] = parsed[assetType].filter((snapshot: any) => {
+            parsed[assetType] = parsed[assetType].filter((snapshot: unknown) => {
               // 确保必需字段存在
               if (!snapshot.date || !snapshot.score || !snapshot.level) {
                 return false;
