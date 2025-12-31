@@ -163,8 +163,20 @@ class DashboardService {
         }
       }
 
-      // 返回默认布局
-      return this.getDefaultLayout();
+      // 返回默认布局，并确保它被保存
+      const defaultLayout = this.getDefaultLayout();
+      
+      // 检查默认布局是否已存在
+      const existingDefault = layouts.find(l => l.id === 'default');
+      if (!existingDefault) {
+        this.saveLayout(defaultLayout);
+        logInfo('Created and saved default layout');
+      }
+      
+      // 设置为当前布局
+      this.setCurrentLayout('default');
+      
+      return defaultLayout;
     } catch (error) {
       logError('Failed to load current dashboard layout', error);
       return this.getDefaultLayout();
@@ -255,12 +267,20 @@ class DashboardService {
   updateLayoutItems(layoutId: string, items: LayoutItem[]): void {
     try {
       const layouts = this.getLayouts();
-      const layout = layouts.find(l => l.id === layoutId);
+      let layout = layouts.find(l => l.id === layoutId);
+      
+      // 如果是默认布局且不存在，创建它
+      if (!layout && layoutId === 'default') {
+        layout = this.getDefaultLayout();
+      }
       
       if (layout) {
         layout.items = items;
         layout.updatedAt = new Date().toISOString();
         this.saveLayout(layout);
+        logInfo('Updated layout items', { layoutId, itemCount: items.length });
+      } else {
+        logError('Layout not found', { layoutId });
       }
     } catch (error) {
       logError('Failed to update layout items', error);
@@ -306,9 +326,17 @@ class DashboardService {
   addCardToLayout(layoutId: string, cardId: string): void {
     try {
       const layouts = this.getLayouts();
-      const layout = layouts.find(l => l.id === layoutId);
+      let layout = layouts.find(l => l.id === layoutId);
       
-      if (!layout) return;
+      // 如果是默认布局且不存在，创建它
+      if (!layout && layoutId === 'default') {
+        layout = this.getDefaultLayout();
+      }
+      
+      if (!layout) {
+        logError('Layout not found', { layoutId });
+        return;
+      }
       
       // 检查卡片是否已存在
       if (layout.items.some(item => item.i === cardId)) {
@@ -317,7 +345,10 @@ class DashboardService {
       }
       
       const card = AVAILABLE_CARDS.find(c => c.id === cardId);
-      if (!card) return;
+      if (!card) {
+        logError('Card not found', { cardId });
+        return;
+      }
       
       // 找到合适的位置
       const maxY = Math.max(...layout.items.map(item => item.y + item.h), 0);
@@ -349,9 +380,17 @@ class DashboardService {
   removeCardFromLayout(layoutId: string, cardId: string): void {
     try {
       const layouts = this.getLayouts();
-      const layout = layouts.find(l => l.id === layoutId);
+      let layout = layouts.find(l => l.id === layoutId);
       
-      if (!layout) return;
+      // 如果是默认布局且不存在，创建它
+      if (!layout && layoutId === 'default') {
+        layout = this.getDefaultLayout();
+      }
+      
+      if (!layout) {
+        logError('Layout not found', { layoutId });
+        return;
+      }
       
       layout.items = layout.items.filter(item => item.i !== cardId);
       this.saveLayout(layout);
