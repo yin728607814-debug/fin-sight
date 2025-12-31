@@ -16,7 +16,7 @@ export type SentimentLevel = 'bearish' | 'neutral' | 'bullish';
 export interface SentimentData {
   score: number; // 0-100
   level: SentimentLevel;
-  timestamp: Date;
+  timestamp: Date | string; // 支持 Date 对象和字符串（从 localStorage 加载时）
   distribution: {
     positive: number; // 正面新闻占比
     neutral: number;  // 中性新闻占比
