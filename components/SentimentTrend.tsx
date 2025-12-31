@@ -22,9 +22,22 @@ interface SentimentTrendProps {
 
 export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
   // 格式化日期显示
-  const formatDate = (dateStr: string): string => {
+  const formatDate = (dateStr: string | Date | any): string => {
     try {
-      const date = new Date(dateStr);
+      // 处理各种可能的日期格式
+      let date: Date;
+      
+      if (dateStr instanceof Date) {
+        date = dateStr;
+      } else if (typeof dateStr === 'string') {
+        date = new Date(dateStr);
+      } else if (dateStr && typeof dateStr === 'object' && 'getTime' in dateStr) {
+        // 处理类似 Date 的对象
+        date = new Date(dateStr.getTime());
+      } else {
+        return '无效日期';
+      }
+      
       // 检查日期是否有效
       if (isNaN(date.getTime())) {
         return '无效日期';
@@ -35,12 +48,19 @@ export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
     }
   };
 
-  // 准备图表数据
-  const chartData = history.data.map((item) => ({
-    date: formatDate(item.date),
-    score: item.score,
-    fullDate: item.date,
-  }));
+  // 准备图表数据 - 添加过滤以排除无效数据
+  const chartData = history.data
+    .filter((item) => {
+      // 确保必需字段存在且有效
+      if (!item || typeof item !== 'object') return false;
+      if (!item.date || typeof item.score !== 'number') return false;
+      return true;
+    })
+    .map((item) => ({
+      date: formatDate(item.date),
+      score: item.score,
+      fullDate: typeof item.date === 'string' ? item.date : String(item.date),
+    }));
 
   // 自定义 Tooltip
   const CustomTooltip = ({ active, payload }: any) => {

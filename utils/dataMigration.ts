@@ -4,7 +4,7 @@
  */
 
 const MIGRATION_VERSION_KEY = 'data-migration-version';
-const CURRENT_VERSION = '2.2'; // 升级到 2.2，彻底清除旧的分析数据
+const CURRENT_VERSION = '2.3'; // 升级到 2.3，强制清除所有情绪历史数据
 
 /**
  * 执行数据迁移
@@ -31,6 +31,10 @@ export function migrateData(): void {
     
     if (!currentVersion || currentVersion < '2.2') {
       migrateToV22();
+    }
+    
+    if (!currentVersion || currentVersion < '2.3') {
+      migrateToV23();
     }
     
     // 更新版本号
@@ -212,6 +216,54 @@ function migrateToV22(): void {
   }
   
   console.log('  ✅ v2.2 迁移完成 - 所有旧分析数据已清除');
+}
+
+/**
+ * 迁移到 v2.3
+ * 强制清除所有情绪历史数据，解决 Date 对象序列化问题
+ */
+function migrateToV23(): void {
+  console.log('📦 迁移到 v2.3: 强制清除所有情绪历史数据');
+  
+  // 1. 强制清除情绪历史数据（无论格式如何）
+  const sentimentHistoryKey = 'sentiment-history';
+  console.log('  - 强制清除 sentiment-history');
+  localStorage.removeItem(sentimentHistoryKey);
+  
+  // 2. 清除应用状态中的所有分析数据
+  const appStateKey = 'investment-news-analyzer-state';
+  try {
+    const appState = localStorage.getItem(appStateKey);
+    if (appState) {
+      const parsed = JSON.parse(appState);
+      
+      // 清除所有分析相关数据
+      console.log('  - 清除应用状态中的分析数据');
+      if (parsed.analysis) {
+        parsed.analysis = {
+          gold: [],
+          nasdaq: []
+        };
+      }
+      if (parsed.overallAnalysis) {
+        parsed.overallAnalysis = {
+          gold: null,
+          nasdaq: null
+        };
+      }
+      
+      // 更新版本号
+      parsed.version = '2.3';
+      
+      // 保存清理后的数据
+      localStorage.setItem(appStateKey, JSON.stringify(parsed));
+    }
+  } catch (error) {
+    console.error('  - 清理应用状态失败，完全清除:', error);
+    localStorage.removeItem(appStateKey);
+  }
+  
+  console.log('  ✅ v2.3 迁移完成 - 所有情绪历史数据已强制清除');
 }
 
 /**

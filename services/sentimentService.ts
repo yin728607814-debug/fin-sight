@@ -263,11 +263,31 @@ export class SentimentService {
 
       return {
         assetType,
-        data: sortedHistory.map((snapshot) => ({
-          date: snapshot.date,
-          score: snapshot.score,
-          level: snapshot.level,
-        })),
+        data: sortedHistory.map((snapshot) => {
+          // 确保 date 是字符串格式
+          let dateStr: string;
+          if (typeof snapshot.date === 'string') {
+            dateStr = snapshot.date;
+          } else if (snapshot.date instanceof Date) {
+            dateStr = snapshot.date.toISOString().split('T')[0];
+          } else if (snapshot.date && typeof snapshot.date === 'object' && 'getTime' in snapshot.date) {
+            // 处理类似 Date 的对象
+            try {
+              const d = new Date((snapshot.date as any).getTime());
+              dateStr = d.toISOString().split('T')[0];
+            } catch {
+              dateStr = new Date().toISOString().split('T')[0];
+            }
+          } else {
+            dateStr = new Date().toISOString().split('T')[0];
+          }
+          
+          return {
+            date: dateStr,
+            score: snapshot.score,
+            level: snapshot.level,
+          };
+        }),
       };
     } catch (error) {
       console.error('获取情绪历史失败:', error);
