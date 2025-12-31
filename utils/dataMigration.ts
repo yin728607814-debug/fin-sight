@@ -4,7 +4,7 @@
  */
 
 const MIGRATION_VERSION_KEY = 'data-migration-version';
-const CURRENT_VERSION = '2.4'; // 升级到 2.4，添加运行时数据验证
+const CURRENT_VERSION = '2.4-debug'; // 调试版本，不清除数据
 const SENTIMENT_STORAGE_KEY = 'sentiment-history';
 
 /**
@@ -14,34 +14,33 @@ export function migrateData(): void {
   try {
     const currentVersion = localStorage.getItem(MIGRATION_VERSION_KEY);
     
-    // 即使是最新版本，也执行运行时验证
+    console.log(`🔍 当前数据版本: ${currentVersion || '无'}`);
+    console.log(`🔍 目标版本: ${CURRENT_VERSION}`);
+    
+    // 打印 sentiment-history 的内容用于调试
+    const sentimentHistory = localStorage.getItem(SENTIMENT_STORAGE_KEY);
+    if (sentimentHistory) {
+      try {
+        const parsed = JSON.parse(sentimentHistory);
+        console.log('🔍 当前 sentiment-history:', parsed);
+      } catch (e) {
+        console.error('🔍 sentiment-history 解析失败:', e);
+      }
+    } else {
+      console.log('🔍 没有 sentiment-history 数据');
+    }
+    
+    // 如果已经是最新版本，跳过迁移
     if (currentVersion === CURRENT_VERSION) {
-      // 运行时验证：检查情绪历史数据是否有效
-      validateAndCleanSentimentHistory();
+      console.log('✅ 已经是最新版本，跳过迁移');
       return;
     }
     
     console.log(`🔄 开始数据迁移: ${currentVersion || '旧版本'} → ${CURRENT_VERSION}`);
     
-    // 执行迁移步骤
-    if (!currentVersion || currentVersion < '2.0') {
-      migrateToV2();
-    }
-    
-    if (!currentVersion || currentVersion < '2.1') {
-      migrateToV21();
-    }
-    
-    if (!currentVersion || currentVersion < '2.2') {
-      migrateToV22();
-    }
-    
-    if (!currentVersion || currentVersion < '2.3') {
-      migrateToV23();
-    }
-    
-    if (!currentVersion || currentVersion < '2.4') {
-      migrateToV24();
+    // 跳过旧的迁移，直接到 v2.4-debug
+    if (!currentVersion || currentVersion < '2.4-debug') {
+      migrateToV24Debug();
     }
     
     // 更新版本号
@@ -50,75 +49,48 @@ export function migrateData(): void {
     
   } catch (error) {
     console.error('❌ 数据迁移失败:', error);
-    // 迁移失败时，清除所有数据以避免错误
-    console.warn('⚠️ 清除所有数据以避免兼容性问题');
-    clearAllData();
   }
 }
 
 /**
- * 运行时验证和清理情绪历史数据
- * 这个函数会在每次应用启动时运行，确保数据格式正确
+ * 迁移到 v2.4-debug
+ * 调试版本：不清除数据，只添加日志
  */
-function validateAndCleanSentimentHistory(): void {
-  try {
-    const stored = localStorage.getItem(SENTIMENT_STORAGE_KEY);
-    if (!stored) {
-      return; // 没有数据，无需验证
-    }
-    
-    const parsed = JSON.parse(stored);
-    let needsCleaning = false;
-    
-    // 检查每个资产类型的数据
-    for (const assetType in parsed) {
-      if (!Array.isArray(parsed[assetType])) {
-        needsCleaning = true;
-        break;
-      }
-      
-      // 检查每个快照
-      for (const snapshot of parsed[assetType]) {
-        // 检查 date 字段是否为字符串
-        if (typeof snapshot.date !== 'string') {
-          console.warn('⚠️ 发现无效的日期格式，需要清理数据');
-          needsCleaning = true;
-          break;
-        }
-        
-        // 检查 timestamp 字段是否为数字
-        if (typeof snapshot.timestamp !== 'number') {
-          console.warn('⚠️ 发现无效的时间戳格式，需要清理数据');
-          needsCleaning = true;
-          break;
-        }
-        
-        // 检查必需字段
-        if (!snapshot.score || !snapshot.level) {
-          console.warn('⚠️ 发现缺失必需字段，需要清理数据');
-          needsCleaning = true;
-          break;
+function migrateToV24Debug(): void {
+  console.log('📦 迁移到 v2.4-debug: 调试模式，保留所有数据');
+  
+  // 打印 sentiment-history 的详细信息
+  const sentimentHistory = localStorage.getItem(SENTIMENT_STORAGE_KEY);
+  if (sentimentHistory) {
+    try {
+      const parsed = JSON.parse(sentimentHistory);
+      console.log('🔍 sentiment-history 详细信息:');
+      for (const assetType in parsed) {
+        console.log(`  ${assetType}:`, parsed[assetType]);
+        if (Array.isArray(parsed[assetType])) {
+          parsed[assetType].forEach((snapshot: any, index: number) => {
+            console.log(`    [${index}]:`, {
+              date: snapshot.date,
+              dateType: typeof snapshot.date,
+              score: snapshot.score,
+              level: snapshot.level,
+              timestamp: snapshot.timestamp,
+              timestampType: typeof snapshot.timestamp,
+            });
+          });
         }
       }
-      
-      if (needsCleaning) break;
+    } catch (e) {
+      console.error('  解析失败:', e);
     }
-    
-    // 如果发现问题，清除数据
-    if (needsCleaning) {
-      console.log('🧹 清除无效的情绪历史数据');
-      localStorage.removeItem(SENTIMENT_STORAGE_KEY);
-    }
-  } catch (error) {
-    console.error('❌ 验证情绪历史数据失败:', error);
-    // 如果验证失败，清除数据
-    console.log('🧹 清除损坏的情绪历史数据');
-    localStorage.removeItem(SENTIMENT_STORAGE_KEY);
   }
+  
+  console.log('  ✅ v2.4-debug 迁移完成 - 数据已保留，添加了调试日志');
 }
 
 /**
- * 迁移到 v2.0
+ * 验证应用状态数据结构
+ */
  * 修复 SentimentData timestamp 类型问题
  */
 function migrateToV2(): void {
