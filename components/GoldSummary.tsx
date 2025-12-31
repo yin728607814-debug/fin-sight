@@ -18,7 +18,8 @@ interface GoldSummaryProps {
  */
 export const GoldSummary: React.FC<GoldSummaryProps> = ({ goldStats }) => {
   const isProfitable = goldStats.profitLoss >= 0;
-  const profitColor = isProfitable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  // 中国股市习惯：红涨绿跌
+  const profitColor = isProfitable ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
 
   /**
    * 格式化货币

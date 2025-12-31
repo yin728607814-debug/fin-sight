@@ -63,15 +63,15 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ onRemove }) => {
             <div className="flex items-baseline gap-2">
               <span className={`text-2xl font-bold ${
                 (portfolio.totalProfitLoss || 0) >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-600 dark:text-green-400'
               }`}>
                 {(portfolio.totalProfitLoss || 0) >= 0 ? '+' : ''}${(portfolio.totalProfitLoss || 0).toLocaleString()}
               </span>
               <span className={`text-sm ${
                 (portfolio.totalProfitLossPercent || 0) >= 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-600 dark:text-green-400'
               }`}>
                 ({(portfolio.totalProfitLossPercent || 0) >= 0 ? '+' : ''}{(portfolio.totalProfitLossPercent || 0).toFixed(2)}%)
               </span>

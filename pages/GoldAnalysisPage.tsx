@@ -258,8 +258,8 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                     <span className="text-sm text-gray-600 mb-1 md:mb-0 lg:mb-1 xl:mb-0">24小时变化</span>
                     <span className={`font-semibold break-all ${
                       priceData.length > 0 && priceData[priceData.length - 1]?.changePercent >= 0 
-                        ? 'text-green-600' 
-                        : 'text-red-600'
+                        ? 'text-red-600' 
+                        : 'text-green-600'
                     }`}>
                       {priceData.length > 0 ? `${priceData[priceData.length - 1]?.changePercent >= 0 ? '+' : ''}${priceData[priceData.length - 1]?.changePercent.toFixed(2)}%` : '--'}
                     </span>

@@ -255,10 +255,10 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">24小时变化</span>
                     <span className={`font-bold ${
                       priceData.length > 0 && priceData[priceData.length - 1]?.changePercent >= 0 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-red-600 dark:text-red-400'
+                        ? 'text-red-600 dark:text-red-400' 
+                        : 'text-green-600 dark:text-green-400'
                     }`}>
-                      {priceData.length > 0 ? `${priceData[priceData.length - 1]?.changePercent.toFixed(2)}%` : '--'}
+                      {priceData.length > 0 ? `${priceData[priceData.length - 1]?.changePercent >= 0 ? '+' : ''}${priceData[priceData.length - 1]?.changePercent.toFixed(2)}%` : '--'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white/30 dark:bg-gray-700/30 backdrop-blur-sm rounded-xl">

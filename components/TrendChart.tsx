@@ -62,13 +62,13 @@ export const TrendChart: React.FC<TrendChartProps> = ({
     const prices = sortedData.map(item => item.close);
     // const changes = sortedData.map(item => item.changePercent);
 
-    // 确定线条颜色（基于整体趋势）
-    const overallChange = sortedData.length > 1 
-      ? sortedData[sortedData.length - 1].close - sortedData[0].close
+    // 确定线条颜色（基于最新日期的涨跌 - 中国股市习惯：红涨绿跌）
+    const latestChange = sortedData.length > 1 
+      ? sortedData[sortedData.length - 1].changePercent
       : 0;
     
-    const lineColor = overallChange >= 0 ? '#10b981' : '#ef4444'; // 绿色上涨，红色下跌
-    const fillColor = overallChange >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+    const lineColor = latestChange >= 0 ? '#ef4444' : '#10b981'; // 红色上涨，绿色下跌
+    const fillColor = latestChange >= 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)';
 
     return {
       labels,
@@ -299,7 +299,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({
             </div>
             <div className="bg-slate-50 rounded-lg p-3 md:p-4 lg:p-3 text-center min-h-[80px] md:min-h-[90px] lg:min-h-[90px] flex flex-col justify-center touch-manipulation">
               <div className="text-xs text-slate-500 uppercase tracking-wide mb-1 md:mb-2 leading-tight">涨跌幅</div>
-              <div className={`text-sm md:text-base lg:text-sm font-bold leading-tight ${stats.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-sm md:text-base lg:text-sm font-bold leading-tight ${stats.isPositive ? 'text-red-600' : 'text-green-600'}`}>
                 <span className="block break-all">
                   {stats.isPositive ? '+' : ''}{stats.changePercent.toFixed(2)}%
                 </span>
