@@ -290,24 +290,53 @@ export class SentimentService {
         // 验证和修复数据
         for (const assetType in parsed) {
           if (Array.isArray(parsed[assetType])) {
-            parsed[assetType] = parsed[assetType].filter((snapshot: unknown) => {
-              // 确保必需字段存在
-              if (!snapshot.date || !snapshot.score || !snapshot.level) {
-                return false;
-              }
-              
-              // 确保 timestamp 是数字
-              if (typeof snapshot.timestamp !== 'number') {
-                // 尝试转换
-                const ts = Number(snapshot.timestamp);
-                if (isNaN(ts)) {
-                  return false;
+            parsed[assetType] = parsed[assetType]
+              .map((snapshot: any) => {
+                // 确保必需字段存在
+                if (!snapshot || typeof snapshot !== 'object') {
+                  return null;
                 }
-                snapshot.timestamp = ts;
-              }
-              
-              return true;
-            });
+                if (!snapshot.date || !snapshot.score || !snapshot.level) {
+                  return null;
+                }
+                
+                // 确保 timestamp 是数字
+                let timestamp: number;
+                if (typeof snapshot.timestamp === 'number') {
+                  timestamp = snapshot.timestamp;
+                } else if (typeof snapshot.timestamp === 'string') {
+                  // 尝试从字符串转换（可能是 ISO 字符串或数字字符串）
+                  const parsed = Date.parse(snapshot.timestamp);
+                  if (!isNaN(parsed)) {
+                    timestamp = parsed;
+                  } else {
+                    const num = Number(snapshot.timestamp);
+                    if (!isNaN(num)) {
+                      timestamp = num;
+                    } else {
+                      return null;
+                    }
+                  }
+                } else if (snapshot.timestamp && typeof snapshot.timestamp === 'object' && 'getTime' in snapshot.timestamp) {
+                  // 如果是 Date 对象（虽然不应该出现）
+                  try {
+                    timestamp = snapshot.timestamp.getTime();
+                  } catch {
+                    return null;
+                  }
+                } else {
+                  // 无效的 timestamp
+                  return null;
+                }
+                
+                return {
+                  date: snapshot.date,
+                  score: snapshot.score,
+                  level: snapshot.level,
+                  timestamp: timestamp
+                };
+              })
+              .filter((snapshot: any) => snapshot !== null);
           }
         }
         
