@@ -23,8 +23,16 @@ interface SentimentTrendProps {
 export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
   // 格式化日期显示
   const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    try {
+      const date = new Date(dateStr);
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        return '无效日期';
+      }
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    } catch (error) {
+      return '无效日期';
+    }
   };
 
   // 准备图表数据
