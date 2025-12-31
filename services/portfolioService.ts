@@ -3,8 +3,7 @@
  * 负责管理用户的投资组合和持仓信息
  */
 
-import { AssetType, EnhancedPosition, AutoInvestPlan, GoldStats, AssetStats, PositionStatistics } from '../types';
-import { goldPriceConverter } from './goldPriceConverter';
+import { AssetType, AutoInvestPlan, GoldStats, AssetStats, PositionStatistics } from '../types';
 
 /**
  * 持仓接口
@@ -523,7 +522,7 @@ export class PortfolioService {
     goldPositions.forEach(position => {
       investment += position.investmentAmount || 0;
       currentValue += position.currentValue || 0;
-      totalGrams += position.quantity;
+      totalGrams += position.quantity || 0;
     });
     
     const averagePrice = this.calculateGoldAveragePrice(portfolio.positions);

@@ -25,15 +25,9 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
   /**
    * 格式化日期
    */
-  const formatDate = (datetime: number | string | Date): string => {
+  const formatDate = (publishedAt: Date): string => {
     try {
-      let date: Date;
-      if (typeof datetime === 'number') {
-        // Unix 时间戳（秒），转换为毫秒
-        date = new Date(datetime * 1000);
-      } else {
-        date = new Date(datetime);
-      }
+      const date = new Date(publishedAt);
       
       // 检查日期是否有效
       if (isNaN(date.getTime())) {
@@ -87,25 +81,25 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
           ) : (
             displayNews.map((item, index) => (
               <div
-                key={index}
+                key={item.id || index}
                 className="p-3 bg-white/50 dark:bg-gray-700/50 rounded-lg hover:bg-white/70 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
               >
                 {/* 标题 */}
                 <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-2">
-                  {item.headline}
+                  {item.title}
                 </h4>
                 
                 {/* 摘要 */}
-                {item.summary && (
+                {item.content && (
                   <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
-                    {item.summary}
+                    {item.content}
                   </p>
                 )}
                 
                 {/* 日期 */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 dark:text-gray-500">
-                    {formatDate(item.datetime)}
+                    {formatDate(item.publishedAt)}
                   </span>
                   {item.source && (
                     <span className="text-xs text-gray-400 dark:text-gray-600">
