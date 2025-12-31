@@ -159,13 +159,7 @@ export const SentimentDetails: React.FC<SentimentDetailsProps> = ({
               <span className="font-medium">
                 {(() => {
                   try {
-                    if (typeof data.timestamp === 'string') {
-                      return new Date(data.timestamp).toLocaleString('zh-CN');
-                    } else if (data.timestamp instanceof Date) {
-                      return data.timestamp.toLocaleString('zh-CN');
-                    } else {
-                      return '未知时间';
-                    }
+                    return new Date(data.timestamp).toLocaleString('zh-CN');
                   } catch (error) {
                     return '未知时间';
                   }
