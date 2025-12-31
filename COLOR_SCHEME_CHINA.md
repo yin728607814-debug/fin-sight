@@ -121,6 +121,7 @@ stats.isPositive
 5. ✅ `pages/GoldAnalysisPage.tsx` - 黄金分析页面
 6. ✅ `components/TrendChart.tsx` - 价格趋势图
 7. ✅ `components/dashboard/SentimentCard.tsx` - 情绪指数卡片
+8. ✅ `components/dashboard/MarketOverviewCard.tsx` - 市场概览卡片
 
 ### 4. 情绪指数相关
 
@@ -141,6 +142,25 @@ return 'text-green-600 dark:text-green-400';                    // 悲观 = 绿�
 - 情绪指数 >= 70：乐观 → 红色（市场看涨）
 - 情绪指数 40-70：中性 → 黄色
 - 情绪指数 < 40：悲观 → 绿色（市场看跌）
+
+### 5. 市场概览相关
+
+#### ✅ MarketOverviewCard.tsx（市场概览卡片）
+```typescript
+// 修改前：绿涨红跌
+nasdaqChange.value >= 0
+  ? 'text-green-600 dark:text-green-400'  // 上涨 = 绿色
+  : 'text-red-600 dark:text-red-400'      // 下跌 = 红色
+
+// 修改后：红涨绿跌
+nasdaqChange.value >= 0
+  ? 'text-red-600 dark:text-red-400'      // 上涨 = 红色
+  : 'text-green-600 dark:text-green-400'  // 下跌 = 绿色
+```
+
+**说明**：
+- 纳斯达克价格变化：-63.00(-0.25%) → 绿色（下跌）
+- 黄金价格变化：-$3.92(-1.24%) → 绿色（下跌）
 
 ## 未修改的部分
 
