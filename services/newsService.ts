@@ -98,7 +98,7 @@ export class NewsService implements INewsService {
   /**
    * 获取市场新闻（混合策略）
    */
-  async fetchMarketNews(assetType: AssetType, limit: number = 50): Promise<NewsItem[]> {
+  async fetchMarketNews(assetType: AssetType, limit: number = 100): Promise<NewsItem[]> {
     const cacheKey = `news_${assetType}_${limit}`;
     
     // 检查缓存
@@ -181,7 +181,7 @@ export class NewsService implements INewsService {
   /**
    * 混合策略获取纳斯达克新闻（中文源优先 + Finnhub备用）
    */
-  private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
+  private async fetchNasdaqNewsHybrid(limit: number = 100): Promise<NewsItem[]> {
     console.log('📡 开始混合策略获取纳斯达克新闻');
     console.log('📋 优先级: 东方财富 → 新浪财经 → Finnhub');
     
@@ -260,7 +260,7 @@ export class NewsService implements INewsService {
   /**
    * 混合策略获取黄金新闻（中文源优先 + Finnhub备用）
    */
-  private async fetchGoldNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
+  private async fetchGoldNewsHybrid(limit: number = 100): Promise<NewsItem[]> {
     console.log('📡 开始混合策略获取黄金新闻');
     console.log('📋 优先级: 东方财富黄金频道 → 新浪财经 → Finnhub');
     
@@ -623,7 +623,7 @@ export class NewsService implements INewsService {
   /**
    * 使用Finnhub获取纳斯达克新闻
    */
-  private async fetchFinnhubNews(limit: number = 50): Promise<NewsItem[]> {
+  private async fetchFinnhubNews(limit: number = 100): Promise<NewsItem[]> {
     try {
       console.log('📡 调用Finnhub News API');
       
@@ -714,7 +714,7 @@ export class NewsService implements INewsService {
   /**
    * 使用Finnhub获取黄金新闻
    */
-  private async fetchFinnhubGoldNews(limit: number = 50): Promise<NewsItem[]> {
+  private async fetchFinnhubGoldNews(limit: number = 100): Promise<NewsItem[]> {
     try {
       console.log('📡 调用Finnhub获取黄金新闻');
       
