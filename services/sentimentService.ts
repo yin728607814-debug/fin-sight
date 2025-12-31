@@ -300,6 +300,22 @@ export class SentimentService {
                   return null;
                 }
                 
+                // 确保 date 是字符串
+                let date: string;
+                if (typeof snapshot.date === 'string') {
+                  date = snapshot.date;
+                } else if (snapshot.date instanceof Date || (snapshot.date && typeof snapshot.date === 'object' && 'getTime' in snapshot.date)) {
+                  // 如果是 Date 对象，转换为 YYYY-MM-DD 格式
+                  try {
+                    const d = snapshot.date instanceof Date ? snapshot.date : new Date(snapshot.date);
+                    date = d.toISOString().split('T')[0];
+                  } catch {
+                    return null;
+                  }
+                } else {
+                  return null;
+                }
+                
                 // 确保 timestamp 是数字
                 let timestamp: number;
                 if (typeof snapshot.timestamp === 'number') {
@@ -330,7 +346,7 @@ export class SentimentService {
                 }
                 
                 return {
-                  date: snapshot.date,
+                  date: date,
                   score: snapshot.score,
                   level: snapshot.level,
                   timestamp: timestamp
