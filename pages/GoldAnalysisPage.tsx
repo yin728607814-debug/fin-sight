@@ -37,17 +37,33 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshNewsOnly, setRefreshNewsOnly] = useState(false);
 
   // 设置当前资产类型
   useEffect(() => {
     setCurrentAsset('gold');
   }, [setCurrentAsset]);
 
-  // 手动刷新数据
+  // 只刷新新闻（不触发 AI 分析）
+  const handleRefreshNewsOnly = async () => {
+    setIsRefreshing(true);
+    setRefreshNewsOnly(true);
+    try {
+      setLastUpdated(new Date());
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+        setRefreshNewsOnly(false);
+      }, 500);
+    }
+  };
+
+  // 刷新数据并重新分析
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    setRefreshNewsOnly(false);
     try {
-      // 这里会触发NewsAnalyzer组件重新获取数据
+      // 这里会触发NewsAnalyzer组件重新获取数据并分析
       setLastUpdated(new Date());
     } finally {
       setIsRefreshing(false);
@@ -103,14 +119,26 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                 <ThemeToggle />
               </div>
               <button
-                onClick={handleRefresh}
+                onClick={handleRefreshNewsOnly}
                 disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                className="flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                title="只刷新新闻，不进行 AI 分析"
               >
-                <svg className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-4 w-4 mr-2 ${isRefreshing && refreshNewsOnly ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                {isRefreshing ? '刷新中...' : '刷新数据'}
+                {isRefreshing && refreshNewsOnly ? '刷新中...' : '刷新新闻'}
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing || hasAnyLoading}
+                className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-amber-600 dark:bg-amber-500 backdrop-blur-sm border border-amber-700 dark:border-amber-600 rounded-md hover:bg-amber-700 dark:hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:focus:ring-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                title="刷新新闻并重新进行 AI 分析"
+              >
+                <svg className={`h-4 w-4 mr-2 ${isRefreshing && !refreshNewsOnly ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {isRefreshing && !refreshNewsOnly ? '分析中...' : '分析新闻'}
               </button>
             </div>
           </div>
@@ -148,6 +176,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                 <NewsAnalyzer 
                   assetType="gold"
                   onAnalysisComplete={() => setLastUpdated(new Date())}
+                  skipAnalysis={refreshNewsOnly}
                 />
               </div>
             </div>

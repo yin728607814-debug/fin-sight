@@ -17,7 +17,8 @@ import { ProgressiveFallback, createStandardFallbackLevels } from './Progressive
  */
 export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({ 
   assetType, 
-  onAnalysisComplete 
+  onAnalysisComplete,
+  skipAnalysis = false
 }) => {
   const { news, setNews } = useNews(assetType);
   const { analysis, setAnalysis } = useAnalysis(assetType);
@@ -41,7 +42,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: true });
       setUsingFallbackData(false);
       
-      const newsData = await newsService.fetchMarketNews(assetType, 50);
+      const newsData = await newsService.fetchMarketNews(assetType, 100); // 改为 100 条
       setNews(newsData);
       setLastFetchTime(new Date());
       
@@ -64,7 +65,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: true });
       
       const { generateDemoNews } = await import('../services/demoDataService');
-      const demoNews = generateDemoNews(assetType, 50);
+      const demoNews = generateDemoNews(assetType, 100); // 改为 100 条
       setNews(demoNews);
       setLastFetchTime(new Date());
       setUsingFallbackData(true);
@@ -237,9 +238,15 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   useEffect(() => {
     if (!isInitialized && (news.length === 0 || priceData.length === 0)) {
       setIsInitialized(true);
-      fetchAndAnalyze();
+      if (skipAnalysis) {
+        // 只加载新闻和价格，不进行分析
+        Promise.all([fetchNews(), fetchPriceData()]);
+      } else {
+        // 加载并分析
+        fetchAndAnalyze();
+      }
     }
-  }, [assetType, fetchAndAnalyze, isInitialized, news.length, priceData.length]); // 只在资产类型变化时重新获取，移除其他依赖避免死循环
+  }, [assetType, fetchAndAnalyze, fetchNews, fetchPriceData, isInitialized, news.length, priceData.length, skipAnalysis]);
 
   // 当资产类型变化时重置初始化状态
   useEffect(() => {

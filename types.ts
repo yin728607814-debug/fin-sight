@@ -235,6 +235,7 @@ export interface AnalysisError extends APIError {
 export interface NewsAnalyzerProps {
   assetType: AssetType;
   onAnalysisComplete?: (analysis: NewsAnalysis[]) => void;
+  skipAnalysis?: boolean; // 是否跳过 AI 分析，只刷新新闻
 }
 
 /**
