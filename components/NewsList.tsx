@@ -94,20 +94,41 @@ export const NewsList: React.FC<NewsListProps> = ({
   /**
    * 格式化时间显示
    */
-  const formatTime = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const formatTime = (date: Date | string) => {
+    try {
+      let dateObj: Date;
+      
+      if (date instanceof Date) {
+        dateObj = date;
+      } else if (typeof date === 'string') {
+        dateObj = new Date(date);
+      } else {
+        console.error('🔍 NewsList formatTime 收到未知类型:', typeof date, date);
+        return '时间未知';
+      }
+      
+      if (isNaN(dateObj.getTime())) {
+        console.error('🔍 NewsList formatTime 日期无效:', date);
+        return '时间未知';
+      }
+      
+      const now = new Date();
+      const diffMs = now.getTime() - dateObj.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
-    if (diffHours > 24) {
-      return date.toLocaleDateString('zh-CN');
-    } else if (diffHours > 0) {
-      return `${diffHours}小时前`;
-    } else if (diffMinutes > 0) {
-      return `${diffMinutes}分钟前`;
-    } else {
-      return '刚刚';
+      if (diffHours > 24) {
+        return dateObj.toLocaleDateString('zh-CN');
+      } else if (diffHours > 0) {
+        return `${diffHours}小时前`;
+      } else if (diffMinutes > 0) {
+        return `${diffMinutes}分钟前`;
+      } else {
+        return '刚刚';
+      }
+    } catch (error) {
+      console.error('🔍 NewsList formatTime 错误:', error, date);
+      return '时间未知';
     }
   };
 

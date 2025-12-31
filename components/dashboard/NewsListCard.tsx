@@ -25,12 +25,23 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
   /**
    * 格式化日期
    */
-  const formatDate = (publishedAt: Date): string => {
+  const formatDate = (publishedAt: Date | string): string => {
     try {
-      const date = new Date(publishedAt);
+      let date: Date;
+      
+      // 处理不同的输入类型
+      if (publishedAt instanceof Date) {
+        date = publishedAt;
+      } else if (typeof publishedAt === 'string') {
+        date = new Date(publishedAt);
+      } else {
+        console.error('🔍 NewsListCard formatDate 收到未知类型:', typeof publishedAt, publishedAt);
+        return '日期未知';
+      }
       
       // 检查日期是否有效
       if (isNaN(date.getTime())) {
+        console.error('🔍 NewsListCard formatDate 日期无效:', publishedAt);
         return '日期未知';
       }
       
@@ -41,6 +52,7 @@ export const NewsListCard: React.FC<NewsListCardProps> = ({ onRemove }) => {
         minute: '2-digit'
       });
     } catch (error) {
+      console.error('🔍 NewsListCard formatDate 错误:', error, publishedAt);
       return '日期未知';
     }
   };

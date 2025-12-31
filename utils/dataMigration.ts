@@ -68,7 +68,7 @@ function migrateToV24Debug(): void {
       for (const assetType in parsed) {
         console.log(`  ${assetType}:`, parsed[assetType]);
         if (Array.isArray(parsed[assetType])) {
-          parsed[assetType].forEach((snapshot: any, index: number) => {
+          parsed[assetType].forEach((snapshot: unknown, index: number) => {
             console.log(`    [${index}]:`, {
               date: snapshot.date,
               dateType: typeof snapshot.date,
