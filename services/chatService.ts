@@ -17,7 +17,7 @@ export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
-  timestamp: Date;
+  timestamp: string; // ISO字符串
   context?: {
     assetType?: AssetType;
     newsCount?: number;
@@ -31,7 +31,7 @@ export interface ChatMessage {
  */
 export interface ChatHistory {
   messages: ChatMessage[];
-  lastUpdated: Date;
+  lastUpdated: string; // ISO字符串
 }
 
 /**
@@ -81,25 +81,22 @@ export class ChatService {
       if (!stored) {
         return {
           messages: [],
-          lastUpdated: new Date()
+          lastUpdated: new Date().toISOString()
         };
       }
 
       const parsed = JSON.parse(stored);
       
-      // 转换日期字符串为 Date 对象
+      // 数据已经是正确格式（ISO字符串），直接返回
       return {
-        messages: parsed.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        })),
-        lastUpdated: new Date(parsed.lastUpdated)
+        messages: parsed.messages || [],
+        lastUpdated: parsed.lastUpdated || new Date().toISOString()
       };
     } catch (error) {
       console.error('获取对话历史失败:', error);
       return {
         messages: [],
-        lastUpdated: new Date()
+        lastUpdated: new Date().toISOString()
       };
     }
   }
@@ -135,7 +132,7 @@ export class ChatService {
   public addMessage(message: ChatMessage): void {
     const history = this.getChatHistory();
     history.messages.push(message);
-    history.lastUpdated = new Date();
+    history.lastUpdated = new Date().toISOString(); // 使用 ISO 字符串
     this.saveChatHistory(history);
   }
 
@@ -159,7 +156,8 @@ export class ChatService {
     
     // 过滤掉过期的消息
     const validMessages = history.messages.filter(msg => {
-      const messageAge = now - new Date(msg.timestamp).getTime();
+      const msgTimestamp = new Date(msg.timestamp).getTime();
+      const messageAge = now - msgTimestamp;
       return messageAge < this.HISTORY_EXPIRATION;
     });
 
@@ -167,7 +165,7 @@ export class ChatService {
     if (validMessages.length < history.messages.length) {
       this.saveChatHistory({
         messages: validMessages,
-        lastUpdated: new Date()
+        lastUpdated: new Date().toISOString() // 使用 ISO 字符串
       });
     }
   }
@@ -187,7 +185,7 @@ export class ChatService {
       id: this.generateMessageId(),
       role: 'user',
       content,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(), // 使用 ISO 字符串
       context: context ? {
         assetType: context.assetType,
         newsCount: context.recentNews?.length,
@@ -205,7 +203,7 @@ export class ChatService {
       id: this.generateMessageId(),
       role: 'assistant',
       content,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(), // 使用 ISO 字符串
       context: context ? {
         assetType: context.assetType,
         newsCount: context.recentNews?.length,
@@ -230,8 +228,8 @@ export class ChatService {
     totalMessages: number;
     userMessages: number;
     assistantMessages: number;
-    oldestMessage?: Date;
-    newestMessage?: Date;
+    oldestMessage?: string;
+    newestMessage?: string;
   } {
     const history = this.getChatHistory();
     const messages = history.messages;
@@ -248,8 +246,8 @@ export class ChatService {
       totalMessages: messages.length,
       userMessages: messages.filter(m => m.role === 'user').length,
       assistantMessages: messages.filter(m => m.role === 'assistant').length,
-      oldestMessage: new Date(messages[0].timestamp),
-      newestMessage: new Date(messages[messages.length - 1].timestamp)
+      oldestMessage: messages[0].timestamp,
+      newestMessage: messages[messages.length - 1].timestamp
     };
   }
 }

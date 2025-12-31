@@ -55,7 +55,7 @@ export interface OverallMarketAnalysis {
   timeHorizon: TimeFrame; // 建议持有时间
   predictedTrend: string; // 预测趋势描述
   analyzedNewsCount: number; // 分析的新闻数量
-  timestamp: Date; // 分析时间戳
+  timestamp: string; // 分析时间戳（ISO字符串）
 }
 
 // ============================================================================

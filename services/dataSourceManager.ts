@@ -45,7 +45,7 @@ export interface FailoverResult {
   fromSource: string;
   toSource: string;
   reason: string;
-  timestamp: Date;
+  timestamp: string; // ISO字符串
 }
 
 /**
@@ -344,7 +344,7 @@ export class DataSourceManager {
         fromSource,
         toSource: nextSource,
         reason,
-        timestamp: new Date()
+        timestamp: new Date().toISOString() // 使用 ISO 字符串
       };
 
       this.currentPrimarySource = nextSource;
@@ -357,7 +357,7 @@ export class DataSourceManager {
         fromSource,
         toSource: '',
         reason: '没有可用的备用数据源',
-        timestamp: new Date()
+        timestamp: new Date().toISOString() // 使用 ISO 字符串
       };
 
       this.failoverHistory.push(failoverResult);

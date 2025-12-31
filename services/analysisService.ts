@@ -1085,7 +1085,7 @@ ${finalNewsText}
         timeHorizon: parsed.timeHorizon || 'medium',
         predictedTrend: parsed.predictedTrend || '',
         analyzedNewsCount: newsList.length,
-        timestamp: new Date()
+        timestamp: new Date().toISOString()
       };
 
       console.log(`✅ 整体市场分析完成:`, {
