@@ -285,10 +285,42 @@ export class SentimentService {
     try {
       const stored = localStorage.getItem(SENTIMENT_STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        
+        // 验证和修复数据
+        for (const assetType in parsed) {
+          if (Array.isArray(parsed[assetType])) {
+            parsed[assetType] = parsed[assetType].filter((snapshot: any) => {
+              // 确保必需字段存在
+              if (!snapshot.date || !snapshot.score || !snapshot.level) {
+                return false;
+              }
+              
+              // 确保 timestamp 是数字
+              if (typeof snapshot.timestamp !== 'number') {
+                // 尝试转换
+                const ts = Number(snapshot.timestamp);
+                if (isNaN(ts)) {
+                  return false;
+                }
+                snapshot.timestamp = ts;
+              }
+              
+              return true;
+            });
+          }
+        }
+        
+        return parsed;
       }
     } catch (error) {
       console.error('加载情绪历史失败:', error);
+      // 清除损坏的数据
+      try {
+        localStorage.removeItem(SENTIMENT_STORAGE_KEY);
+      } catch (e) {
+        console.error('清除损坏的情绪历史失败:', e);
+      }
     }
     return {} as Record<AssetType, SentimentSnapshot[]>;
   }

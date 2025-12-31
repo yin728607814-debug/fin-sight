@@ -119,17 +119,43 @@ function migrateToV21(): void {
     localStorage.removeItem(appStateKey);
   }
   
-  // 2. 清除可能损坏的情绪历史数据
+  // 2. 清除并重建情绪历史数据（修复 timestamp 类型问题）
   const sentimentHistoryKey = 'sentiment-history';
   try {
     const sentimentHistory = localStorage.getItem(sentimentHistoryKey);
     if (sentimentHistory) {
       const parsed = JSON.parse(sentimentHistory);
       
-      // 验证情绪历史数据
-      if (!isValidSentimentHistory(parsed)) {
-        console.log('  - 情绪历史数据无效，清除');
-        localStorage.removeItem(sentimentHistoryKey);
+      // 验证并修复情绪历史数据
+      let needsUpdate = false;
+      for (const assetType in parsed) {
+        if (Array.isArray(parsed[assetType])) {
+          parsed[assetType] = parsed[assetType].filter((snapshot: any) => {
+            // 确保必需字段存在
+            if (!snapshot.date || !snapshot.score || !snapshot.level || !snapshot.timestamp) {
+              needsUpdate = true;
+              return false;
+            }
+            
+            // 确保 timestamp 是数字
+            if (typeof snapshot.timestamp !== 'number') {
+              const ts = Number(snapshot.timestamp);
+              if (isNaN(ts)) {
+                needsUpdate = true;
+                return false;
+              }
+              snapshot.timestamp = ts;
+              needsUpdate = true;
+            }
+            
+            return true;
+          });
+        }
+      }
+      
+      if (needsUpdate) {
+        console.log('  - 修复情绪历史数据');
+        localStorage.setItem(sentimentHistoryKey, JSON.stringify(parsed));
       }
     }
   } catch (error) {
@@ -160,7 +186,7 @@ function isValidAppState(state: any): boolean {
 /**
  * 验证情绪历史数据结构
  */
-function isValidSentimentHistory(history: any): boolean {
+function isValidSentimentHistory(history: unknown): boolean {
   if (!history || typeof history !== 'object') return false;
   
   // 检查每个资产类型的数据
