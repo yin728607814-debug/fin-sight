@@ -1123,18 +1123,38 @@ ${finalNewsText}
       console.log(`📝 整体分析响应长度: ${responseText.length}字`);
       console.log(`📝 响应预览: ${responseText.substring(0, 200)}`);
 
-      // 移除可能的 markdown 代码块标记
-      const cleanedText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      // 移除可能的 markdown 代码块标记（更彻底的清理）
+      const cleanedText = responseText
+        .replace(/```json\s*/gi, '')  // 移除 ```json
+        .replace(/```\s*/g, '')        // 移除 ```
+        .replace(/^[^{]*/, '')         // 移除JSON前的所有内容
+        .replace(/[^}]*$/, '')         // 移除JSON后的所有内容
+        .trim();
       
       // 解析JSON响应
       const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error('❌ 无法从响应中提取JSON');
-        console.error('响应内容:', responseText);
+        console.error('清理后的内容:', cleanedText.substring(0, 500));
+        console.error('原始响应:', responseText);
         throw new Error('无法从响应中提取JSON');
       }
 
-      const jsonText = jsonMatch[0].trim();
+      let jsonText = jsonMatch[0].trim();
+      
+      // 额外的JSON修复逻辑（处理可能的格式问题）
+      // 1. 确保JSON正确闭合
+      const openBraces = (jsonText.match(/\{/g) || []).length;
+      const closeBraces = (jsonText.match(/\}/g) || []).length;
+      if (openBraces > closeBraces) {
+        jsonText += '}'.repeat(openBraces - closeBraces);
+      }
+      
+      const openBrackets = (jsonText.match(/\[/g) || []).length;
+      const closeBrackets = (jsonText.match(/\]/g) || []).length;
+      if (openBrackets > closeBrackets) {
+        jsonText += ']'.repeat(openBrackets - closeBrackets);
+      }
       
       const parsed = JSON.parse(jsonText);
       

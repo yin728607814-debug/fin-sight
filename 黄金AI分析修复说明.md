@@ -1,156 +1,92 @@
-# 黄金AI分析失败修复说明
+# 黄金AI分析JSON解析错误修复说明
 
 ## 问题描述
-黄金页面的整体市场AI分析失败，显示"API错误详情"。
 
-## 根本原因分析
-
-### 1. **请求内容过长**
-- 原配置：50条新闻 × 200字 = 10,000字
-- 加上详细的prompt模板，总长度可能超过20,000字
-- Gemini API对输入长度有限制，过长会导致请求失败
-
-### 2. **Prompt过于复杂**
-- 原prompt包含大量详细说明（7条分析要求）
-- 增加了token消耗，降低了成功率
-
-### 3. **缺少降级方案**
-- 当AI分析失败时，直接抛出错误
-- 用户看到错误信息，体验不佳
-
-## 修复方案
-
-### 1. **优化新闻内容长度** ✅
-```typescript
-// 修改前：200字
-const shortContent = news.content.length > 200 
-  ? news.content.substring(0, 200) + '...' 
-  : news.content;
-
-// 修改后：150字
-const shortContent = news.content.length > 150 
-  ? news.content.substring(0, 150) + '...' 
-  : news.content;
+黄金页面的AI分析功能报错：
+```
+SyntaxError: Unexpected non-whitespace character after JSON at position 596 (Line 10 column 4)
 ```
 
-**效果**：
-- 50条新闻从10,000字减少到7,500字
-- 降低25%的token消耗
+错误发生在解析整体市场分析（`analyzeOverallMarket`）的API响应时。
 
-### 2. **降低最大长度限制** ✅
+## 问题原因
+
+Gemini API 返回的响应可能包含：
+1. Markdown 代码块标记（```json 和 ```）
+2. JSON 前后的额外文本或空白字符
+3. 不完整的JSON结构（缺少闭合括号）
+
+虽然之前已经修复了 `parseGeminiResponse` 和 `parseBatchGeminiResponse` 方法，但 `analyzeOverallMarket` 方法中的JSON清理逻辑不够健壮。
+
+## 解决方案
+
+### 1. 增强JSON清理逻辑
+
+在 `analyzeOverallMarket` 方法中添加了更彻底的清理步骤：
+
 ```typescript
-// 修改前：20,000字
-const maxPromptLength = 20000;
-
-// 修改后：15,000字
-const maxPromptLength = 15000;
+// 移除可能的 markdown 代码块标记（更彻底的清理）
+const cleanedText = responseText
+  .replace(/```json\s*/gi, '')  // 移除 ```json（不区分大小写）
+  .replace(/```\s*/g, '')        // 移除 ```
+  .replace(/^[^{]*/, '')         // 移除JSON前的所有内容
+  .replace(/[^}]*$/, '')         // 移除JSON后的所有内容
+  .trim();
 ```
 
-**效果**：
-- 更保守的限制，确保不超过API限制
-- 提高请求成功率
+### 2. 添加JSON结构修复
 
-### 3. **简化Prompt模板** ✅
+确保JSON正确闭合，防止不完整的响应：
+
 ```typescript
-// 修改前：详细的prompt（约500字）
-const prompt = `你是一位资深的金融分析师和投资顾问。请基于以下${newsList.length}条最新新闻...
-[7条详细的分析要求]`;
+// 额外的JSON修复逻辑（处理可能的格式问题）
+// 1. 确保JSON正确闭合
+const openBraces = (jsonText.match(/\{/g) || []).length;
+const closeBraces = (jsonText.match(/\}/g) || []).length;
+if (openBraces > closeBraces) {
+  jsonText += '}'.repeat(openBraces - closeBraces);
+}
 
-// 修改后：简洁的prompt（约150字）
-const prompt = `分析${newsList.length}条${assetName}新闻，返回JSON（无markdown）：
-[简洁的格式说明]`;
-```
-
-**效果**：
-- Prompt从500字减少到150字
-- 减少70%的prompt token消耗
-- 总token消耗：7,500 + 150 = 7,650字（安全范围内）
-
-### 4. **添加降级分析方案** ✅
-```typescript
-// 新增方法
-private generateFallbackOverallAnalysis(
-  newsList: Array<{ title: string; content: string }>, 
-  assetType: AssetType
-): OverallMarketAnalysis {
-  // 基于关键词的简单分析
-  // 返回基础的市场分析结果
+const openBrackets = (jsonText.match(/\[/g) || []).length;
+const closeBrackets = (jsonText.match(/\]/g) || []).length;
+if (openBrackets > closeBrackets) {
+  jsonText += ']'.repeat(openBrackets - closeBrackets);
 }
 ```
 
-**效果**：
-- 当AI分析失败时，自动使用降级方案
-- 用户仍能看到基础的分析结果
-- 提升用户体验
+### 3. 增强错误日志
 
-### 5. **增强错误日志** ✅
+添加更详细的错误日志，便于调试：
+
 ```typescript
-// 添加详细的错误信息
-console.log(`🚀 发起整体市场分析请求`);
-console.log(`📊 Prompt总长度: ${prompt.length}字`);
-console.log(`🔑 API密钥前缀: ${this.config.apiKey?.substring(0, 10)}...`);
-
-// 针对不同错误类型的处理
-if (error.response?.status === 403) {
-  console.error('🚫 Gemini API 403错误 - 可能的原因：');
-  // ...详细说明
-}
-
-if (error.response?.status === 429) {
-  console.error('🚫 Gemini API 429错误 - API配额已用完');
-  // ...详细说明
+if (!jsonMatch) {
+  console.error('❌ 无法从响应中提取JSON');
+  console.error('清理后的内容:', cleanedText.substring(0, 500));
+  console.error('原始响应:', responseText);
+  throw new Error('无法从响应中提取JSON');
 }
 ```
 
-**效果**：
-- 更容易诊断问题
-- 为用户提供明确的解决建议
+## 修改的文件
 
-## 修复效果对比
-
-| 指标 | 修复前 | 修复后 | 改善 |
-|------|--------|--------|------|
-| 新闻内容长度 | 200字/条 | 150字/条 | ↓25% |
-| 总内容长度 | 10,000字 | 7,500字 | ↓25% |
-| Prompt长度 | 500字 | 150字 | ↓70% |
-| 最大限制 | 20,000字 | 15,000字 | ↓25% |
-| 总Token消耗 | ~10,500字 | ~7,650字 | ↓27% |
-| 失败处理 | 抛出错误 | 降级分析 | ✅ |
-
-## 预期结果
-
-1. **成功率提升**：通过减少token消耗，降低API拒绝请求的概率
-2. **用户体验改善**：即使AI分析失败，也能看到基础分析结果
-3. **更好的诊断**：详细的错误日志帮助快速定位问题
+- `services/analysisService.ts` - 增强了 `analyzeOverallMarket` 方法的JSON解析逻辑
 
 ## 测试建议
 
-1. 刷新黄金分析页面
-2. 点击"分析新闻"按钮
-3. 观察控制台日志：
-   - 查看"Prompt总长度"是否在7,000-8,000字范围内
-   - 如果成功，应该看到"✅ 整体市场分析完成"
-   - 如果失败，应该看到"⚠️ 使用降级分析结果"
+1. 在黄金分析页面点击"分析新闻"按钮
+2. 观察控制台日志，确认整体市场分析成功完成
+3. 检查页面上是否正确显示了整体市场分析卡片
+4. 验证新闻列表上的利好/利空标签是否正常显示
 
-## 后续优化建议
+## 相关问题
 
-如果问题仍然存在，可以考虑：
+这次修复与之前的两次修复一致：
+1. 第一次修复：`parseGeminiResponse` 方法（单条新闻分析）
+2. 第二次修复：`parseBatchGeminiResponse` 方法（批量新闻分析）
+3. 本次修复：`analyzeOverallMarket` 方法（整体市场分析）
 
-1. **进一步减少新闻数量**：从50条减少到30条
-2. **使用更小的模型**：gemini-1.5-flash-8b（更快，配额更高）
-3. **分批分析**：将50条新闻分成2批，每批25条
-4. **增加缓存时间**：从2小时增加到4小时，减少API调用
+所有三个方法现在都使用了相同的健壮JSON清理和修复逻辑。
 
-## 文件修改清单
+## 日期
 
-- ✅ `services/analysisService.ts` - 优化analyzeOverallMarket方法
-  - 减少新闻内容长度（200字→150字）
-  - 降低最大长度限制（20,000→15,000）
-  - 简化prompt模板
-  - 添加降级分析方法
-  - 增强错误日志和处理
-
----
-
-**修复时间**: 2025-01-04
-**修复人**: Kiro AI Assistant
+2025-01-XX
