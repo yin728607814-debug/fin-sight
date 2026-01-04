@@ -194,14 +194,20 @@ export const SupabaseTestPage: React.FC = () => {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <span className="text-gray-600">持仓金额：</span>
-                          <span className="font-semibold">¥{position.investment_amount.toFixed(2)}</span>
+                          <span className="font-semibold">
+                            ¥{typeof position.investment_amount === 'number' 
+                              ? position.investment_amount.toFixed(2) 
+                              : Number(position.investment_amount || 0).toFixed(2)}
+                          </span>
                         </div>
                         <div>
                           <span className="text-gray-600">持仓收益：</span>
                           <span className={`font-semibold ${
-                            position.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'
+                            (position.profit_loss || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            ¥{position.profit_loss.toFixed(2)}
+                            ¥{typeof position.profit_loss === 'number'
+                              ? position.profit_loss.toFixed(2)
+                              : Number(position.profit_loss || 0).toFixed(2)}
                           </span>
                         </div>
                       </div>

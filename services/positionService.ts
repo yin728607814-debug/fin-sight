@@ -52,8 +52,17 @@ export class PositionService {
         throw error;
       }
 
-      logInfo('获取持仓列表成功', { count: data?.length || 0 });
-      return data || [];
+      // 转换数据类型（PostgreSQL DECIMAL 返回为字符串）
+      const positions = (data || []).map(pos => ({
+        ...pos,
+        investment_amount: Number(pos.investment_amount),
+        profit_loss: Number(pos.profit_loss),
+        quantity: pos.quantity ? Number(pos.quantity) : undefined,
+        average_buy_price: pos.average_buy_price ? Number(pos.average_buy_price) : undefined
+      }));
+
+      logInfo('获取持仓列表成功', { count: positions.length });
+      return positions;
     } catch (error) {
       logError('获取持仓列表异常', error);
       throw error;
@@ -108,8 +117,17 @@ export class PositionService {
         throw error;
       }
 
-      logInfo('创建持仓成功', { id: data.id });
-      return data;
+      // 转换数据类型
+      const position = {
+        ...data,
+        investment_amount: Number(data.investment_amount),
+        profit_loss: Number(data.profit_loss),
+        quantity: data.quantity ? Number(data.quantity) : undefined,
+        average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined
+      };
+
+      logInfo('创建持仓成功', { id: position.id });
+      return position;
     } catch (error) {
       logError('创建持仓异常', error);
       throw error;
@@ -142,8 +160,17 @@ export class PositionService {
         throw new Error('持仓不存在或无权限更新');
       }
 
+      // 转换数据类型
+      const position = {
+        ...data,
+        investment_amount: Number(data.investment_amount),
+        profit_loss: Number(data.profit_loss),
+        quantity: data.quantity ? Number(data.quantity) : undefined,
+        average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined
+      };
+
       logInfo('更新持仓成功', { id });
-      return data;
+      return position;
     } catch (error) {
       logError('更新持仓异常', error);
       throw error;
