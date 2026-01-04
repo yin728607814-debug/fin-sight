@@ -1,6 +1,6 @@
 /**
  * 投资组合图表组件
- * 显示资产分布饼图和收益曲线
+ * 显示资产分布饼图和收益曲线（支持分资产类型显示）
  */
 
 import React, { useState } from 'react';
@@ -35,10 +35,43 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   };
 
   /**
+   * 计算分资产类型的历史数据
+   * 从持仓数据推算每个资产类型的历史价值
+   */
+  const calculateAssetHistory = () => {
+    // 获取当前各资产的投资
+    const nasdaqPositions = portfolio.positions.filter(p => p.assetType === 'nasdaq');
+    const goldPositions = portfolio.positions.filter(p => p.assetType === 'gold');
+    
+    const nasdaqInvestment = nasdaqPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
+    const goldInvestment = goldPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
+    
+    // 为历史数据添加分资产类型的值（按比例推算）
+    return history.map(item => {
+      const totalValue = item.value;
+      
+      // 按当前投资比例分配历史价值
+      const nasdaqRatio = (nasdaqInvestment + goldInvestment) > 0 ? nasdaqInvestment / (nasdaqInvestment + goldInvestment) : 0;
+      const goldRatio = 1 - nasdaqRatio;
+      
+      const nasdaqHistValue = totalValue * nasdaqRatio;
+      const goldHistValue = totalValue * goldRatio;
+      
+      return {
+        ...item,
+        nasdaqValue: nasdaqHistValue,
+        goldValue: goldHistValue
+      };
+    });
+  };
+
+  const enhancedHistory = calculateAssetHistory();
+
+  /**
    * 格式化货币
    */
   const formatCurrency = (value: number): string => {
-    return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    return `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
   };
 
   /**
@@ -89,7 +122,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry) => `${entry.percentage.toFixed(1)}%`}
+                      label={(entry: any) => `${entry.percentage.toFixed(1)}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -99,7 +132,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value: number | undefined) => value !== undefined ? formatCurrency(value) : ''}
                       contentStyle={{
                         backgroundColor: 'rgba(255, 255, 255, 0.95)',
                         border: '1px solid #e5e7eb',
@@ -136,51 +169,66 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
             )}
           </div>
         ) : (
-          // 收益曲线
+          // 收益曲线 - 分资产类型显示
           <div>
-            {history.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={history}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={formatDate}
-                    stroke="#9ca3af"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis
-                    tickFormatter={formatCurrency}
-                    stroke="#9ca3af"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelFormatter={(label) => `日期: ${label}`}
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '0.5rem'
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    name="总价值"
-                    stroke="#3B82F6"
-                    strokeWidth={2}
-                    dot={{ fill: '#3B82F6', r: 4 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="profitLoss"
-                    name="盈亏"
-                    stroke="#10B981"
-                    strokeWidth={2}
-                    dot={{ fill: '#10B981', r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            {enhancedHistory.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={enhancedHistory}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatDate}
+                      stroke="#9ca3af"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis
+                      tickFormatter={formatCurrency}
+                      stroke="#9ca3af"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <Tooltip
+                      formatter={(value: number | undefined) => value !== undefined ? formatCurrency(value) : ''}
+                      labelFormatter={(label) => `日期: ${label}`}
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      name="总价值"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      dot={{ fill: '#10B981', r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="nasdaqValue"
+                      name="纳斯达克"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      dot={{ fill: '#3B82F6', r: 3 }}
+                      strokeDasharray="5 5"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="goldValue"
+                      name="黄金"
+                      stroke="#F59E0B"
+                      strokeWidth={2}
+                      dot={{ fill: '#F59E0B', r: 3 }}
+                      strokeDasharray="5 5"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+                  * 虚线表示各资产类型的价值走势（按当前持仓比例推算）
+                </div>
+              </>
             ) : (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 暂无历史数据

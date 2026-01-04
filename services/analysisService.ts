@@ -425,7 +425,7 @@ ${newsText}
 
         // 手动处理4xx错误
         if (response.status >= 400) {
-          const error: unknown = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const error: any = new Error(`HTTP ${response.status}: ${response.statusText}`);
           error.response = response;
           error.config = { ...response.config, url: url.replace(this.config.apiKey, '***') };
           throw error;
@@ -979,6 +979,55 @@ ${newsText}
   }
 
   /**
+   * 生成降级的整体市场分析（当AI分析失败时使用）
+   */
+  private generateFallbackOverallAnalysis(
+    newsList: Array<{ title: string; content: string }>, 
+    assetType: import('../types').AssetType
+  ): import('../types').OverallMarketAnalysis {
+    const assetName = assetType === 'gold' ? '现货黄金' : '纳斯达克100';
+    
+    // 简单的关键词分析
+    const allText = newsList.map(n => `${n.title} ${n.content}`).join(' ').toLowerCase();
+    
+    const positiveKeywords = ['上涨', '增长', '利好', '看涨', 'rise', 'gain', 'bull', 'positive'];
+    const negativeKeywords = ['下跌', '下降', '利空', '看跌', 'fall', 'drop', 'bear', 'negative'];
+    
+    const positiveCount = positiveKeywords.reduce((sum, kw) => 
+      sum + (allText.match(new RegExp(kw, 'gi'))?.length || 0), 0
+    );
+    const negativeCount = negativeKeywords.reduce((sum, kw) => 
+      sum + (allText.match(new RegExp(kw, 'gi'))?.length || 0), 0
+    );
+    
+    let impact: import('../types').ImpactType = 'neutral';
+    if (positiveCount > negativeCount * 1.2) {
+      impact = 'positive';
+    } else if (negativeCount > positiveCount * 1.2) {
+      impact = 'negative';
+    }
+    
+    return {
+      assetType,
+      impact,
+      confidence: 0.4, // 降级分析置信度较低
+      summary: `基于${newsList.length}条新闻的基础分析，${assetName}市场整体呈现${impact === 'positive' ? '偏多' : impact === 'negative' ? '偏空' : '中性'}态势。由于AI分析服务暂时不可用，此分析基于关键词统计，建议结合其他信息源做出投资决策。`,
+      investmentAdvice: `当前建议保持谨慎态度，密切关注市场动态。建议采用分批建仓策略，控制仓位在合理范围内，设置止损止盈点位。`,
+      keyFactors: [
+        '市场情绪波动',
+        '宏观经济环境',
+        '政策面影响',
+        '技术面走势'
+      ],
+      riskLevel: 'medium',
+      timeHorizon: 'short',
+      predictedTrend: `短期内${assetName}可能维持震荡走势，建议关注关键支撑和阻力位。`,
+      analyzedNewsCount: newsList.length,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
    * 分析整体市场趋势并提供投资建议
    */
   async analyzeOverallMarket(
@@ -989,23 +1038,21 @@ ${newsText}
     
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 优化策略：使用标题+简短摘要（200字），保留核心信息
-    // 原因：
-    // 1. 财经新闻的核心信息通常在标题和前几句
-    // 2. 200字足够包含：标题(30字) + 核心内容(170字)
-    // 3. AI模型对简洁输入的理解更准确，避免信息过载
-    // 4. 减少token消耗，降低触发API限制的风险
+    // 优化策略：使用标题+简短摘要（150字），进一步减少token消耗
+    // 黄金新闻分析失败的原因分析：
+    // 1. 50条新闻 × 200字 = 10,000字，加上prompt可能超过API限制
+    // 2. 减少到150字：50条 × 150字 = 7,500字，更安全
+    // 3. 只保留最核心的信息：标题 + 前100字内容
     const newsText = newsList.map((news, index) => {
-      // 提取标题和简短内容（200字）
-      const shortContent = news.content.length > 200 
-        ? news.content.substring(0, 200) + '...' 
+      // 进一步缩短内容到150字
+      const shortContent = news.content.length > 150 
+        ? news.content.substring(0, 150) + '...' 
         : news.content;
       return `[${index}] ${news.title}\n${shortContent}`;
     }).join('\n\n');
     
-    // 检查总长度，如果太长则进一步截断
-    // 50条新闻 × 230字 ≈ 11,500字，加上prompt模板约15,000字，安全范围内
-    const maxPromptLength = 20000; // 降低到20000字，更保守的限制
+    // 更严格的长度限制，确保不超过API限制
+    const maxPromptLength = 15000; // 进一步降低到15000字
     let finalNewsText = newsText;
     if (newsText.length > maxPromptLength) {
       console.warn(`⚠️ 新闻内容过长 (${newsText.length}字)，截断到${maxPromptLength}字`);
@@ -1014,36 +1061,29 @@ ${newsText}
     
     console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
-    const prompt = `你是一位资深的金融分析师和投资顾问。请基于以下${newsList.length}条最新新闻，对${assetName}进行全面的市场分析并提供专业的投资建议。
+    // 简化prompt，减少token消耗
+    const prompt = `分析${newsList.length}条${assetName}新闻，返回JSON（无markdown）：
 
-新闻内容：
 ${finalNewsText}
 
-请提供详细的分析报告，返回JSON格式（无markdown）：
-
+格式：
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "综合分析摘要（200-300字），包括当前市场状况、主要驱动因素、短期和中期展望",
-  "investmentAdvice": "具体的投资建议（150-200字），包括建议的操作策略、仓位建议、止损止盈建议",
-  "keyFactors": ["关键影响因素1", "关键影响因素2", "关键影响因素3", "关键影响因素4"],
+  "summary": "市场分析（150-200字）",
+  "investmentAdvice": "投资建议（100-150字）",
+  "keyFactors": ["因素1", "因素2", "因素3"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "未来趋势预测（100-150字），包括可能的价格走势和关键支撑/阻力位"
-}
-
-分析要求：
-1. summary要全面分析当前市场环境，包括宏观经济、政策面、技术面、资金面等多个维度
-2. investmentAdvice要具体可操作，包括进场时机、仓位管理、风险控制等建议
-3. keyFactors要提炼出4-5个最关键的影响因素
-4. riskLevel要基于市场波动性、不确定性因素综合评估
-5. timeHorizon要根据当前市场状态和新闻内容判断最适合的投资周期
-6. predictedTrend要给出具体的价格走势预测和关键点位
-7. confidence要反映分析的确定性程度（考虑信息完整度、市场共识度等）`;
-
-    console.log(`📊 Prompt总长度: ${prompt.length}字`);
+  "predictedTrend": "趋势预测（80-100字）"
+}`;
 
     try {
+      // 添加请求前的日志
+      console.log(`🚀 发起整体市场分析请求`);
+      console.log(`📊 Prompt总长度: ${prompt.length}字`);
+      console.log(`🔑 API密钥前缀: ${this.config.apiKey?.substring(0, 10)}...`);
+      
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=${this.config.apiKey}`,
         {
@@ -1117,9 +1157,18 @@ ${finalNewsText}
           console.error('4. 地区限制或IP被封禁');
           console.error('当前API密钥:', this.config.apiKey?.substring(0, 10) + '...');
         }
+        
+        // 429错误特殊处理
+        if (error.response?.status === 429) {
+          console.error('🚫 Gemini API 429错误 - API配额已用完');
+          console.error('免费版限制：每分钟15次请求，每天1500次请求');
+          console.error('建议：等待1-2分钟后重试');
+        }
       }
       
-      throw error;
+      // 返回降级的分析结果，而不是抛出错误
+      console.warn('⚠️ 使用降级分析结果');
+      return this.generateFallbackOverallAnalysis(newsList, assetType);
     }
   }
 }

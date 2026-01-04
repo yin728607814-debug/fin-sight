@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeftIcon, PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { PortfolioSummary } from '../components/PortfolioSummary';
 import { PositionList } from '../components/PositionList';
 import { PortfolioChart } from '../components/PortfolioChart';
 import { AddPositionModal } from '../components/AddPositionModal';
@@ -27,6 +26,10 @@ export const PortfolioPage: React.FC = () => {
   const [previousPrices, setPreviousPrices] = useState<Map<string, number>>(new Map());
   const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Tab状态：用于区分黄金和纳斯达克
+  const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold'>('all');
+  const [summaryTab, setSummaryTab] = useState<'all' | 'nasdaq' | 'gold'>('all');
 
   // 使用增强的价格数据hook（自动处理黄金价格转换）
   const nasdaq = usePriceDataWithConversion('nasdaq');
@@ -105,6 +108,7 @@ export const PortfolioPage: React.FC = () => {
    */
   useEffect(() => {
     loadPortfolio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nasdaq.currentPrice, gold.currentPrice]);
 
   /**
@@ -149,6 +153,41 @@ export const PortfolioPage: React.FC = () => {
   };
 
   const history = portfolioService.getPortfolioHistory(30);
+
+  // 根据Tab过滤持仓
+  const filteredPositions = portfolio?.positions.filter(pos => {
+    if (activeTab === 'all') return true;
+    return pos.assetType === activeTab;
+  }) || [];
+
+  // 计算分类统计
+  const getAssetStats = (assetType: 'nasdaq' | 'gold' | 'all') => {
+    if (!portfolio) return null;
+    
+    if (assetType === 'all') {
+      return {
+        totalInvestment: portfolio.totalInvestment,
+        currentValue: portfolio.currentValue,
+        totalProfitLoss: portfolio.totalProfitLoss,
+        totalProfitLossPercent: portfolio.totalProfitLossPercent
+      };
+    }
+    
+    const positions = portfolio.positions.filter(p => p.assetType === assetType);
+    const totalInvestment = positions.reduce((sum, p) => sum + p.investmentAmount, 0);
+    const currentValue = positions.reduce((sum, p) => sum + (p.currentValue || p.investmentAmount), 0);
+    const totalProfitLoss = currentValue - totalInvestment;
+    const totalProfitLossPercent = totalInvestment > 0 ? (totalProfitLoss / totalInvestment) * 100 : 0;
+    
+    return {
+      totalInvestment,
+      currentValue,
+      totalProfitLoss,
+      totalProfitLossPercent
+    };
+  };
+
+  const currentStats = getAssetStats(summaryTab);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -266,39 +305,146 @@ export const PortfolioPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* 左侧：总览和图表 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 投资组合总览 */}
-            {portfolio && <PortfolioSummary portfolio={portfolio} />}
+            {/* 投资组合总览 - 添加Tab切换 */}
+            {portfolio && (
+              <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 overflow-hidden">
+                {/* Tab导航 */}
+                <div className="flex border-b border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setSummaryTab('all')}
+                    className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                      summaryTab === 'all'
+                        ? 'text-green-600 dark:text-green-400 border-b-2 border-green-600 dark:border-green-400 bg-green-50/50 dark:bg-green-900/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    全部资产
+                  </button>
+                  <button
+                    onClick={() => setSummaryTab('nasdaq')}
+                    className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                      summaryTab === 'nasdaq'
+                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    纳斯达克100
+                  </button>
+                  <button
+                    onClick={() => setSummaryTab('gold')}
+                    className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                      summaryTab === 'gold'
+                        ? 'text-yellow-600 dark:text-yellow-400 border-b-2 border-yellow-600 dark:border-yellow-400 bg-yellow-50/50 dark:bg-yellow-900/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    现货黄金
+                  </button>
+                </div>
+                
+                {/* 统计数据 */}
+                <div className="p-6">
+                  {currentStats && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总投资</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                          ¥{currentStats.totalInvestment.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当前市值</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                          ¥{currentStats.currentValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总盈亏</p>
+                        <p className={`text-2xl font-bold ${
+                          currentStats.totalProfitLoss >= 0 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-green-600 dark:text-green-400'
+                        }`}>
+                          {currentStats.totalProfitLoss >= 0 ? '+' : ''}¥{currentStats.totalProfitLoss.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">收益率</p>
+                        <p className={`text-2xl font-bold ${
+                          currentStats.totalProfitLossPercent >= 0 
+                            ? 'text-red-600 dark:text-red-400' 
+                            : 'text-green-600 dark:text-green-400'
+                        }`}>
+                          {currentStats.totalProfitLossPercent >= 0 ? '+' : ''}{currentStats.totalProfitLossPercent.toFixed(2)}%
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* 图表 */}
             {portfolio && portfolio.positions.length > 0 && (
               <PortfolioChart portfolio={portfolio} history={history} />
             )}
 
-            {/* 持仓列表 */}
-            <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  持仓列表
-                </h2>
+            {/* 持仓列表 - 添加Tab切换 */}
+            <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 overflow-hidden">
+              {/* Tab导航 */}
+              <div className="flex border-b border-gray-200 dark:border-gray-700 px-6 pt-6">
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
+                    activeTab === 'all'
+                      ? 'text-green-600 dark:text-green-400 bg-white dark:bg-gray-700 border-t border-l border-r border-gray-200 dark:border-gray-600'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  全部 ({portfolio?.positions.length || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('nasdaq')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ml-2 ${
+                    activeTab === 'nasdaq'
+                      ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-700 border-t border-l border-r border-gray-200 dark:border-gray-600'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  纳斯达克 ({portfolio?.positions.filter(p => p.assetType === 'nasdaq').length || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('gold')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ml-2 ${
+                    activeTab === 'gold'
+                      ? 'text-yellow-600 dark:text-yellow-400 bg-white dark:bg-gray-700 border-t border-l border-r border-gray-200 dark:border-gray-600'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  黄金 ({portfolio?.positions.filter(p => p.assetType === 'gold').length || 0})
+                </button>
+                <div className="flex-1"></div>
                 <button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors shadow-sm"
+                  className="flex items-center px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors shadow-sm mb-2"
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
                   添加持仓
                 </button>
               </div>
               
-              {portfolio && (
-                <PositionList
-                  positions={portfolio.positions}
-                  onEdit={(position) => {
-                    setSelectedPosition(position);
-                    setIsEditModalOpen(true);
-                  }}
-                  onDelete={handleDeletePosition}
-                />
-              )}
+              <div className="p-6">
+                {portfolio && (
+                  <PositionList
+                    positions={filteredPositions}
+                    onEdit={(position) => {
+                      setSelectedPosition(position);
+                      setIsEditModalOpen(true);
+                    }}
+                    onDelete={handleDeletePosition}
+                  />
+                )}
+              </div>
             </div>
           </div>
 
@@ -310,37 +456,129 @@ export const PortfolioPage: React.FC = () => {
               return goldStats.count > 0 ? <GoldSummary goldStats={goldStats} /> : null;
             })()}
 
-            {/* 统计卡片 */}
+            {/* 统计卡片 - 按资产类型区分 */}
             {portfolio && portfolio.positions.length > 0 && (
               <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   统计信息
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* 总体统计 */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">总体</h3>
+                    <div className="space-y-2">
+                      {(() => {
+                        const stats = portfolioService.getStatistics(portfolio);
+                        return (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">总持仓数</span>
+                              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                {stats.totalPositions}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">盈利持仓</span>
+                              <span className="font-semibold text-red-600 dark:text-red-400">
+                                {stats.profitablePositions}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">亏损持仓</span>
+                              <span className="font-semibold text-green-600 dark:text-green-400">
+                                {stats.losingPositions}
+                              </span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* 纳斯达克统计 */}
                   {(() => {
-                    const stats = portfolioService.getStatistics(portfolio);
-                    return (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">总持仓数</span>
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">
-                            {stats.totalPositions}
-                          </span>
+                    const nasdaqStats = portfolioService.getNasdaqStats(portfolio);
+                    return nasdaqStats.count > 0 ? (
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-3">纳斯达克100</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">持仓数</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {nasdaqStats.count}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">投资金额</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              ¥{nasdaqStats.investment.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">当前市值</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              ¥{nasdaqStats.currentValue.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">盈亏</span>
+                            <span className={`font-semibold ${
+                              nasdaqStats.profitLoss >= 0 
+                                ? 'text-red-600 dark:text-red-400' 
+                                : 'text-green-600 dark:text-green-400'
+                            }`}>
+                              {nasdaqStats.profitLoss >= 0 ? '+' : ''}¥{nasdaqStats.profitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">盈利持仓</span>
-                          <span className="font-semibold text-green-600 dark:text-green-400">
-                            {stats.profitablePositions}
-                          </span>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* 黄金统计 */}
+                  {(() => {
+                    const goldStats = portfolioService.getGoldStats(portfolio);
+                    return goldStats.count > 0 ? (
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-yellow-600 dark:text-yellow-400 mb-3">现货黄金</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">持仓数</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {goldStats.count}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">总克数</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {goldStats.totalGrams.toFixed(2)}g
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">投资金额</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              ¥{goldStats.investment.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">当前市值</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              ¥{goldStats.currentValue.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">盈亏</span>
+                            <span className={`font-semibold ${
+                              goldStats.profitLoss >= 0 
+                                ? 'text-red-600 dark:text-red-400' 
+                                : 'text-green-600 dark:text-green-400'
+                            }`}>
+                              {goldStats.profitLoss >= 0 ? '+' : ''}¥{goldStats.profitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">亏损持仓</span>
-                          <span className="font-semibold text-red-600 dark:text-red-400">
-                            {stats.losingPositions}
-                          </span>
-                        </div>
-                      </>
-                    );
+                      </div>
+                    ) : null;
                   })()}
                 </div>
               </div>
