@@ -154,7 +154,6 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
               title="数据加载出现问题"
               message="部分数据可能无法正常显示，请尝试刷新页面"
               onRetry={handleRefresh}
-              onClose={() => {}}
             />
           </div>
         )}

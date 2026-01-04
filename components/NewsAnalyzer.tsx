@@ -239,7 +239,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
     if (!isInitialized && (news.length === 0 || priceData.length === 0)) {
       setIsInitialized(true);
       if (skipAnalysis) {
-        // 只加载新闻和价格，不进行分析
+        // 只加载新闻和价格，不进行分析（保留之前的分析结果）
         Promise.all([fetchNews(), fetchPriceData()]);
       } else {
         // 加载并分析
@@ -252,6 +252,21 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
   useEffect(() => {
     setIsInitialized(false);
   }, [assetType]);
+
+  /**
+   * 当 skipAnalysis 从 true 变为 false 时，触发分析
+   * 当 skipAnalysis 从 false 变为 true 时，只刷新新闻
+   */
+  useEffect(() => {
+    // 只在已初始化且有新闻数据时响应 skipAnalysis 变化
+    if (isInitialized && news.length > 0) {
+      if (skipAnalysis) {
+        // skipAnalysis=true: 只刷新新闻，不分析（保留现有分析结果）
+        console.log('🔄 只刷新新闻，跳过AI分析');
+        fetchNews();
+      }
+    }
+  }, [skipAnalysis, isInitialized, news.length, fetchNews]);
 
   /**
    * 检查数据是否过期（超过30分钟）

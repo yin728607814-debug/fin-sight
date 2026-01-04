@@ -425,7 +425,7 @@ ${newsText}
 
         // 手动处理4xx错误
         if (response.status >= 400) {
-          const error: any = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const error: unknown = new Error(`HTTP ${response.status}: ${response.statusText}`);
           error.response = response;
           error.config = { ...response.config, url: url.replace(this.config.apiKey, '***') };
           throw error;
