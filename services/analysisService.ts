@@ -425,7 +425,10 @@ ${newsText}
 
         // 手动处理4xx错误
         if (response.status >= 400) {
-          const error: unknown = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const error = new Error(`HTTP ${response.status}: ${response.statusText}`) as Error & {
+            response?: typeof response;
+            config?: typeof response.config;
+          };
           error.response = response;
           error.config = { ...response.config, url: url.replace(this.config.apiKey, '***') };
           throw error;
@@ -1121,42 +1124,108 @@ ${finalNewsText}
       }
 
       console.log(`📝 整体分析响应长度: ${responseText.length}字`);
-      console.log(`📝 响应预览: ${responseText.substring(0, 200)}`);
+      console.log(`📝 响应预览: ${responseText.substring(0, 300)}`);
 
-      // 移除可能的 markdown 代码块标记（更彻底的清理）
+      // 移除可能的 markdown 代码块标记
       const cleanedText = responseText
         .replace(/```json\s*/gi, '')  // 移除 ```json
         .replace(/```\s*/g, '')        // 移除 ```
-        .replace(/^[^{]*/, '')         // 移除JSON前的所有内容
-        .replace(/[^}]*$/, '')         // 移除JSON后的所有内容
         .trim();
       
-      // 解析JSON响应
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error('❌ 无法从响应中提取JSON');
+      console.log(`🧹 清理后预览: ${cleanedText.substring(0, 300)}`);
+      
+      // 检测是对象还是数组
+      const startsWithArray = cleanedText.trimStart().startsWith('[');
+      const startsWithObject = cleanedText.trimStart().startsWith('{');
+      
+      let jsonText = '';
+      
+      if (startsWithArray) {
+        // 如果是数组格式，提取第一个对象
+        console.log('🔍 检测到数组格式，提取第一个对象');
+        const firstBracket = cleanedText.indexOf('[');
+        const lastBracket = cleanedText.lastIndexOf(']');
+        
+        if (firstBracket === -1 || lastBracket === -1) {
+          throw new Error('无法从响应中提取JSON数组');
+        }
+        
+        const arrayText = cleanedText.substring(firstBracket, lastBracket + 1);
+        
+        try {
+          const array = JSON.parse(arrayText);
+          if (Array.isArray(array) && array.length > 0) {
+            // 取第一个元素
+            jsonText = JSON.stringify(array[0]);
+            console.log('✅ 成功从数组中提取第一个对象');
+          } else {
+            throw new Error('数组为空或格式不正确');
+          }
+        } catch (arrayError) {
+          console.error('❌ 数组解析失败，尝试对象格式:', arrayError);
+          // 回退到对象格式处理
+          const firstBrace = cleanedText.indexOf('{');
+          const lastBrace = cleanedText.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonText = cleanedText.substring(firstBrace, lastBrace + 1);
+          } else {
+            throw arrayError;
+          }
+        }
+      } else if (startsWithObject) {
+        // 对象格式
+        console.log('🔍 检测到对象格式');
+        const firstBrace = cleanedText.indexOf('{');
+        const lastBrace = cleanedText.lastIndexOf('}');
+        
+        if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+          throw new Error('无法从响应中找到有效的JSON对象');
+        }
+        
+        jsonText = cleanedText.substring(firstBrace, lastBrace + 1);
+      } else {
+        console.error('❌ 无法识别JSON格式');
         console.error('清理后的内容:', cleanedText.substring(0, 500));
-        console.error('原始响应:', responseText);
         throw new Error('无法从响应中提取JSON');
       }
-
-      let jsonText = jsonMatch[0].trim();
       
-      // 额外的JSON修复逻辑（处理可能的格式问题）
-      // 1. 确保JSON正确闭合
-      const openBraces = (jsonText.match(/\{/g) || []).length;
-      const closeBraces = (jsonText.match(/\}/g) || []).length;
-      if (openBraces > closeBraces) {
-        jsonText += '}'.repeat(openBraces - closeBraces);
+      jsonText = jsonText.trim();
+      console.log(`📦 提取的JSON长度: ${jsonText.length}字`);
+      console.log(`📦 JSON预览: ${jsonText.substring(0, 200)}`);
+      
+      // 尝试解析JSON
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonText);
+        console.log('✅ JSON解析成功');
+      } catch (parseError) {
+        console.error('❌ JSON解析失败:', parseError);
+        console.error('尝试解析的JSON:', jsonText.substring(0, 500));
+        
+        // 尝试修复常见的JSON错误
+        const openBraces = (jsonText.match(/\{/g) || []).length;
+        const closeBraces = (jsonText.match(/\}/g) || []).length;
+        if (openBraces > closeBraces) {
+          console.log(`🔧 修复：添加 ${openBraces - closeBraces} 个闭合大括号`);
+          jsonText += '}'.repeat(openBraces - closeBraces);
+        }
+        
+        const openBrackets = (jsonText.match(/\[/g) || []).length;
+        const closeBrackets = (jsonText.match(/\]/g) || []).length;
+        if (openBrackets > closeBrackets) {
+          console.log(`🔧 修复：添加 ${openBrackets - closeBrackets} 个闭合中括号`);
+          jsonText += ']'.repeat(openBrackets - closeBrackets);
+        }
+        
+        // 再次尝试解析
+        try {
+          parsed = JSON.parse(jsonText);
+          console.log('✅ 修复后解析成功');
+        } catch (secondError) {
+          console.error('❌ 修复后仍然解析失败:', secondError);
+          throw parseError;
+        }
       }
-      
-      const openBrackets = (jsonText.match(/\[/g) || []).length;
-      const closeBrackets = (jsonText.match(/\]/g) || []).length;
-      if (openBrackets > closeBrackets) {
-        jsonText += ']'.repeat(openBrackets - closeBrackets);
-      }
-      
-      const parsed = JSON.parse(jsonText);
       
       const overallAnalysis: import('../types').OverallMarketAnalysis = {
         assetType,
