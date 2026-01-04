@@ -844,10 +844,11 @@ ${newsText}
     const title = newsContent.split('\n')[0] || newsContent.substring(0, 100);
     const assetName = assetType === 'gold' ? '黄金' : '纳斯达克100';
     
-    const impactText = {
+    const impactText: Record<ImpactType, string> = {
       positive: `可能对${assetName}产生积极影响`,
       negative: `可能对${assetName}产生消极影响`,
-      neutral: `对${assetName}的影响相对中性`
+      neutral: `对${assetName}的影响相对中性`,
+      mixed: `对${assetName}的影响呈现多空交织态势`
     };
     
     return `${title.substring(0, 80)}... ${impactText[impact]}。建议关注后续市场反应。`;
@@ -861,16 +862,17 @@ ${newsText}
     const keyPoints: string[] = [];
     
     // 根据影响类型选择相关句子
-    const relevantWords = {
+    const relevantWords: Record<ImpactType, string[]> = {
       positive: ['增长', '上涨', '利好', '积极', 'growth', 'increase', 'positive'],
       negative: ['下跌', '下降', '利空', '消极', 'decline', 'decrease', 'negative'],
-      neutral: ['稳定', '持平', '观望', 'stable', 'unchanged', 'neutral']
+      neutral: ['稳定', '持平', '观望', 'stable', 'unchanged', 'neutral'],
+      mixed: ['波动', '分化', '交织', '不确定', 'mixed', 'volatile', 'uncertain']
     };
     
     const words = relevantWords[impact] || [];
     
     for (const sentence of sentences.slice(0, 10)) {
-      if (words.some(word => sentence.toLowerCase().includes(word.toLowerCase()))) {
+      if (words.some((word: string) => sentence.toLowerCase().includes(word.toLowerCase()))) {
         keyPoints.push(sentence.trim());
         if (keyPoints.length >= 3) break;
       }

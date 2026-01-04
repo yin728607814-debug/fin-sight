@@ -67,6 +67,15 @@ export const OverallAnalysisCard: React.FC<OverallAnalysisCardProps> = ({
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
         </svg>
       )
+    },
+    mixed: {
+      bg: 'bg-yellow-50 border-yellow-200',
+      text: 'text-yellow-800',
+      icon: (
+        <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+        </svg>
+      )
     }
   };
 
@@ -91,7 +100,8 @@ export const OverallAnalysisCard: React.FC<OverallAnalysisCardProps> = ({
   const gradientBg = {
     positive: 'from-emerald-50 via-green-50 to-teal-50',
     negative: 'from-rose-50 via-red-50 to-pink-50',
-    neutral: 'from-slate-50 via-gray-50 to-zinc-50'
+    neutral: 'from-slate-50 via-gray-50 to-zinc-50',
+    mixed: 'from-yellow-50 via-amber-50 to-orange-50'
   };
 
   return (
@@ -103,6 +113,7 @@ export const OverallAnalysisCard: React.FC<OverallAnalysisCardProps> = ({
       <div className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-br ${
         analysis.impact === 'positive' ? 'from-green-200/30 to-emerald-300/20' :
         analysis.impact === 'negative' ? 'from-red-200/30 to-rose-300/20' :
+        analysis.impact === 'mixed' ? 'from-yellow-200/30 to-amber-300/20' :
         'from-blue-200/30 to-indigo-300/20'
       } rounded-full blur-3xl -translate-y-1/2 translate-x-1/2`}></div>
       
@@ -114,6 +125,7 @@ export const OverallAnalysisCard: React.FC<OverallAnalysisCardProps> = ({
             <div className={`p-3 rounded-2xl ${
               analysis.impact === 'positive' ? 'bg-green-500/10 backdrop-blur-sm' :
               analysis.impact === 'negative' ? 'bg-red-500/10 backdrop-blur-sm' :
+              analysis.impact === 'mixed' ? 'bg-yellow-500/10 backdrop-blur-sm' :
               'bg-gray-500/10 backdrop-blur-sm'
             }`}>
               {impactStyle.icon}

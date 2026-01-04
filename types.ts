@@ -6,7 +6,7 @@
 export type AssetType = 'gold' | 'nasdaq';
 
 // 影响类型
-export type ImpactType = 'positive' | 'negative' | 'neutral';
+export type ImpactType = 'positive' | 'negative' | 'neutral' | 'mixed';
 
 // 时间框架
 export type TimeFrame = 'short' | 'medium' | 'long';
@@ -332,7 +332,8 @@ export const ASSET_NAMES: Record<AssetType, string> = {
 export const IMPACT_COLORS: Record<ImpactType, string> = {
   positive: 'text-green-600',
   negative: 'text-red-600',
-  neutral: 'text-gray-600'
+  neutral: 'text-gray-600',
+  mixed: 'text-yellow-600'
 };
 
 // ============================================================================
