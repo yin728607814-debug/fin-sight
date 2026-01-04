@@ -16,6 +16,7 @@ const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const FundConfigPage = lazy(() => import('./pages/FundConfigPage'));
+const SupabaseTestPage = lazy(() => import('./pages/SupabaseTestPage'));
 
 const App: React.FC = () => {
   const [migrationError, setMigrationError] = React.useState<string | null>(null);
@@ -87,6 +88,7 @@ const App: React.FC = () => {
                 <Route path="/portfolio" element={<PortfolioPage />} />
                 <Route path="/fund-config" element={<FundConfigPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/supabase-test" element={<SupabaseTestPage />} />
               </Routes>
             </Suspense>
             <DebugPanel />
