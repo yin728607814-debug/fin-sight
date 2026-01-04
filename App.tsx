@@ -16,7 +16,7 @@ const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const FundConfigPage = lazy(() => import('./pages/FundConfigPage'));
-const SupabaseTestPage = lazy(() => import('./pages/SupabaseTestPage'));
+const SupabaseTestPage = lazy(() => import('./pages/SupabaseTestPage').then(module => ({ default: module.SupabaseTestPage })));
 
 const App: React.FC = () => {
   const [migrationError, setMigrationError] = React.useState<string | null>(null);
