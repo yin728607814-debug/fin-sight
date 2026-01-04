@@ -42,7 +42,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: true });
       setUsingFallbackData(false);
       
-      const newsData = await newsService.fetchMarketNews(assetType, 100); // 改为 100 条
+      const newsData = await newsService.fetchMarketNews(assetType, 50);
       setNews(newsData);
       setLastFetchTime(new Date());
       
@@ -65,7 +65,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ news: true });
       
       const { generateDemoNews } = await import('../services/demoDataService');
-      const demoNews = generateDemoNews(assetType, 100); // 改为 100 条
+      const demoNews = generateDemoNews(assetType, 50);
       setNews(demoNews);
       setLastFetchTime(new Date());
       setUsingFallbackData(true);
