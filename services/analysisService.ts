@@ -509,16 +509,24 @@ ${newsText}
         throw new Error('Gemini API 返回了空响应');
       }
 
-      const text = candidate.content.parts[0].text;
-      logInfo('Gemini API 响应文本', { textLength: text.length });
+      let text = candidate.content.parts[0].text;
+      logInfo('Gemini API 响应文本', { textLength: text.length, preview: text.substring(0, 100) });
 
+      // 移除可能的 markdown 代码块标记
+      text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
       // 尝试解析 JSON
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('无法从响应中提取 JSON');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      let jsonText = jsonMatch[0];
+      
+      // 清理可能的格式问题
+      jsonText = jsonText.trim();
+      
+      const parsed = JSON.parse(jsonText);
       
       // 验证和标准化响应
       return {
@@ -549,9 +557,12 @@ ${newsText}
         throw new Error('Gemini API 返回了空响应');
       }
 
-      const text = candidate.content.parts[0].text;
-      logInfo('Gemini API 批量响应文本', { textLength: text.length });
+      let text = candidate.content.parts[0].text;
+      logInfo('Gemini API 批量响应文本', { textLength: text.length, preview: text.substring(0, 200) });
 
+      // 移除可能的 markdown 代码块标记
+      text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
       // 尝试解析 JSON - 增强容错
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
@@ -559,6 +570,9 @@ ${newsText}
       }
 
       let jsonText = jsonMatch[0];
+      
+      // 清理可能的格式问题
+      jsonText = jsonText.trim();
       
       // 尝试修复常见的JSON错误
       // 1. 移除末尾可能不完整的对象
