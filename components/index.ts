@@ -27,6 +27,7 @@ export { PositionList } from './PositionList';
 export { PortfolioChart } from './PortfolioChart';
 export { AddPositionModal } from './AddPositionModal';
 export { EditPositionModal } from './EditPositionModal';
+export { MigrationPrompt } from './MigrationPrompt';
 
 // 通用组件
 export { 
