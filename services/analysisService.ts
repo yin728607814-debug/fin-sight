@@ -1120,13 +1120,23 @@ ${finalNewsText}
         throw new Error('整体分析响应为空');
       }
 
+      console.log(`📝 整体分析响应长度: ${responseText.length}字`);
+      console.log(`📝 响应预览: ${responseText.substring(0, 200)}`);
+
+      // 移除可能的 markdown 代码块标记
+      const cleanedText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
       // 解析JSON响应
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        console.error('❌ 无法从响应中提取JSON');
+        console.error('响应内容:', responseText);
         throw new Error('无法从响应中提取JSON');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      const jsonText = jsonMatch[0].trim();
+      
+      const parsed = JSON.parse(jsonText);
       
       const overallAnalysis: import('../types').OverallMarketAnalysis = {
         assetType,
