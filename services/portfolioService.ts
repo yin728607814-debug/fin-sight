@@ -227,7 +227,9 @@ export class PortfolioService {
       } else {
         // 黄金：根据均价和当前价格计算收益
         if (currentPrice !== undefined && position.quantity && position.averageBuyPrice) {
+          // 当前市值 = 克数 × 当前价格（人民币/克）
           const positionValue = position.quantity * currentPrice;
+          // 持仓收益 = 当前市值 - 持仓金额
           const profitLoss = positionValue - investment;
           const profitLossPercent = investment > 0 ? (profitLoss / investment) * 100 : 0;
 
@@ -242,11 +244,12 @@ export class PortfolioService {
           };
         }
 
-        // 如果没有当前价格，使用持仓金额
-        currentValue += investment;
+        // 如果没有当前价格，使用用户输入的持仓收益
+        const positionValue = investment + (position.profitLoss || 0);
+        currentValue += positionValue;
         return {
           ...position,
-          currentValue: investment,
+          currentValue: positionValue,
           profitLoss: position.profitLoss || 0,
           profitLossPercent: investment > 0 ? ((position.profitLoss || 0) / investment) * 100 : 0
         };

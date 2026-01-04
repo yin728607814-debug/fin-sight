@@ -41,6 +41,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   // 黄金字段
   const [goldGrams, setGoldGrams] = useState('');
   const [goldInvestment, setGoldInvestment] = useState('');
+  const [goldProfit, setGoldProfit] = useState('');
   
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -84,6 +85,9 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
       if (!goldInvestment || parseFloat(goldInvestment) <= 0) {
         newErrors.investment = '持仓金额必须大于0';
       }
+      if (goldProfit === '' || isNaN(parseFloat(goldProfit))) {
+        newErrors.profit = '请输入持仓收益';
+      }
     }
 
     setErrors(newErrors);
@@ -120,6 +124,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
       const grams = parseFloat(goldGrams);
       const investment = parseFloat(goldInvestment);
       const averagePrice = investment / grams;
+      const profit = parseFloat(goldProfit);
       
       onAdd({
         assetType: 'gold',
@@ -127,7 +132,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
         quantity: grams,
         averageBuyPrice: averagePrice,
         investmentAmount: investment,
-        profitLoss: 0,
+        profitLoss: profit,
         createdAt: now,
         updatedAt: now
       });
@@ -148,6 +153,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
     setNasdaqProfit('');
     setGoldGrams('');
     setGoldInvestment('');
+    setGoldProfit('');
     setAutoInvest(undefined);
     setErrors({});
   };
@@ -379,6 +385,29 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                       均价：¥{(parseFloat(goldInvestment) / parseFloat(goldGrams)).toFixed(2)}/克
                     </p>
                   )}
+                </div>
+
+                {/* 持仓收益 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    持仓收益（元）
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={goldProfit}
+                    onChange={(e) => setGoldProfit(e.target.value)}
+                    placeholder="例如：200（可以是负数）"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
+                      errors.profit ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.profit && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.profit}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    盈利输入正数，亏损输入负数。首次输入后，系统将根据当前黄金价格和均价自动计算持仓收益
+                  </p>
                 </div>
               </>
             )}
