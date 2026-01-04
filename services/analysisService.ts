@@ -1173,7 +1173,60 @@ ${finalNewsText}
             throw arrayError;
           }
         } else {
-          throw new Error('无法找到完整的JSON数组');
+          // 数组不完整，尝试提取第一个对象
+          console.log('⚠️ 数组不完整，尝试提取第一个对象');
+          const firstBrace = cleanedText.indexOf('{');
+          if (firstBrace === -1) {
+            throw new Error('无法找到JSON对象');
+          }
+          
+          let depth = 0;
+          let objEndPos = -1;
+          let inString = false;
+          let escapeNext = false;
+          
+          for (let i = firstBrace; i < cleanedText.length; i++) {
+            const char = cleanedText[i];
+            
+            if (escapeNext) {
+              escapeNext = false;
+              continue;
+            }
+            
+            if (char === '\\') {
+              escapeNext = true;
+              continue;
+            }
+            
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+            
+            if (!inString) {
+              if (char === '{') depth++;
+              if (char === '}') {
+                depth--;
+                if (depth === 0) {
+                  objEndPos = i + 1;
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (objEndPos > firstBrace) {
+            const objText = cleanedText.substring(firstBrace, objEndPos);
+            try {
+              parsed = JSON.parse(objText);
+              console.log('✅ 成功从不完整数组中提取第一个对象');
+            } catch (objError) {
+              console.error('❌ 对象解析失败:', objError);
+              throw objError;
+            }
+          } else {
+            throw new Error('无法找到完整的JSON对象');
+          }
         }
       } else if (startsWithObject) {
         console.log('🔍 检测到对象格式');
