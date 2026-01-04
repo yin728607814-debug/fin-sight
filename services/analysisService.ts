@@ -1078,22 +1078,27 @@ ${newsText}
     
     console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
-    // 简化prompt，减少token消耗
+    // 简化prompt，减少token消耗，确保响应完整
     const prompt = `分析${newsList.length}条${assetName}新闻，返回JSON（无markdown）：
 
 ${finalNewsText}
 
-格式：
+返回格式（严格遵守，确保JSON完整）：
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "市场分析（150-200字）",
-  "investmentAdvice": "投资建议（100-150字）",
+  "summary": "市场分析（100-150字）",
+  "investmentAdvice": "投资建议（80-120字）",
   "keyFactors": ["因素1", "因素2", "因素3"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "趋势预测（80-100字）"
-}`;
+  "predictedTrend": "趋势预测（60-80字）"
+}
+
+注意：
+1. 只返回一个JSON对象，不要返回数组
+2. 确保JSON格式完整，所有字段都要有值
+3. 控制文字长度，避免超出限制`;
 
     try {
       // 添加请求前的日志
@@ -1109,7 +1114,7 @@ ${finalNewsText}
           }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 4096
+            maxOutputTokens: 2048  // 降低到2048，配合更简洁的prompt
           }
         },
         {
