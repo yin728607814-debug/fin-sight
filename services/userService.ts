@@ -1,72 +1,73 @@
 /**
  * 用户服务
- * 管理用户标识（使用 UUID）
+ * 管理用户标识（使用 Supabase Auth）
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { authService } from './authService';
 import { logInfo } from './logger';
 
 const USER_ID_KEY = 'portfolio_user_id';
-const USER_ID_VERSION_KEY = 'portfolio_user_id_version';
-const CURRENT_VERSION = '1.0';
-
-// 临时方案：使用固定的用户 ID（开发/测试用）
-// TODO: 后续替换为真实的登录系统
-const FIXED_USER_ID = 'ffbce643-c892-4f7d-b4e1-736bdc60b816';
 
 /**
  * 用户服务类
  */
 export class UserService {
   /**
-   * 获取或生成用户ID
+   * 获取当前登录用户的ID
    */
-  static getUserId(): string {
-    // 临时方案：直接返回固定 ID
-    // 这样无论域名如何变化，都使用同一个用户 ID
-    return FIXED_USER_ID;
+  static async getUserId(): Promise<string> {
+    // 优先从 Supabase Auth 获取
+    const user = await authService.getCurrentUser();
     
-    /* 原来的逻辑（登录系统实现后恢复）
-    let userId = localStorage.getItem(USER_ID_KEY);
-    const version = localStorage.getItem(USER_ID_VERSION_KEY);
-    
-    // 如果没有用户ID或版本不匹配，生成新的
-    if (!userId || version !== CURRENT_VERSION) {
-      userId = uuidv4();
-      localStorage.setItem(USER_ID_KEY, userId);
-      localStorage.setItem(USER_ID_VERSION_KEY, CURRENT_VERSION);
-      
-      logInfo('生成新的用户ID', { 
-        userId: userId.substring(0, 8) + '...',
-        version: CURRENT_VERSION
-      });
+    if (user) {
+      return user.id;
     }
-    
-    return userId;
-    */
+
+    // 如果未登录，返回空字符串（需要跳转到登录页）
+    return '';
   }
 
   /**
-   * 清除用户ID（用于重置或测试）
+   * 同步获取用户ID（用于非异步场景）
+   * 注意：这个方法可能返回过期的ID，建议使用 getUserId()
+   */
+  static getUserIdSync(): string {
+    // 从 localStorage 获取缓存的用户ID
+    return localStorage.getItem(USER_ID_KEY) || '';
+  }
+
+  /**
+   * 缓存用户ID到 localStorage
+   */
+  static cacheUserId(userId: string): void {
+    if (userId) {
+      localStorage.setItem(USER_ID_KEY, userId);
+    } else {
+      localStorage.removeItem(USER_ID_KEY);
+    }
+  }
+
+  /**
+   * 清除用户ID缓存
    */
   static clearUserId(): void {
     localStorage.removeItem(USER_ID_KEY);
-    localStorage.removeItem(USER_ID_VERSION_KEY);
     logInfo('用户ID已清除');
   }
 
   /**
-   * 检查是否有用户ID
+   * 检查用户是否已登录
    */
-  static hasUserId(): boolean {
-    return !!localStorage.getItem(USER_ID_KEY);
+  static async isLoggedIn(): Promise<boolean> {
+    const userId = await this.getUserId();
+    return !!userId;
   }
 
   /**
    * 获取用户ID的简短版本（用于显示）
    */
-  static getUserIdShort(): string {
-    const userId = this.getUserId();
-    return userId.substring(0, 8);
+  static getUserIdShort(userId?: string): string {
+    const id = userId || this.getUserIdSync();
+    return id ? id.substring(0, 8) : '';
   }
 }

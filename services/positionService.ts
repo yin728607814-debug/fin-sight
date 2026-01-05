@@ -20,7 +20,14 @@ export class PositionService {
   private userId: string;
 
   constructor(userId?: string) {
-    this.userId = userId || UserService.getUserId();
+    this.userId = userId || UserService.getUserIdSync();
+  }
+
+  /**
+   * 设置用户ID（用于登录后更新）
+   */
+  setUserId(userId: string): void {
+    this.userId = userId;
   }
 
   /**
