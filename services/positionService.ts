@@ -46,7 +46,8 @@ export class PositionService {
     this.checkAvailability();
 
     try {
-      logInfo('获取持仓列表', { userId: this.userId.substring(0, 8) + '...' });
+      const userIdDisplay = this.userId ? this.userId.substring(0, 8) + '...' : 'unknown';
+      logInfo('获取持仓列表', { userId: userIdDisplay });
 
       const { data, error } = await supabase!
         .from('positions')

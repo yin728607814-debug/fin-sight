@@ -6,10 +6,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Position } from '../services/portfolioService';
-import { PositionService } from '../services/positionService';
-import { UserService } from '../services/userService';
+import { positionService } from '../services/positionService';
 import { isSupabaseAvailable } from '../services/supabaseClient';
 import { logInfo, logError } from '../services/logger';
+import { useAuth } from '../utils/AuthContext';
 import { 
   positionRecordToPosition,
   positionToCreateInput,
@@ -40,9 +40,14 @@ export function usePortfolioWithSupabase(): UsePortfolioWithSupabaseResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSupabaseEnabled] = useState(isSupabaseAvailable());
+  const { user } = useAuth();
 
-  // 创建稳定的 positionService 实例
-  const [positionService] = useState(() => new PositionService(UserService.getUserId()));
+  // 当用户登录后，更新 positionService 的 userId
+  useEffect(() => {
+    if (user?.id) {
+      positionService.setUserId(user.id);
+    }
+  }, [user?.id]);
 
   /**
    * 获取持仓列表
@@ -51,6 +56,12 @@ export function usePortfolioWithSupabase(): UsePortfolioWithSupabaseResult {
     if (!isSupabaseEnabled) {
       setLoading(false);
       setError('Supabase 未配置，请配置后使用');
+      return;
+    }
+
+    if (!user?.id) {
+      setLoading(false);
+      setError('用户未登录');
       return;
     }
 
@@ -73,7 +84,7 @@ export function usePortfolioWithSupabase(): UsePortfolioWithSupabaseResult {
     } finally {
       setLoading(false);
     }
-  }, [isSupabaseEnabled, positionService]);
+  }, [isSupabaseEnabled, user?.id]);
 
   /**
    * 添加新持仓
@@ -116,7 +127,7 @@ export function usePortfolioWithSupabase(): UsePortfolioWithSupabaseResult {
       logError('创建持仓失败', err);
       throw err;
     }
-  }, [isSupabaseEnabled, positionService]);
+  }, [isSupabaseEnabled]);
 
   /**
    * 更新持仓
@@ -157,7 +168,7 @@ export function usePortfolioWithSupabase(): UsePortfolioWithSupabaseResult {
       logError('更新持仓失败', err);
       throw err;
     }
-  }, [isSupabaseEnabled, positions, fetchPositions, positionService]);
+  }, [isSupabaseEnabled, positions, fetchPositions]);
 
   /**
    * 删除持仓
@@ -186,7 +197,7 @@ export function usePortfolioWithSupabase(): UsePortfolioWithSupabaseResult {
       logError('删除持仓失败', err);
       throw err;
     }
-  }, [isSupabaseEnabled, fetchPositions, positionService]);
+  }, [isSupabaseEnabled, fetchPositions]);
 
   /**
    * 导出持仓数据
