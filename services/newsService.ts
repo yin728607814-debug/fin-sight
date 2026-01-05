@@ -947,7 +947,6 @@ ${newsTexts}
     logInfo('开始获取新闻数据', { assetType, limit });
     
     const query = this.buildSearchQuery(assetType);
-    console.log('🔍 搜索查询', { query });
     
     const response = await this.makeRequest('/everything', {
       q: query,
@@ -1193,13 +1192,7 @@ ${newsTexts}
    * 验证和过滤新闻数据
    */
   private validateAndFilterNews(newsItems: NewsItem[], assetType: AssetType): NewsItem[] {
-    console.log('🔍 开始验证和过滤新闻', { 
-      输入数量: newsItems.length, 
-      资产类型: assetType 
-    });
-
     const keywords = this.getAssetKeywords(assetType);
-    console.log('🔑 关键词列表', { keywords });
     
     const processedItems = newsItems
       .map((item, index) => {
@@ -1303,7 +1296,6 @@ ${newsTexts}
    * 根据URL和关键词过滤新闻（优先URL过滤，更精准）
    */
   private filterNewsByKeywords(newsItems: NewsItem[], assetType: AssetType): NewsItem[] {
-    console.log(`🔍 开始过滤${assetType}新闻，原始数量: ${newsItems.length}`);
     
     if (assetType === 'nasdaq') {
       // 纳斯达克：优先使用URL过滤

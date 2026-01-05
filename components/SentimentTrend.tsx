@@ -21,78 +21,47 @@ interface SentimentTrendProps {
 }
 
 export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
-  // 调试：打印原始数据
-  React.useEffect(() => {
-    console.log('🔍 SentimentTrend 收到的数据:', {
-      assetType: history.assetType,
-      dataLength: history.data.length,
-      firstItem: history.data[0],
-      firstItemDateType: history.data[0] ? typeof history.data[0].date : 'undefined',
-      firstItemDate: history.data[0]?.date,
-    });
-  }, [history]);
-
   // 格式化日期显示
   const formatDate = (dateStr: string | Date | any): string => {
     try {
-      console.log('🔍 formatDate 输入:', { dateStr, type: typeof dateStr });
-      
-      // 处理各种可能的日期格式
       let date: Date;
       
       if (dateStr instanceof Date) {
         date = dateStr;
-        console.log('  → 是 Date 对象');
       } else if (typeof dateStr === 'string') {
         date = new Date(dateStr);
-        console.log('  → 是字符串，转换为 Date');
       } else if (dateStr && typeof dateStr === 'object' && 'getTime' in dateStr) {
-        // 处理类似 Date 的对象
-        console.log('  → 是类 Date 对象');
         date = new Date(dateStr.getTime());
       } else {
-        console.log('  → 无法识别的类型');
         return '无效日期';
       }
       
-      // 检查日期是否有效
       if (isNaN(date.getTime())) {
-        console.log('  → 日期无效');
         return '无效日期';
       }
-      const result = `${date.getMonth() + 1}/${date.getDate()}`;
-      console.log('  → 格式化结果:', result);
-      return result;
+      
+      return `${date.getMonth() + 1}/${date.getDate()}`;
     } catch (error) {
-      console.error('  → formatDate 错误:', error);
       return '无效日期';
     }
   };
 
-  // 准备图表数据 - 添加过滤以排除无效数据
+  // 准备图表数据 - 过滤无效数据
   const chartData = history.data
     .filter((item) => {
-      // 确保必需字段存在且有效
       if (!item || typeof item !== 'object') {
-        console.log('🔍 过滤掉无效项:', item);
         return false;
       }
       if (!item.date || typeof item.score !== 'number') {
-        console.log('🔍 过滤掉缺少字段的项:', item);
         return false;
       }
       return true;
     })
-    .map((item) => {
-      console.log('🔍 映射项:', item);
-      return {
-        date: formatDate(item.date),
-        score: item.score,
-        fullDate: typeof item.date === 'string' ? item.date : String(item.date),
-      };
-    });
-  
-  console.log('🔍 最终 chartData:', chartData);
+    .map((item) => ({
+      date: formatDate(item.date),
+      score: item.score,
+      fullDate: typeof item.date === 'string' ? item.date : String(item.date),
+    }));
 
   // 自定义 Tooltip
   const CustomTooltip = ({ active, payload }: any) => {

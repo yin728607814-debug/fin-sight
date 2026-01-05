@@ -1053,8 +1053,6 @@ ${newsText}
     newsList: Array<{ title: string; content: string }>, 
     assetType: import('../types').AssetType
   ): Promise<import('../types').OverallMarketAnalysis> {
-    console.log(`🔍 开始整体市场分析 (${assetType})，新闻数量: ${newsList.length}`);
-    
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
     // 优化策略：使用标题+简短摘要（150字），进一步减少token消耗
@@ -1153,7 +1151,6 @@ ${finalNewsText}
       const startsWithObject = cleanedText.trimStart().startsWith('{');
       
       if (startsWithArray) {
-        console.log('🔍 检测到数组格式');
         // 提取完整的数组
         const firstBracket = cleanedText.indexOf('[');
         let depth = 0;
@@ -1239,7 +1236,6 @@ ${finalNewsText}
           }
         }
       } else if (startsWithObject) {
-        console.log('🔍 检测到对象格式');
         // 提取第一个完整的JSON对象（使用括号计数）
         const firstBrace = cleanedText.indexOf('{');
         let depth = 0;

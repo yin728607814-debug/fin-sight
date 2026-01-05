@@ -38,16 +38,7 @@ export const NewsList: React.FC<NewsListProps> = ({
    * 获取新闻对应的分析结果
    */
   const getAnalysisForNews = (newsId: string): NewsAnalysis | undefined => {
-    const result = analysis.find(a => a.newsId === newsId);
-    
-    // 调试：如果找不到分析结果，输出日志
-    if (!result && analysis.length > 0) {
-      console.warn(`⚠️ 找不到新闻 ${newsId} 的分析结果`);
-      console.log(`   当前有 ${analysis.length} 条分析结果`);
-      console.log(`   前3条分析的 newsId:`, analysis.slice(0, 3).map(a => a.newsId));
-    }
-    
-    return result;
+    return analysis.find(a => a.newsId === newsId);
   };
 
   /**
@@ -112,12 +103,10 @@ export const NewsList: React.FC<NewsListProps> = ({
       } else if (typeof date === 'string') {
         dateObj = new Date(date);
       } else {
-        console.error('🔍 NewsList formatTime 收到未知类型:', typeof date, date);
         return '时间未知';
       }
       
       if (isNaN(dateObj.getTime())) {
-        console.error('🔍 NewsList formatTime 日期无效:', date);
         return '时间未知';
       }
       
@@ -136,7 +125,6 @@ export const NewsList: React.FC<NewsListProps> = ({
         return '刚刚';
       }
     } catch (error) {
-      console.error('🔍 NewsList formatTime 错误:', error, date);
       return '时间未知';
     }
   };

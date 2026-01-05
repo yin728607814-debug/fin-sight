@@ -159,17 +159,10 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       console.log(`✅ 批量分析完成！`);
       console.log(`   整体影响: ${batchResult.overallImpact}, 整体置信度: ${batchResult.overallConfidence.toFixed(2)}`);
       console.log(`   ${analysisResults.filter(a => a.impact === 'positive').length} 条利好, ${analysisResults.filter(a => a.impact === 'negative').length} 条利空, ${analysisResults.filter(a => a.impact === 'neutral').length} 条中性`);
-      
-      // 调试：输出前3条分析结果
-      console.log('🔍 前3条分析结果示例:');
-      analysisResults.slice(0, 3).forEach((result, idx) => {
-        console.log(`   [${idx}] newsId: ${result.newsId}, impact: ${result.impact}, confidence: ${result.confidence}`);
-      });
 
       setAnalysis(analysisResults);
       
       // 调用整体市场分析（第二次API调用）
-      console.log(`🔍 开始整体市场分析...`);
       try {
         const overallAnalysisResult = await analysisService.analyzeOverallMarket(
           newsItems.map(item => ({

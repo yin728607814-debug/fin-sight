@@ -256,12 +256,6 @@ export class SentimentService {
       const history = this.loadHistory();
       const assetHistory = history[assetType] || [];
 
-      console.log('🔍 getSentimentHistory:', {
-        assetType,
-        rawHistoryLength: assetHistory.length,
-        firstItem: assetHistory[0],
-      });
-
       // 按日期排序（从旧到新）
       const sortedHistory = assetHistory
         .sort((a, b) => a.timestamp - b.timestamp)
@@ -270,42 +264,31 @@ export class SentimentService {
       const result = {
         assetType,
         data: sortedHistory.map((snapshot) => {
-          console.log('🔍 处理 snapshot:', snapshot);
-          
           // 确保 date 是字符串格式
           let dateStr: string;
           if (typeof snapshot.date === 'string') {
             dateStr = snapshot.date;
-            console.log('  → date 已经是字符串:', dateStr);
           } else if (snapshot.date instanceof Date) {
             dateStr = snapshot.date.toISOString().split('T')[0];
-            console.log('  → date 是 Date 对象，转换为:', dateStr);
           } else if (snapshot.date && typeof snapshot.date === 'object' && 'getTime' in snapshot.date) {
-            // 处理类似 Date 的对象
             try {
               const d = new Date((snapshot.date as any).getTime());
               dateStr = d.toISOString().split('T')[0];
-              console.log('  → date 是类 Date 对象，转换为:', dateStr);
             } catch {
               dateStr = new Date().toISOString().split('T')[0];
-              console.log('  → date 转换失败，使用今天:', dateStr);
             }
           } else {
             dateStr = new Date().toISOString().split('T')[0];
-            console.log('  → date 类型未知，使用今天:', dateStr);
           }
           
-          const mapped = {
+          return {
             date: dateStr,
             score: snapshot.score,
             level: snapshot.level,
           };
-          console.log('  → 映射结果:', mapped);
-          return mapped;
         }),
       };
       
-      console.log('🔍 getSentimentHistory 返回:', result);
       return result;
     } catch (error) {
       console.error('获取情绪历史失败:', error);
