@@ -6,6 +6,7 @@
 DO $$
 DECLARE
   v_user_id VARCHAR(255) := 'ffbce643-c892-4f7d-b4e1-736bdc60b816';
+  rec RECORD;
 BEGIN
 
 RAISE NOTICE '=== 查看当前重复情况 ===';
@@ -15,9 +16,7 @@ FOR rec IN
   SELECT 
     fund_name,
     asset_type,
-    COUNT(*) as duplicate_count,
-    ARRAY_AGG(id) as ids,
-    ARRAY_AGG(investment_amount) as amounts
+    COUNT(*) as duplicate_count
   FROM positions
   WHERE user_id = v_user_id
     AND fund_name IS NOT NULL
