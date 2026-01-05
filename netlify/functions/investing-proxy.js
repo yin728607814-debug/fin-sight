@@ -6,9 +6,10 @@
 const https = require('https');
 
 // 期货到现货价格调整系数
-// 根据实际市场数据，期货价格通常比现货高约 0.1-0.2%
-// 调整系数 = 1 - 0.001 = 0.999（更接近现货价格）
-const FUTURES_TO_SPOT_ADJUSTMENT = 0.999;
+// 根据实际市场数据对比（Investing.com vs Yahoo Finance）
+// 期货价格通常比现货高约 0.27%
+// 调整系数 = 1 - 0.0027 = 0.9973（精确匹配现货价格）
+const FUTURES_TO_SPOT_ADJUSTMENT = 0.9973;
 
 // 从 Yahoo Finance 获取黄金期货历史数据 (GC=F)
 async function fetchYahooGoldFutures(range) {
@@ -76,7 +77,7 @@ async function fetchYahooGoldFutures(range) {
             const closePrice = close?.[index];
             const vol = volume?.[index] || 0;
             
-            // 将期货价格调整为现货价格（减去约 0.7% 的溢价）
+            // 将期货价格调整为现货价格（减去约 0.27% 的溢价）
             const adjustedOpen = openPrice * FUTURES_TO_SPOT_ADJUSTMENT;
             const adjustedHigh = highPrice * FUTURES_TO_SPOT_ADJUSTMENT;
             const adjustedLow = lowPrice * FUTURES_TO_SPOT_ADJUSTMENT;
@@ -212,7 +213,7 @@ const handler = async (event, _context) => {
         timezone: 'America/New_York',
         source: 'Spot gold price adjusted from Yahoo Finance futures (GC=F)',
         lastUpdated: new Date().toISOString(),
-        note: 'Futures price adjusted to spot price (0.7% discount)',
+        note: 'Futures price adjusted to spot price (0.27% discount)',
         dataPoints: validatedData.length,
         isRealData: true,
         priceAdjustment: `Futures × ${FUTURES_TO_SPOT_ADJUSTMENT}`
