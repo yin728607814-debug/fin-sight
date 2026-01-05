@@ -31,9 +31,9 @@ export const PortfolioPage: React.FC = () => {
   const [showMigration, setShowMigration] = useState(true);
   const [lastDbUpdate, setLastDbUpdate] = useState<Date | null>(null);
   
-  // Tab状态：用于区分黄金和纳斯达克
-  const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold'>('all');
-  const [summaryTab, setSummaryTab] = useState<'all' | 'nasdaq' | 'gold'>('all');
+  // Tab状态：用于区分黄金、纳斯达克和A股
+  const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold' | 'astock'>('all');
+  const [summaryTab, setSummaryTab] = useState<'all' | 'nasdaq' | 'gold' | 'astock'>('all');
 
   // 使用增强的价格数据hook（自动处理黄金价格转换）
   const nasdaq = usePriceDataWithConversion('nasdaq');
@@ -284,7 +284,7 @@ export const PortfolioPage: React.FC = () => {
   }) || [];
 
   // 计算分类统计
-  const getAssetStats = (assetType: 'nasdaq' | 'gold' | 'all') => {
+  const getAssetStats = (assetType: 'nasdaq' | 'gold' | 'astock' | 'all') => {
     if (!portfolio) return null;
     
     if (assetType === 'all') {
@@ -538,6 +538,16 @@ export const PortfolioPage: React.FC = () => {
                     纳斯达克100
                   </button>
                   <button
+                    onClick={() => setSummaryTab('astock')}
+                    className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
+                      summaryTab === 'astock'
+                        ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400 bg-purple-50/50 dark:bg-purple-900/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    A股基金
+                  </button>
+                  <button
                     onClick={() => setSummaryTab('gold')}
                     className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${
                       summaryTab === 'gold'
@@ -619,6 +629,16 @@ export const PortfolioPage: React.FC = () => {
                   }`}
                 >
                   纳斯达克 ({portfolio?.positions.filter(p => p.assetType === 'nasdaq').length || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('astock')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ml-2 ${
+                    activeTab === 'astock'
+                      ? 'text-purple-600 dark:text-purple-400 bg-white dark:bg-gray-700 border-t border-l border-r border-gray-200 dark:border-gray-600'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  A股 ({portfolio?.positions.filter(p => p.assetType === 'astock').length || 0})
                 </button>
                 <button
                   onClick={() => setActiveTab('gold')}

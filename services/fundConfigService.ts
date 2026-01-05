@@ -10,12 +10,14 @@ export interface FundConfig {
   id: string;
   user_id: string;
   name: string;
+  fund_type: 'nasdaq' | 'astock';
   created_at: Date;
   updated_at: Date;
 }
 
 export interface CreateFundConfigInput {
   name: string;
+  fund_type: 'nasdaq' | 'astock';
 }
 
 class FundConfigService {
@@ -45,15 +47,20 @@ class FundConfigService {
   /**
    * 获取所有基金配置
    */
-  public async getFunds(): Promise<FundConfig[]> {
+  public async getFunds(fundType?: 'nasdaq' | 'astock'): Promise<FundConfig[]> {
     this.checkAvailability();
 
     try {
-      const { data, error } = await supabase!
+      let query = supabase!
         .from('fund_configs')
         .select('*')
-        .eq('user_id', this.userId)
-        .order('created_at', { ascending: false });
+        .eq('user_id', this.userId);
+
+      if (fundType) {
+        query = query.eq('fund_type', fundType);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         throw error;
@@ -73,13 +80,13 @@ class FundConfigService {
   /**
    * 添加基金
    */
-  public async addFund(name: string): Promise<FundConfig> {
+  public async addFund(name: string, fundType: 'nasdaq' | 'astock' = 'nasdaq'): Promise<FundConfig> {
     this.checkAvailability();
 
     try {
       // 检查是否已存在
       const existing = await this.getFunds();
-      if (existing.some(f => f.name === name)) {
+      if (existing.some(f => f.name === name && f.fund_type === fundType)) {
         throw new Error('该基金名称已存在');
       }
 
@@ -87,7 +94,8 @@ class FundConfigService {
         .from('fund_configs')
         .insert({
           user_id: this.userId,
-          name: name.trim()
+          name: name.trim(),
+          fund_type: fundType
         })
         .select()
         .single();
@@ -176,20 +184,25 @@ class FundConfigService {
   /**
    * 搜索基金
    */
-  public async searchFunds(query: string): Promise<FundConfig[]> {
+  public async searchFunds(query: string, fundType?: 'nasdaq' | 'astock'): Promise<FundConfig[]> {
     this.checkAvailability();
 
     try {
       if (!query.trim()) {
-        return await this.getFunds();
+        return await this.getFunds(fundType);
       }
 
-      const { data, error } = await supabase!
+      let dbQuery = supabase!
         .from('fund_configs')
         .select('*')
         .eq('user_id', this.userId)
-        .ilike('name', `%${query}%`)
-        .order('created_at', { ascending: false });
+        .ilike('name', `%${query}%`);
+
+      if (fundType) {
+        dbQuery = dbQuery.eq('fund_type', fundType);
+      }
+
+      const { data, error } = await dbQuery.order('created_at', { ascending: false });
 
       if (error) {
         throw error;

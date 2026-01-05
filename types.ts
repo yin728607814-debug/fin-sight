@@ -3,7 +3,7 @@
 // ============================================================================
 
 // 资产类型
-export type AssetType = 'gold' | 'nasdaq';
+export type AssetType = 'gold' | 'nasdaq' | 'astock';
 
 // 影响类型
 export type ImpactType = 'positive' | 'negative' | 'neutral' | 'mixed';
@@ -315,7 +315,8 @@ export interface AppContextType {
  */
 export const ASSET_SYMBOLS: Record<AssetType, string> = {
   gold: 'XAUUSD',
-  nasdaq: 'NDX'
+  nasdaq: 'NDX',
+  astock: 'SSE'
 };
 
 /**
@@ -323,7 +324,8 @@ export const ASSET_SYMBOLS: Record<AssetType, string> = {
  */
 export const ASSET_NAMES: Record<AssetType, string> = {
   gold: '现货黄金',
-  nasdaq: '纳斯达克100'
+  nasdaq: '纳斯达克100',
+  astock: 'A股基金'
 };
 
 /**
@@ -387,7 +389,7 @@ export interface FundProduct {
   code: string;           // 基金代码
   name: string;           // 基金全称
   shortName: string;      // 基金简称
-  type: 'nasdaq' | 'gold'; // 基金类型
+  type: 'nasdaq' | 'gold' | 'astock'; // 基金类型
   company: string;        // 基金公司
   trackingIndex: string;  // 跟踪指数
 }

@@ -47,19 +47,20 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
 
   // 加载基金列表
   useEffect(() => {
-    if (isOpen && assetType === 'nasdaq') {
+    if (isOpen && (assetType === 'nasdaq' || assetType === 'astock')) {
       loadFunds();
     }
   }, [isOpen, assetType]);
 
-  const loadFunds = () => {
-    const allFunds = fundConfigService.getFunds();
+  const loadFunds = async () => {
+    const fundType = assetType === 'astock' ? 'astock' : 'nasdaq';
+    const allFunds = await fundConfigService.getFunds(fundType);
     setFunds(allFunds);
   };
 
   // 搜索基金
   const filteredFunds = fundSearchQuery.trim()
-    ? fundConfigService.searchFunds(fundSearchQuery)
+    ? funds.filter(f => f.name.toLowerCase().includes(fundSearchQuery.toLowerCase()))
     : funds;
 
   /**
@@ -68,7 +69,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (assetType === 'nasdaq') {
+    if (assetType === 'nasdaq' || assetType === 'astock') {
       if (!selectedFundId) {
         newErrors.fund = '请选择基金';
       }
@@ -106,17 +107,17 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
 
     const now = new Date();
 
-    if (assetType === 'nasdaq') {
+    if (assetType === 'nasdaq' || assetType === 'astock') {
       const selectedFund = funds.find(f => f.id === selectedFundId);
       if (!selectedFund) return;
 
       onAdd({
-        assetType: 'nasdaq',
+        assetType: assetType,
         assetName: selectedFund.name,
         fundName: selectedFund.name,
         investmentAmount: parseFloat(nasdaqInvestment),
         profitLoss: parseFloat(nasdaqProfit),
-        autoInvest,
+        autoInvest: assetType === 'nasdaq' ? autoInvest : undefined,
         createdAt: now,
         updatedAt: now
       });
@@ -207,7 +208,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 资产类型
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => handleAssetTypeChange('nasdaq')}
@@ -217,7 +218,18 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  纳斯达克100
+                  纳斯达克
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAssetTypeChange('astock')}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                    assetType === 'astock'
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  A股
                 </button>
                 <button
                   type="button"
@@ -228,13 +240,13 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  现货黄金
+                  黄金
                 </button>
               </div>
             </div>
 
-            {/* 纳斯达克表单 */}
-            {assetType === 'nasdaq' && (
+            {/* 纳斯达克和A股表单 */}
+            {(assetType === 'nasdaq' || assetType === 'astock') && (
               <>
                 {/* 基金选择 */}
                 <div>
@@ -331,11 +343,13 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
                   </p>
                 </div>
 
-                {/* 定投设置 */}
-                <AutoInvestSettings
-                  autoInvest={autoInvest}
-                  onChange={setAutoInvest}
-                />
+                {/* 定投设置 - 仅纳斯达克 */}
+                {assetType === 'nasdaq' && (
+                  <AutoInvestSettings
+                    autoInvest={autoInvest}
+                    onChange={setAutoInvest}
+                  />
+                )}
               </>
             )}
 

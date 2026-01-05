@@ -72,7 +72,7 @@ export class PositionService {
   /**
    * 根据资产类型获取持仓
    */
-  async getPositionsByAssetType(assetType: 'nasdaq' | 'gold'): Promise<PositionRecord[]> {
+  async getPositionsByAssetType(assetType: 'nasdaq' | 'gold' | 'astock'): Promise<PositionRecord[]> {
     this.checkAvailability();
 
     try {
@@ -86,7 +86,7 @@ export class PositionService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      logError(`获取${assetType}持仓失败`, error);
+      console.error(`获取${assetType}持仓失败`, error);
       throw error;
     }
   }
@@ -256,6 +256,7 @@ export class PositionService {
     total: number;
     nasdaq: number;
     gold: number;
+    astock: number;
     totalInvestment: number;
     totalProfitLoss: number;
   }> {
@@ -268,13 +269,14 @@ export class PositionService {
         total: positions.length,
         nasdaq: positions.filter(p => p.asset_type === 'nasdaq').length,
         gold: positions.filter(p => p.asset_type === 'gold').length,
+        astock: positions.filter(p => p.asset_type === 'astock').length,
         totalInvestment: positions.reduce((sum, p) => sum + p.investment_amount, 0),
         totalProfitLoss: positions.reduce((sum, p) => sum + p.profit_loss, 0)
       };
 
       return stats;
     } catch (error) {
-      logError('获取持仓统计失败', error);
+      console.error('获取持仓统计失败', error);
       throw error;
     }
   }

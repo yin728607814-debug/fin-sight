@@ -14,6 +14,8 @@ export const FundConfigPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingFund, setEditingFund] = useState<FundConfig | null>(null);
   const [fundName, setFundName] = useState('');
+  const [fundType, setFundType] = useState<'nasdaq' | 'astock'>('nasdaq');
+  const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'astock'>('all');
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredFunds, setFilteredFunds] = useState<FundConfig[]>([]);
@@ -26,9 +28,14 @@ export const FundConfigPage: React.FC = () => {
     if (searchQuery.trim()) {
       fundConfigService.searchFunds(searchQuery).then(setFilteredFunds);
     } else {
-      setFilteredFunds(funds);
+      // 根据 activeTab 过滤
+      if (activeTab === 'all') {
+        setFilteredFunds(funds);
+      } else {
+        setFilteredFunds(funds.filter(f => f.fund_type === activeTab));
+      }
     }
-  }, [searchQuery, funds]);
+  }, [searchQuery, funds, activeTab]);
 
   const loadFunds = async () => {
     try {
@@ -48,7 +55,7 @@ export const FundConfigPage: React.FC = () => {
     }
 
     try {
-      await fundConfigService.addFund(fundName);
+      await fundConfigService.addFund(fundName, fundType);
       setFundName('');
       setIsAddModalOpen(false);
       await loadFunds();
@@ -92,6 +99,7 @@ export const FundConfigPage: React.FC = () => {
 
   const openAddModal = () => {
     setFundName('');
+    setFundType('nasdaq');
     setError('');
     setEditingFund(null);
     setIsAddModalOpen(true);
@@ -99,6 +107,7 @@ export const FundConfigPage: React.FC = () => {
 
   const openEditModal = (fund: FundConfig) => {
     setFundName(fund.name);
+    setFundType(fund.fund_type);
     setError('');
     setEditingFund(fund);
     setIsAddModalOpen(true);
@@ -147,6 +156,40 @@ export const FundConfigPage: React.FC = () => {
       {/* Main Content */}
       <main className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 p-6">
+          {/* Tab 切换 */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'all'
+                  ? 'text-green-600 dark:text-green-400 border-b-2 border-green-600 dark:border-green-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              全部 ({funds.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('nasdaq')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ml-4 ${
+                activeTab === 'nasdaq'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              纳斯达克 ({funds.filter(f => f.fund_type === 'nasdaq').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('astock')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ml-4 ${
+                activeTab === 'astock'
+                  ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              A股 ({funds.filter(f => f.fund_type === 'astock').length})
+            </button>
+          </div>
+
           {/* 顶部操作栏 */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex-1 max-w-md">
@@ -193,9 +236,18 @@ export const FundConfigPage: React.FC = () => {
                     <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
                       {fund.name}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      添加于 {fund.created_at.toLocaleDateString('zh-CN')}
-                    </p>
+                    <div className="flex items-center mt-1 space-x-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        fund.fund_type === 'nasdaq' 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                      }`}>
+                        {fund.fund_type === 'nasdaq' ? '纳斯达克' : 'A股'}
+                      </span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        添加于 {fund.created_at.toLocaleDateString('zh-CN')}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
@@ -220,9 +272,24 @@ export const FundConfigPage: React.FC = () => {
 
           {/* 统计信息 */}
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              共 {funds.length} 个基金配置
-            </p>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600 dark:text-gray-400">总计：</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100 ml-1">{funds.length}</span>
+              </div>
+              <div>
+                <span className="text-blue-600 dark:text-blue-400">纳斯达克：</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100 ml-1">
+                  {funds.filter(f => f.fund_type === 'nasdaq').length}
+                </span>
+              </div>
+              <div>
+                <span className="text-purple-600 dark:text-purple-400">A股：</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100 ml-1">
+                  {funds.filter(f => f.fund_type === 'astock').length}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -242,6 +309,39 @@ export const FundConfigPage: React.FC = () => {
               </h2>
               
               <div className="space-y-4">
+                {/* 基金类型选择 - 仅在添加时显示 */}
+                {!editingFund && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      基金类型
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setFundType('nasdaq')}
+                        className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                          fundType === 'nasdaq'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        纳斯达克
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFundType('astock')}
+                        className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                          fundType === 'astock'
+                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        A股
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     基金名称
@@ -250,7 +350,7 @@ export const FundConfigPage: React.FC = () => {
                     type="text"
                     value={fundName}
                     onChange={(e) => setFundName(e.target.value)}
-                    placeholder="例如：广发纳斯达克100ETF联接(QDII)C人民币"
+                    placeholder={fundType === 'nasdaq' ? '例如：广发纳斯达克100ETF联接(QDII)C人民币' : '例如：前海开源嘉鑫灵活配置混合C'}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     autoFocus
                   />
