@@ -54,7 +54,7 @@ export const PortfolioPage: React.FC = () => {
   /**
    * 加载和计算投资组合
    */
-  const loadPortfolio = () => {
+  const loadPortfolio = async () => {
     // 使用 Supabase 数据
     const positions = isSupabaseEnabled ? supabasePositions : portfolioService.getPositions();
     
@@ -83,6 +83,26 @@ export const PortfolioPage: React.FC = () => {
       prevPrices.size > 0 ? prevPrices : undefined
     );
     setPortfolio(calculatedPortfolio);
+
+    // 如果使用 Supabase 且有黄金价格，更新黄金持仓的收益到数据库
+    if (isSupabaseEnabled && gold.currentPrice !== null) {
+      const goldPositions = calculatedPortfolio.positions.filter(p => p.assetType === 'gold');
+      
+      for (const position of goldPositions) {
+        // 只有当收益发生变化时才更新
+        const originalPosition = positions.find(p => p.id === position.id);
+        if (originalPosition && originalPosition.profitLoss !== position.profitLoss) {
+          try {
+            await updateSupabasePosition(position.id, {
+              profitLoss: position.profitLoss,
+              currentValue: position.currentValue
+            });
+          } catch (error) {
+            console.error('更新黄金持仓收益失败:', error);
+          }
+        }
+      }
+    }
 
     // 保存快照
     if (positions.length > 0) {
