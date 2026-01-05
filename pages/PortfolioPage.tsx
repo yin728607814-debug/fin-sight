@@ -115,22 +115,32 @@ export const PortfolioPage: React.FC = () => {
 
     const goldPositions = portfolio.positions.filter(p => p.assetType === 'gold');
     
+    let hasUpdates = false;
     for (const position of goldPositions) {
-      // 只有当收益发生变化时才更新
+      // 只有当收益发生变化时才更新（使用更严格的比较，避免浮点数精度问题）
       const originalPosition = supabasePositions.find(p => p.id === position.id);
-      if (originalPosition && originalPosition.profitLoss !== position.profitLoss) {
-        try {
-          await updateSupabasePosition(position.id, {
-            profitLoss: position.profitLoss,
-            currentValue: position.currentValue
-          });
-        } catch (error) {
-          console.error('更新黄金持仓收益失败:', error);
+      if (originalPosition) {
+        const profitDiff = Math.abs((originalPosition.profitLoss || 0) - (position.profitLoss || 0));
+        const valueDiff = Math.abs((originalPosition.currentValue || 0) - (position.currentValue || 0));
+        
+        // 只有当差异大于 0.01 元时才更新
+        if (profitDiff > 0.01 || valueDiff > 0.01) {
+          try {
+            await updateSupabasePosition(position.id, {
+              profitLoss: position.profitLoss,
+              currentValue: position.currentValue
+            });
+            hasUpdates = true;
+          } catch (error) {
+            console.error('更新黄金持仓收益失败:', error);
+          }
         }
       }
     }
 
-    setLastDbUpdate(new Date());
+    if (hasUpdates) {
+      setLastDbUpdate(new Date());
+    }
   };
 
   /**
@@ -179,10 +189,7 @@ export const PortfolioPage: React.FC = () => {
       return;
     }
 
-    // 立即执行一次
-    updateGoldProfitToDb();
-
-    // 设置定时器，每10秒执行一次
+    // 设置定时器，每10秒执行一次（不立即执行，避免频繁更新）
     const intervalId = setInterval(() => {
       updateGoldProfitToDb();
     }, 10000); // 10秒
@@ -190,7 +197,7 @@ export const PortfolioPage: React.FC = () => {
     // 清理定时器
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [portfolio, gold.currentPrice, isSupabaseEnabled]);
+  }, [gold.currentPrice, isSupabaseEnabled]); // 移除 portfolio 依赖，只在价格变化时重置定时器
 
   /**
    * 添加持仓
