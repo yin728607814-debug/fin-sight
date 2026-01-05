@@ -52,14 +52,31 @@ function createSupabaseClient(): SupabaseClient | null {
           'x-client-info': 'portfolio-app'
         },
         fetch: (url, options = {}) => {
-          // 设置超时时间为 30 秒
+          // 设置超时时间为 60 秒（更长的超时时间）
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+          const timeoutId = setTimeout(() => controller.abort(), 60000);
           
-          return fetch(url, {
-            ...options,
-            signal: controller.signal
-          }).finally(() => clearTimeout(timeoutId));
+          // 添加重试逻辑
+          const fetchWithRetry = async (retries = 3) => {
+            try {
+              const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
+              return response;
+            } catch (error) {
+              if (retries > 0 && error.name === 'AbortError') {
+                logInfo(`Supabase 请求超时，重试中... (剩余 ${retries} 次)`);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
+                return fetchWithRetry(retries - 1);
+              }
+              clearTimeout(timeoutId);
+              throw error;
+            }
+          };
+          
+          return fetchWithRetry();
         }
       }
     });
