@@ -8,7 +8,7 @@
  */
 export const GOLD_CONVERSION = {
   OZ_TO_GRAM: 31.1035,        // 1盎司 = 31.1035克
-  USD_TO_CNY: 7.2,            // 美元兑人民币汇率（默认值，可配置）
+  USD_TO_CNY: 7.0,            // 美元兑人民币汇率（默认值，可配置）
 };
 
 /**
