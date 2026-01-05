@@ -3,8 +3,8 @@
  * 提供现货黄金和纳斯达克100的导航入口
  */
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ChartBarIcon, 
   NewspaperIcon, 
@@ -14,9 +14,12 @@ import {
   BoltIcon,
   CurrencyDollarIcon,
   ChatBubbleLeftRightIcon,
-  BriefcaseIcon
+  BriefcaseIcon,
+  UserCircleIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { useAuth } from '../utils/AuthContext';
 
 /**
  * 首页组件Props
@@ -137,10 +140,63 @@ const features: Feature[] = [
  * 首页组件
  */
 export const HomePage: React.FC<HomePageProps> = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('退出登录失败:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* 主题切换按钮 - 固定在右上角 */}
-      <div className="fixed top-6 right-6 z-[9998]">
+      {/* 顶部用户菜单 - 固定在右上角 */}
+      <div className="fixed top-6 right-6 z-[9998] flex items-center space-x-3">
+        {/* 用户菜单 */}
+        {user && (
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center space-x-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-all"
+            >
+              <UserCircleIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {user.email}
+              </span>
+            </button>
+
+            {/* 下拉菜单 */}
+            {showUserMenu && (
+              <>
+                {/* 遮罩层 */}
+                <div 
+                  className="fixed inset-0 z-[9997]" 
+                  onClick={() => setShowUserMenu(false)}
+                />
+                
+                {/* 菜单内容 */}
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-[9999]">
+                  <div className="py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
+                      退出登录
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+        
+        {/* 主题切换按钮 */}
         <ThemeToggle />
       </div>
 
