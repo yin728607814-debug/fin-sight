@@ -35,8 +35,9 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
   /**
    * 获取新闻数据（带重试机制）
+   * 返回获取到的新闻数据，而不仅仅是成功/失败状态
    */
-  const fetchNews = useCallback(async (): Promise<boolean> => {
+  const fetchNews = useCallback(async (): Promise<NewsItem[] | null> => {
     try {
       clearError('news');
       setLoading({ news: true });
@@ -46,11 +47,11 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setNews(newsData);
       setLastFetchTime(new Date());
       
-      return true;
+      return newsData;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '获取新闻失败';
       setError('news', errorMessage);
-      return false;
+      return null;
     } finally {
       setLoading({ news: false });
     }
@@ -58,8 +59,9 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
   /**
    * 使用演示数据作为降级方案
+   * 返回获取到的新闻数据
    */
-  const useFallbackNews = useCallback(async (): Promise<boolean> => {
+  const useFallbackNews = useCallback(async (): Promise<NewsItem[] | null> => {
     try {
       clearError('news');
       setLoading({ news: true });
@@ -70,11 +72,11 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLastFetchTime(new Date());
       setUsingFallbackData(true);
       
-      return true;
+      return demoNews;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '加载演示数据失败';
       setError('news', errorMessage);
-      return false;
+      return null;
     } finally {
       setLoading({ news: false });
     }
@@ -204,23 +206,24 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
    */
   const fetchAndAnalyze = useCallback(async (): Promise<boolean> => {
     try {
-      // 并行获取新闻和价格数据
-      const [newsSuccess, priceSuccess] = await Promise.all([
-        fetchNews(),
-        fetchPriceData()
-      ]);
+      // 先获取新闻数据，直接拿到返回的新闻
+      const fetchedNews = await fetchNews();
       
-      // 如果新闻获取成功，进行分析
-      if (newsSuccess && news.length > 0) {
-        await analyzeNews(news);
+      // 并行获取价格数据（不依赖新闻）
+      const pricePromise = fetchPriceData();
+      
+      // 如果新闻获取成功，直接用返回的新闻数据进行分析
+      if (fetchedNews && fetchedNews.length > 0) {
+        await analyzeNews(fetchedNews);
       }
       
-      return newsSuccess || priceSuccess; // 至少一个成功就算成功
+      const priceSuccess = await pricePromise;
+      return (fetchedNews !== null) || priceSuccess; // 至少一个成功就算成功
     } catch (error) {
       console.error('获取和分析数据失败:', error);
       return false;
     }
-  }, [fetchNews, fetchPriceData, analyzeNews, news]);
+  }, [fetchNews, fetchPriceData, analyzeNews]);
 
   /**
    * 重新分析现有新闻（带重试机制）
@@ -270,21 +273,20 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
         // skipAnalysis=true: 只刷新新闻，保留现有分析结果
         console.log('🔄 只刷新新闻，保留现有分析结果');
         
-        // 保存当前的分析结果
-        const currentAnalysis = new Map(analysis.map(a => [a.newsId, a]));
-        
         // 刷新新闻
-        fetchNews().then(() => {
-          // 刷新后，将旧的分析结果应用到新新闻上（如果新闻ID匹配）
-          setAnalysis(prevAnalysis => {
-            return prevAnalysis.filter(a => 
-              news.some(n => n.id === a.newsId)
-            );
-          });
+        fetchNews().then((fetchedNews) => {
+          if (fetchedNews) {
+            // 刷新后，将旧的分析结果应用到新新闻上（如果新闻ID匹配）
+            setAnalysis(prevAnalysis => {
+              return prevAnalysis.filter(a => 
+                fetchedNews.some(n => n.id === a.newsId)
+              );
+            });
+          }
         });
       }
     }
-  }, [skipAnalysis, isInitialized, news.length, fetchNews, analysis, setAnalysis]);
+  }, [skipAnalysis, isInitialized, news.length, fetchNews, setAnalysis]);
 
   /**
    * 检查数据是否过期（超过30分钟）
