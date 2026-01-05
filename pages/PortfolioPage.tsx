@@ -29,6 +29,7 @@ export const PortfolioPage: React.FC = () => {
   const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showMigration, setShowMigration] = useState(true);
+  const [lastDbUpdate, setLastDbUpdate] = useState<Date | null>(null);
   
   // Tab状态：用于区分黄金和纳斯达克
   const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold'>('all');
@@ -52,7 +53,7 @@ export const PortfolioPage: React.FC = () => {
   } = usePortfolioWithSupabase();
 
   /**
-   * 加载和计算投资组合
+   * 加载和计算投资组合（不更新数据库）
    */
   const loadPortfolio = async () => {
     // 使用 Supabase 数据
@@ -84,26 +85,6 @@ export const PortfolioPage: React.FC = () => {
     );
     setPortfolio(calculatedPortfolio);
 
-    // 如果使用 Supabase 且有黄金价格，更新黄金持仓的收益到数据库
-    if (isSupabaseEnabled && gold.currentPrice !== null) {
-      const goldPositions = calculatedPortfolio.positions.filter(p => p.assetType === 'gold');
-      
-      for (const position of goldPositions) {
-        // 只有当收益发生变化时才更新
-        const originalPosition = positions.find(p => p.id === position.id);
-        if (originalPosition && originalPosition.profitLoss !== position.profitLoss) {
-          try {
-            await updateSupabasePosition(position.id, {
-              profitLoss: position.profitLoss,
-              currentValue: position.currentValue
-            });
-          } catch (error) {
-            console.error('更新黄金持仓收益失败:', error);
-          }
-        }
-      }
-    }
-
     // 保存快照
     if (positions.length > 0) {
       portfolioService.savePortfolioSnapshot(calculatedPortfolio);
@@ -121,6 +102,48 @@ export const PortfolioPage: React.FC = () => {
         newPreviousPrices.set(assetType, price);
       });
       setPreviousPrices(newPreviousPrices);
+    }
+  };
+
+  /**
+   * 更新黄金持仓收益到数据库
+   */
+  const updateGoldProfitToDb = async () => {
+    if (!isSupabaseEnabled || !portfolio || gold.currentPrice === null) {
+      return;
+    }
+
+    const goldPositions = portfolio.positions.filter(p => p.assetType === 'gold');
+    
+    for (const position of goldPositions) {
+      // 只有当收益发生变化时才更新
+      const originalPosition = supabasePositions.find(p => p.id === position.id);
+      if (originalPosition && originalPosition.profitLoss !== position.profitLoss) {
+        try {
+          await updateSupabasePosition(position.id, {
+            profitLoss: position.profitLoss,
+            currentValue: position.currentValue
+          });
+        } catch (error) {
+          console.error('更新黄金持仓收益失败:', error);
+        }
+      }
+    }
+
+    setLastDbUpdate(new Date());
+  };
+
+  /**
+   * 手动刷新黄金收益到数据库
+   */
+  const handleRefreshGoldProfit = async () => {
+    setIsRefreshing(true);
+    try {
+      await updateGoldProfitToDb();
+    } catch (error) {
+      console.error('刷新黄金收益失败:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -147,6 +170,27 @@ export const PortfolioPage: React.FC = () => {
     loadPortfolio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions]);
+
+  /**
+   * 每10秒自动更新黄金收益到数据库
+   */
+  useEffect(() => {
+    if (!isSupabaseEnabled || !portfolio) {
+      return;
+    }
+
+    // 立即执行一次
+    updateGoldProfitToDb();
+
+    // 设置定时器，每10秒执行一次
+    const intervalId = setInterval(() => {
+      updateGoldProfitToDb();
+    }, 10000); // 10秒
+
+    // 清理定时器
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [portfolio, gold.currentPrice, isSupabaseEnabled]);
 
   /**
    * 添加持仓
@@ -418,22 +462,47 @@ export const PortfolioPage: React.FC = () => {
       {!nasdaq.hasError && !gold.hasError && lastPriceUpdate && portfolio && portfolio.positions.length > 0 && (
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center space-x-2">
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>价格更新时间: {lastPriceUpdate.toLocaleString('zh-CN')}</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>价格更新: {lastPriceUpdate.toLocaleString('zh-CN')}</span>
+              </div>
+              {lastDbUpdate && isSupabaseEnabled && (
+                <div className="flex items-center space-x-2">
+                  <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>数据库同步: {lastDbUpdate.toLocaleString('zh-CN')}</span>
+                </div>
+              )}
             </div>
-            <button
-              onClick={handleRefreshPrices}
-              disabled={isRefreshing}
-              className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
-            >
-              <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>{isRefreshing ? '刷新中' : '手动刷新'}</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'gold') && (
+                <button
+                  onClick={handleRefreshGoldProfit}
+                  disabled={isRefreshing}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors disabled:opacity-50"
+                  title="更新黄金收益到数据库"
+                >
+                  <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>{isRefreshing ? '同步中' : '同步黄金'}</span>
+                </button>
+              )}
+              <button
+                onClick={handleRefreshPrices}
+                disabled={isRefreshing}
+                className="flex items-center space-x-1 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors disabled:opacity-50"
+              >
+                <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>{isRefreshing ? '刷新中' : '刷新价格'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
