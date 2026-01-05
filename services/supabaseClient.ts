@@ -52,9 +52,9 @@ function createSupabaseClient(): SupabaseClient | null {
           'x-client-info': 'portfolio-app'
         },
         fetch: (url, options = {}) => {
-          // 设置超时时间为 10 秒
+          // 设置超时时间为 30 秒
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
           
           return fetch(url, {
             ...options,
