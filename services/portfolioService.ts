@@ -412,6 +412,13 @@ export class PortfolioService {
     percentage: number;
   }> {
     const allocation = new Map<AssetType, { name: string; value: number }>();
+    
+    // 资产类型名称映射
+    const assetTypeNames: Record<AssetType, string> = {
+      'nasdaq': '纳斯达克100',
+      'astock': 'A股',
+      'gold': '现货黄金'
+    };
 
     portfolio.positions.forEach(position => {
       const existing = allocation.get(position.assetType);
@@ -421,7 +428,7 @@ export class PortfolioService {
         existing.value += value;
       } else {
         allocation.set(position.assetType, {
-          name: position.assetName,
+          name: assetTypeNames[position.assetType],
           value
         });
       }
