@@ -49,7 +49,7 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-1">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            <h3 className="text-base font-medium text-gray-700 dark:text-gray-300">
               {position.assetName}
             </h3>
             {position.autoInvest?.enabled && (
@@ -59,7 +59,7 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             )}
           </div>
           {position.assetType === 'nasdaq' && position.fundName && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {position.fundName}
             </p>
           )}
