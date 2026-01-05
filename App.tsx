@@ -2,13 +2,16 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './utils/context';
 import { ThemeProvider } from './utils/ThemeContext';
+import { AuthProvider } from './utils/AuthContext';
 import { DebugPanel } from './components/DebugPanel';
 import { PageLoading } from './components/LoadingSpinner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { logInfo } from './services/logger';
 import { migrateData } from './utils/dataMigration';
 
 // 懒加载页面组件
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const GoldAnalysisPage = lazy(() => import('./pages/GoldAnalysisPage'));
 const NasdaqAnalysisPage = lazy(() => import('./pages/NasdaqAnalysisPage'));
@@ -18,6 +21,9 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const FundConfigPage = lazy(() => import('./pages/FundConfigPage'));
 const SupabaseTestPage = lazy(() => import('./pages/SupabaseTestPage'));
 const ImportDataPage = lazy(() => import('./pages/ImportDataPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 
 const App: React.FC = () => {
   const [migrationError, setMigrationError] = React.useState<string | null>(null);
@@ -78,24 +84,35 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <AppProvider>
-          <Router>
-            <Suspense fallback={<PageLoading />}>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/gold" element={<GoldAnalysisPage />} />
-                <Route path="/nasdaq" element={<NasdaqAnalysisPage />} />
-                <Route path="/ai-chat" element={<AIChatPage />} />
-                <Route path="/portfolio" element={<PortfolioPage />} />
-                <Route path="/fund-config" element={<FundConfigPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/supabase-test" element={<SupabaseTestPage />} />
-                <Route path="/import-data" element={<ImportDataPage />} />
-              </Routes>
-            </Suspense>
-            <DebugPanel />
-          </Router>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <Router>
+              <Suspense fallback={<PageLoading />}>
+                <Routes>
+                  {/* 首页：未登录显示登录页，已登录显示主页 */}
+                  <Route path="/" element={<LandingPage />} />
+                  
+                  {/* 公开路由 */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  
+                  {/* 受保护的路由 */}
+                  <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                  <Route path="/gold" element={<ProtectedRoute><GoldAnalysisPage /></ProtectedRoute>} />
+                  <Route path="/nasdaq" element={<ProtectedRoute><NasdaqAnalysisPage /></ProtectedRoute>} />
+                  <Route path="/ai-chat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
+                  <Route path="/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
+                  <Route path="/fund-config" element={<ProtectedRoute><FundConfigPage /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                  <Route path="/supabase-test" element={<ProtectedRoute><SupabaseTestPage /></ProtectedRoute>} />
+                  <Route path="/import-data" element={<ProtectedRoute><ImportDataPage /></ProtectedRoute>} />
+                </Routes>
+              </Suspense>
+              <DebugPanel />
+            </Router>
+          </AppProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

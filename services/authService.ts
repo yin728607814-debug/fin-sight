@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './supabaseClient';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { Session, AuthError } from '@supabase/supabase-js';
 
 export interface LoginCredentials {
   email: string;
@@ -184,7 +184,7 @@ export class AuthService {
       return { data: { subscription: { unsubscribe: () => {} } } };
     }
 
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         callback({
           id: session.user.id,

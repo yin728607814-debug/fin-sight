@@ -1,5 +1,5 @@
 /**
- * 登录页面
+ * 注册页面
  */
 
 import React, { useState } from 'react';
@@ -7,36 +7,52 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { UserService } from '../services/userService';
 
-export const LoginPage: React.FC = () => {
+export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
-      const { user, error: loginError } = await authService.login({ email, password });
+    // 验证密码匹配
+    if (password !== confirmPassword) {
+      setError('两次输入的密码不一致');
+      setLoading(false);
+      return;
+    }
 
-      if (loginError) {
-        setError(loginError);
+    try {
+      const { user, error: registerError } = await authService.register({ 
+        email, 
+        password,
+        confirmPassword 
+      });
+
+      if (registerError) {
+        setError(registerError);
         setLoading(false);
         return;
       }
 
       if (user) {
+        setSuccess(true);
         // 缓存用户ID
         UserService.cacheUserId(user.id);
         
-        // 跳转到主页
-        navigate('/home');
+        // 2秒后跳转到主页
+        setTimeout(() => {
+          navigate('/home');
+        }, 2000);
       }
     } catch (err) {
-      setError('登录失败，请稍后重试');
+      setError('注册失败，请稍后重试');
       setLoading(false);
     }
   };
@@ -57,9 +73,18 @@ export const LoginPage: React.FC = () => {
               投资组合管理
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              登录您的账户
+              创建您的账户
             </p>
           </div>
+
+          {/* 成功提示 */}
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <p className="text-sm text-green-600 dark:text-green-400">
+                注册成功！正在跳转...
+              </p>
+            </div>
+          )}
 
           {/* 错误提示 */}
           {error && (
@@ -68,7 +93,7 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* 登录表单 */}
+          {/* 注册表单 */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -81,7 +106,7 @@ export const LoginPage: React.FC = () => {
                 placeholder="your@email.com"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 required
-                disabled={loading}
+                disabled={loading || success}
               />
             </div>
 
@@ -93,33 +118,47 @@ export const LoginPage: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="至少6个字符"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 required
-                disabled={loading}
+                disabled={loading || success}
+                minLength={6}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                确认密码
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="再次输入密码"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                required
+                disabled={loading || success}
+                minLength={6}
               />
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || success}
               className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? '登录中...' : '登录'}
+              {loading ? '注册中...' : success ? '注册成功' : '注册'}
             </button>
           </form>
 
           {/* 底部链接 */}
-          <div className="mt-6 text-center space-y-2">
+          <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              还没有账户？{' '}
-              <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                立即注册
+              已有账户？{' '}
+              <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                立即登录
               </Link>
             </p>
-            <Link to="/forgot-password" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
-              忘记密码？
-            </Link>
           </div>
         </div>
 
@@ -134,4 +173,4 @@ export const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

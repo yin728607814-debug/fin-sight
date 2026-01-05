@@ -4,9 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeftIcon, PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { AppHeader } from '../components/AppHeader';
 import { PositionList } from '../components/PositionList';
 import { PortfolioChart } from '../components/PortfolioChart';
 import { AddPositionModal } from '../components/AddPositionModal';
@@ -322,48 +321,26 @@ export const PortfolioPage: React.FC = () => {
       </div>
 
       {/* Header */}
-      <header className="relative bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl shadow-lg border-b border-white/20 dark:border-gray-700/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Link
-                to="/"
-                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-              >
-                <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                返回首页
-              </Link>
-              <div className="ml-6 h-6 border-l border-gray-300/50 dark:border-gray-600/50" />
-              <h1 className="ml-6 text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                <svg className="h-6 w-6 mr-3 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                投资组合
-                {isSupabaseEnabled && (
-                  <span className="ml-3 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
-                    云端同步
-                  </span>
-                )}
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleExport}
-                disabled={!portfolio || portfolio.positions.length === 0}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                title="导出投资组合"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                导出
-              </button>
-              <div className="relative z-[9998]">
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        title="投资组合"
+        icon={
+          <svg className="h-6 w-6 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        }
+        badge={isSupabaseEnabled ? '云端同步' : undefined}
+        actions={
+          <button
+            onClick={handleExport}
+            disabled={!portfolio || portfolio.positions.length === 0}
+            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            title="导出投资组合"
+          >
+            <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+            导出
+          </button>
+        }
+      />
 
       {/* 迁移提示 */}
       {isSupabaseEnabled && showMigration && (
