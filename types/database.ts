@@ -76,3 +76,28 @@ export interface BatchImportResult {
     error: string;
   }>;
 }
+
+/**
+ * 基金配置记录（数据库表结构）
+ */
+export interface FundConfigRecord {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 创建基金配置输入
+ */
+export interface CreateFundConfigInput {
+  name: string;
+}
+
+/**
+ * 更新基金配置输入
+ */
+export interface UpdateFundConfigInput {
+  name?: string;
+}

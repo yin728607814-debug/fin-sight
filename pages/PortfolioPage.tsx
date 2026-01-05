@@ -12,8 +12,10 @@ import { PortfolioChart } from '../components/PortfolioChart';
 import { AddPositionModal } from '../components/AddPositionModal';
 import { EditPositionModal } from '../components/EditPositionModal';
 import { GoldSummary } from '../components/GoldSummary';
+import { MigrationPrompt } from '../components/MigrationPrompt';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
 import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion';
+import { usePortfolioWithSupabase } from '../hooks/usePortfolioWithSupabase';
 
 /**
  * 投资组合页面组件
@@ -26,6 +28,7 @@ export const PortfolioPage: React.FC = () => {
   const [previousPrices, setPreviousPrices] = useState<Map<string, number>>(new Map());
   const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showMigration, setShowMigration] = useState(true);
   
   // Tab状态：用于区分黄金和纳斯达克
   const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold'>('all');
@@ -34,12 +37,26 @@ export const PortfolioPage: React.FC = () => {
   // 使用增强的价格数据hook（自动处理黄金价格转换）
   const nasdaq = usePriceDataWithConversion('nasdaq');
   const gold = usePriceDataWithConversion('gold');
+  
+  // 使用 Supabase 后端存储
+  const {
+    positions: supabasePositions,
+    loading: supabaseLoading,
+    error: supabaseError,
+    isSupabaseEnabled,
+    addPosition: addSupabasePosition,
+    updatePosition: updateSupabasePosition,
+    deletePosition: deleteSupabasePosition,
+    refetch: refetchSupabase,
+    exportPositions: exportSupabasePositions
+  } = usePortfolioWithSupabase();
 
   /**
    * 加载和计算投资组合
    */
   const loadPortfolio = () => {
-    const positions = portfolioService.getPositions();
+    // 使用 Supabase 数据
+    const positions = isSupabaseEnabled ? supabasePositions : portfolioService.getPositions();
     
     // 获取最新价格（已自动转换）
     const prices = new Map();
@@ -109,38 +126,80 @@ export const PortfolioPage: React.FC = () => {
   useEffect(() => {
     loadPortfolio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nasdaq.currentPrice, gold.currentPrice]);
+  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions]);
 
   /**
    * 添加持仓
    */
-  const handleAddPosition = (position: Omit<Position, 'id'>) => {
-    portfolioService.addPosition(position);
-    loadPortfolio();
+  const handleAddPosition = async (position: Omit<Position, 'id'>) => {
+    try {
+      if (isSupabaseEnabled) {
+        // 使用 Supabase
+        await addSupabasePosition(position);
+      } else {
+        // 使用本地存储
+        portfolioService.addPosition(position);
+      }
+      loadPortfolio();
+    } catch (error) {
+      console.error('添加持仓失败:', error);
+      alert('添加持仓失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
   };
 
   /**
    * 编辑持仓
    */
-  const handleEditPosition = (id: string, updates: Partial<Position>) => {
-    portfolioService.updatePosition(id, updates);
-    loadPortfolio();
-    setSelectedPosition(null);
+  const handleEditPosition = async (id: string, updates: Partial<Position>) => {
+    try {
+      if (isSupabaseEnabled) {
+        // 使用 Supabase
+        await updateSupabasePosition(id, updates);
+      } else {
+        // 使用本地存储
+        portfolioService.updatePosition(id, updates);
+      }
+      loadPortfolio();
+      setSelectedPosition(null);
+    } catch (error) {
+      console.error('更新持仓失败:', error);
+      alert('更新持仓失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
   };
 
   /**
    * 删除持仓
    */
-  const handleDeletePosition = (id: string) => {
-    portfolioService.deletePosition(id);
-    loadPortfolio();
+  const handleDeletePosition = async (id: string) => {
+    try {
+      if (isSupabaseEnabled) {
+        // 使用 Supabase
+        await deleteSupabasePosition(id);
+      } else {
+        // 使用本地存储
+        portfolioService.deletePosition(id);
+      }
+      loadPortfolio();
+    } catch (error) {
+      console.error('删除持仓失败:', error);
+      alert('删除持仓失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
   };
 
   /**
    * 导出投资组合
    */
   const handleExport = () => {
-    const jsonData = portfolioService.exportPortfolio();
+    let jsonData: string;
+    
+    if (isSupabaseEnabled) {
+      // 使用 Supabase 导出
+      jsonData = exportSupabasePositions();
+    } else {
+      // 使用本地存储导出
+      jsonData = portfolioService.exportPortfolio();
+    }
+    
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -216,6 +275,11 @@ export const PortfolioPage: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 投资组合
+                {isSupabaseEnabled && (
+                  <span className="ml-3 px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                    云端同步
+                  </span>
+                )}
               </h1>
             </div>
             
@@ -236,6 +300,60 @@ export const PortfolioPage: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* 迁移提示 */}
+      {isSupabaseEnabled && showMigration && (
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <MigrationPrompt onMigrationComplete={() => {
+            setShowMigration(false);
+            refetchSupabase();
+          }} />
+        </div>
+      )}
+
+      {/* Supabase 错误提示 */}
+      {supabaseError && (
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-start">
+              <svg className="h-5 w-5 text-red-600 dark:text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-300">
+                  数据同步错误
+                </h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-400">
+                  {supabaseError}
+                </div>
+              </div>
+              <button
+                onClick={() => refetchSupabase()}
+                className="ml-3 px-3 py-1.5 text-xs font-medium text-red-800 dark:text-red-300 bg-red-100 dark:bg-red-900/40 rounded hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
+              >
+                重试
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 加载状态 */}
+      {supabaseLoading && (
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-center">
+              <svg className="animate-spin h-5 w-5 text-blue-600 dark:text-blue-400 mr-3" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="text-sm text-blue-800 dark:text-blue-300">
+                正在从云端加载数据...
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 价格错误提示 */}
       {(nasdaq.hasError || gold.hasError) && (

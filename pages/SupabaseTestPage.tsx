@@ -8,7 +8,7 @@ import { usePositions } from '../hooks/usePositions';
 import { MigrationPrompt } from '../components/MigrationPrompt';
 import { CreatePositionInput } from '../types/database';
 
-export const SupabaseTestPage: React.FC = () => {
+const SupabaseTestPage: React.FC = () => {
   const { 
     positions, 
     loading, 
@@ -241,3 +241,5 @@ export const SupabaseTestPage: React.FC = () => {
     </div>
   );
 };
+
+export default SupabaseTestPage;

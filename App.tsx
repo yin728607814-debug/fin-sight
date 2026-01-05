@@ -16,7 +16,8 @@ const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const FundConfigPage = lazy(() => import('./pages/FundConfigPage'));
-const SupabaseTestPage = lazy(() => import('./pages/SupabaseTestPage').then(module => ({ default: module.SupabaseTestPage })));
+const SupabaseTestPage = lazy(() => import('./pages/SupabaseTestPage'));
+const ImportDataPage = lazy(() => import('./pages/ImportDataPage'));
 
 const App: React.FC = () => {
   const [migrationError, setMigrationError] = React.useState<string | null>(null);
@@ -89,6 +90,7 @@ const App: React.FC = () => {
                 <Route path="/fund-config" element={<FundConfigPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/supabase-test" element={<SupabaseTestPage />} />
+                <Route path="/import-data" element={<ImportDataPage />} />
               </Routes>
             </Suspense>
             <DebugPanel />
