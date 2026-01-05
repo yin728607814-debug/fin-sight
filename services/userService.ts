@@ -10,6 +10,10 @@ const USER_ID_KEY = 'portfolio_user_id';
 const USER_ID_VERSION_KEY = 'portfolio_user_id_version';
 const CURRENT_VERSION = '1.0';
 
+// 临时方案：使用固定的用户 ID（开发/测试用）
+// TODO: 后续替换为真实的登录系统
+const FIXED_USER_ID = 'ffbce643-c892-4f7d-b4e1-736bdc60b816';
+
 /**
  * 用户服务类
  */
@@ -18,6 +22,11 @@ export class UserService {
    * 获取或生成用户ID
    */
   static getUserId(): string {
+    // 临时方案：直接返回固定 ID
+    // 这样无论域名如何变化，都使用同一个用户 ID
+    return FIXED_USER_ID;
+    
+    /* 原来的逻辑（登录系统实现后恢复）
     let userId = localStorage.getItem(USER_ID_KEY);
     const version = localStorage.getItem(USER_ID_VERSION_KEY);
     
@@ -34,6 +43,7 @@ export class UserService {
     }
     
     return userId;
+    */
   }
 
   /**
