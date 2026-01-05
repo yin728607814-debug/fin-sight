@@ -46,6 +46,21 @@ function createSupabaseClient(): SupabaseClient | null {
       },
       db: {
         schema: 'public'
+      },
+      global: {
+        headers: {
+          'x-client-info': 'portfolio-app'
+        },
+        fetch: (url, options = {}) => {
+          // 设置超时时间为 10 秒
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
+          return fetch(url, {
+            ...options,
+            signal: controller.signal
+          }).finally(() => clearTimeout(timeoutId));
+        }
       }
     });
 

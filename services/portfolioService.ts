@@ -227,8 +227,12 @@ export class PortfolioService {
       } else {
         // 黄金：根据均价和当前价格计算收益
         if (currentPrice !== undefined && position.quantity && position.averageBuyPrice) {
-          // 当前市值 = 克数 × 当前价格（人民币/克）
-          const positionValue = position.quantity * currentPrice;
+          // 招商银行买卖价差：卖出价格比买入价格低3元/克
+          const BANK_SPREAD = 3; // 元/克
+          const effectivePrice = currentPrice - BANK_SPREAD;
+          
+          // 当前市值 = 克数 × 有效价格（扣除买卖价差后）
+          const positionValue = position.quantity * effectivePrice;
           // 持仓收益 = 当前市值 - 持仓金额
           const profitLoss = positionValue - investment;
           const profitLossPercent = investment > 0 ? (profitLoss / investment) * 100 : 0;
