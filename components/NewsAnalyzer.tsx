@@ -157,6 +157,12 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       console.log(`✅ 批量分析完成！`);
       console.log(`   整体影响: ${batchResult.overallImpact}, 整体置信度: ${batchResult.overallConfidence.toFixed(2)}`);
       console.log(`   ${analysisResults.filter(a => a.impact === 'positive').length} 条利好, ${analysisResults.filter(a => a.impact === 'negative').length} 条利空, ${analysisResults.filter(a => a.impact === 'neutral').length} 条中性`);
+      
+      // 调试：输出前3条分析结果
+      console.log('🔍 前3条分析结果示例:');
+      analysisResults.slice(0, 3).forEach((result, idx) => {
+        console.log(`   [${idx}] newsId: ${result.newsId}, impact: ${result.impact}, confidence: ${result.confidence}`);
+      });
 
       setAnalysis(analysisResults);
       
@@ -261,12 +267,24 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
     // 只在已初始化且有新闻数据时响应 skipAnalysis 变化
     if (isInitialized && news.length > 0) {
       if (skipAnalysis) {
-        // skipAnalysis=true: 只刷新新闻，不分析（保留现有分析结果）
-        console.log('🔄 只刷新新闻，跳过AI分析');
-        fetchNews();
+        // skipAnalysis=true: 只刷新新闻，保留现有分析结果
+        console.log('🔄 只刷新新闻，保留现有分析结果');
+        
+        // 保存当前的分析结果
+        const currentAnalysis = new Map(analysis.map(a => [a.newsId, a]));
+        
+        // 刷新新闻
+        fetchNews().then(() => {
+          // 刷新后，将旧的分析结果应用到新新闻上（如果新闻ID匹配）
+          setAnalysis(prevAnalysis => {
+            return prevAnalysis.filter(a => 
+              news.some(n => n.id === a.newsId)
+            );
+          });
+        });
       }
     }
-  }, [skipAnalysis, isInitialized, news.length, fetchNews]);
+  }, [skipAnalysis, isInitialized, news.length, fetchNews, analysis, setAnalysis]);
 
   /**
    * 检查数据是否过期（超过30分钟）

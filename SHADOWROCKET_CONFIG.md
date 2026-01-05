@@ -161,6 +161,12 @@ localhost = 127.0.0.1
 策略: PROXY
 ```
 
+```
+类型: DOMAIN-SUFFIX
+值: aistudio.google.com
+策略: PROXY
+```
+
 **Supabase - 直连**:
 ```
 类型: DOMAIN-SUFFIX
