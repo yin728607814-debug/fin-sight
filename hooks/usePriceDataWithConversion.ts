@@ -38,6 +38,18 @@ const priceCache: PriceCache = {};
 export function usePriceDataWithConversion(assetType: 'nasdaq' | 'gold') {
   const { priceData, loading, error } = usePriceData(assetType);
   const [conversionError, setConversionError] = useState<string | null>(null);
+  const [rateUpdated, setRateUpdated] = useState(false);
+
+  /**
+   * 黄金价格：先更新汇率
+   */
+  useEffect(() => {
+    if (assetType === 'gold' && !rateUpdated) {
+      goldPriceConverter.updateExchangeRate().then(() => {
+        setRateUpdated(true);
+      });
+    }
+  }, [assetType, rateUpdated]);
 
   /**
    * 获取当前价格（自动转换黄金价格）

@@ -3,6 +3,8 @@
  * 负责美元/盎司和人民币/克之间的价格转换
  */
 
+import { exchangeRateService } from './exchangeRateService';
+
 /**
  * 黄金价格转换常量
  */
@@ -17,6 +19,7 @@ export const GOLD_CONVERSION = {
 export class GoldPriceConverter {
   private static instance: GoldPriceConverter;
   private exchangeRate: number;
+  private useRealTimeRate: boolean = true; // 是否使用实时汇率
 
   /**
    * 获取单例实例
@@ -33,6 +36,35 @@ export class GoldPriceConverter {
    */
   private constructor() {
     this.exchangeRate = GOLD_CONVERSION.USD_TO_CNY;
+    // 初始化时获取实时汇率
+    this.updateExchangeRate();
+  }
+
+  /**
+   * 更新汇率（从实时API获取）
+   */
+  public async updateExchangeRate(): Promise<void> {
+    if (!this.useRealTimeRate) {
+      return;
+    }
+
+    try {
+      const rate = await exchangeRateService.getUsdToCnyRate();
+      this.exchangeRate = rate;
+      console.log(`✅ 汇率已更新: ${rate}`);
+    } catch (error) {
+      console.warn('⚠️ 获取实时汇率失败，使用默认汇率', error);
+    }
+  }
+
+  /**
+   * 设置是否使用实时汇率
+   */
+  public setUseRealTimeRate(use: boolean): void {
+    this.useRealTimeRate = use;
+    if (use) {
+      this.updateExchangeRate();
+    }
   }
 
   /**
@@ -44,6 +76,7 @@ export class GoldPriceConverter {
       return;
     }
     this.exchangeRate = rate;
+    this.useRealTimeRate = false; // 手动设置后禁用实时汇率
   }
 
   /**
