@@ -3,7 +3,6 @@
  * 实时获取美元兑人民币汇率
  */
 
-import axios from 'axios';
 import { logInfo, logError } from './logger';
 
 /**
@@ -104,30 +103,68 @@ export class ExchangeRateService {
    * 从 ExchangeRate-API 获取汇率
    */
   private async fetchFromExchangeRateAPI(): Promise<number> {
-    const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD', {
-      timeout: 5000
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    if (response.data && response.data.rates && response.data.rates.CNY) {
-      return response.data.rates.CNY;
+    try {
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data && data.rates && data.rates.CNY) {
+        return data.rates.CNY;
+      }
+
+      throw new Error('ExchangeRate-API 返回数据格式错误');
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-
-    throw new Error('ExchangeRate-API 返回数据格式错误');
   }
 
   /**
    * 从 Frankfurter 获取汇率
    */
   private async fetchFromFrankfurter(): Promise<number> {
-    const response = await axios.get('https://api.frankfurter.app/latest?from=USD&to=CNY', {
-      timeout: 5000
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    if (response.data && response.data.rates && response.data.rates.CNY) {
-      return response.data.rates.CNY;
+    try {
+      const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=CNY', {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data && data.rates && data.rates.CNY) {
+        return data.rates.CNY;
+      }
+
+      throw new Error('Frankfurter 返回数据格式错误');
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-
-    throw new Error('Frankfurter 返回数据格式错误');
   }
 
   /**
