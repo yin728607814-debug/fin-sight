@@ -3,15 +3,24 @@
  * 管理用户自定义的基金列表
  */
 
+import { supabase } from './supabaseClient';
+import { UserService } from './userService';
+
 export interface FundConfig {
   id: string;
+  user_id: string;
   name: string;
-  createdAt: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateFundConfigInput {
+  name: string;
 }
 
 class FundConfigService {
   private static instance: FundConfigService;
-  private readonly STORAGE_KEY = 'user_fund_configs';
+  private userId: string;
 
   public static getInstance(): FundConfigService {
     if (!FundConfigService.instance) {
@@ -20,103 +29,182 @@ class FundConfigService {
     return FundConfigService.instance;
   }
 
-  private constructor() {}
+  private constructor() {
+    this.userId = UserService.getUserId();
+  }
+
+  /**
+   * 检查 Supabase 是否可用
+   */
+  private checkAvailability(): void {
+    if (!supabase) {
+      throw new Error('Supabase 未初始化');
+    }
+  }
 
   /**
    * 获取所有基金配置
    */
-  public getFunds(): FundConfig[] {
+  public async getFunds(): Promise<FundConfig[]> {
+    this.checkAvailability();
+
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (!stored) {
-        return [];
+      const { data, error } = await supabase!
+        .from('fund_configs')
+        .select('*')
+        .eq('user_id', this.userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
       }
-      const parsed = JSON.parse(stored);
-      return parsed.map((fund: FundConfig) => ({
-        ...fund,
-        createdAt: new Date(fund.createdAt)
+
+      return (data || []).map(item => ({
+        ...item,
+        created_at: new Date(item.created_at),
+        updated_at: new Date(item.updated_at)
       }));
     } catch (error) {
-      console.error('获取基金配置失败:', error);
-      return [];
+      console.error('获取基金配置异常:', error);
+      throw error;
     }
   }
 
   /**
    * 添加基金
    */
-  public addFund(name: string): FundConfig {
-    const funds = this.getFunds();
-    
-    // 检查是否已存在
-    if (funds.some(f => f.name === name)) {
-      throw new Error('该基金名称已存在');
+  public async addFund(name: string): Promise<FundConfig> {
+    this.checkAvailability();
+
+    try {
+      // 检查是否已存在
+      const existing = await this.getFunds();
+      if (existing.some(f => f.name === name)) {
+        throw new Error('该基金名称已存在');
+      }
+
+      const { data, error } = await supabase!
+        .from('fund_configs')
+        .insert({
+          user_id: this.userId,
+          name: name.trim()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const fund = {
+        ...data,
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at)
+      };
+
+      return fund;
+    } catch (error) {
+      console.error('添加基金配置异常:', error);
+      throw error;
     }
-
-    const newFund: FundConfig = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      createdAt: new Date()
-    };
-
-    funds.push(newFund);
-    this.saveFunds(funds);
-    return newFund;
   }
 
   /**
    * 更新基金
    */
-  public updateFund(id: string, name: string): void {
-    const funds = this.getFunds();
-    const index = funds.findIndex(f => f.id === id);
-    
-    if (index === -1) {
-      throw new Error('基金不存在');
-    }
+  public async updateFund(id: string, name: string): Promise<FundConfig> {
+    this.checkAvailability();
 
-    // 检查名称是否与其他基金重复
-    if (funds.some(f => f.id !== id && f.name === name)) {
-      throw new Error('该基金名称已存在');
-    }
+    try {
+      // 检查名称是否与其他基金重复
+      const existing = await this.getFunds();
+      if (existing.some(f => f.id !== id && f.name === name)) {
+        throw new Error('该基金名称已存在');
+      }
 
-    funds[index].name = name.trim();
-    this.saveFunds(funds);
+      const { data, error } = await supabase!
+        .from('fund_configs')
+        .update({ name: name.trim() })
+        .eq('id', id)
+        .eq('user_id', this.userId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('基金配置不存在');
+      }
+
+      const fund = {
+        ...data,
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at)
+      };
+
+      return fund;
+    } catch (error) {
+      console.error('更新基金配置异常:', error);
+      throw error;
+    }
   }
 
   /**
    * 删除基金
    */
-  public deleteFund(id: string): void {
-    const funds = this.getFunds();
-    const filtered = funds.filter(f => f.id !== id);
-    this.saveFunds(filtered);
+  public async deleteFund(id: string): Promise<void> {
+    this.checkAvailability();
+
+    try {
+      const { error } = await supabase!
+        .from('fund_configs')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', this.userId);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('删除基金配置异常:', error);
+      throw error;
+    }
   }
 
   /**
    * 搜索基金
    */
-  public searchFunds(query: string): FundConfig[] {
-    const funds = this.getFunds();
-    if (!query.trim()) {
-      return funds;
-    }
-    
-    const lowerQuery = query.toLowerCase();
-    return funds.filter(fund => 
-      fund.name.toLowerCase().includes(lowerQuery)
-    );
-  }
+  public async searchFunds(query: string): Promise<FundConfig[]> {
+    this.checkAvailability();
 
-  /**
-   * 保存基金列表
-   */
-  private saveFunds(funds: FundConfig[]): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(funds));
+      if (!query.trim()) {
+        return await this.getFunds();
+      }
+
+      const { data, error } = await supabase!
+        .from('fund_configs')
+        .select('*')
+        .eq('user_id', this.userId)
+        .ilike('name', `%${query}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      const funds = (data || []).map(item => ({
+        ...item,
+        created_at: new Date(item.created_at),
+        updated_at: new Date(item.updated_at)
+      }));
+
+      return funds;
     } catch (error) {
-      console.error('保存基金配置失败:', error);
-      throw new Error('保存失败');
+      console.error('搜索基金配置异常:', error);
+      throw error;
     }
   }
 }

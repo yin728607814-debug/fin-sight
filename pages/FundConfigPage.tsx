@@ -16,17 +16,31 @@ export const FundConfigPage: React.FC = () => {
   const [fundName, setFundName] = useState('');
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filteredFunds, setFilteredFunds] = useState<FundConfig[]>([]);
 
   useEffect(() => {
     loadFunds();
   }, []);
 
-  const loadFunds = () => {
-    const allFunds = fundConfigService.getFunds();
-    setFunds(allFunds);
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      fundConfigService.searchFunds(searchQuery).then(setFilteredFunds);
+    } else {
+      setFilteredFunds(funds);
+    }
+  }, [searchQuery, funds]);
+
+  const loadFunds = async () => {
+    try {
+      const allFunds = await fundConfigService.getFunds();
+      setFunds(allFunds);
+    } catch (error) {
+      console.error('加载基金配置失败:', error);
+      setError('加载基金配置失败');
+    }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     setError('');
     if (!fundName.trim()) {
       setError('请输入基金名称');
@@ -34,17 +48,17 @@ export const FundConfigPage: React.FC = () => {
     }
 
     try {
-      fundConfigService.addFund(fundName);
+      await fundConfigService.addFund(fundName);
       setFundName('');
       setIsAddModalOpen(false);
-      loadFunds();
+      await loadFunds();
     } catch (err) {
       const error = err as Error;
       setError(error.message);
     }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editingFund) return;
     
     setError('');
@@ -54,20 +68,25 @@ export const FundConfigPage: React.FC = () => {
     }
 
     try {
-      fundConfigService.updateFund(editingFund.id, fundName);
+      await fundConfigService.updateFund(editingFund.id, fundName);
       setFundName('');
       setEditingFund(null);
-      loadFunds();
+      await loadFunds();
     } catch (err) {
       const error = err as Error;
       setError(error.message);
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('确定要删除这个基金吗？')) {
-      fundConfigService.deleteFund(id);
-      loadFunds();
+      try {
+        await fundConfigService.deleteFund(id);
+        await loadFunds();
+      } catch (error) {
+        console.error('删除基金失败:', error);
+        setError('删除基金失败');
+      }
     }
   };
 
@@ -91,10 +110,6 @@ export const FundConfigPage: React.FC = () => {
     setFundName('');
     setError('');
   };
-
-  const filteredFunds = searchQuery.trim()
-    ? fundConfigService.searchFunds(searchQuery)
-    : funds;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -179,7 +194,7 @@ export const FundConfigPage: React.FC = () => {
                       {fund.name}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      添加于 {fund.createdAt.toLocaleDateString('zh-CN')}
+                      添加于 {fund.created_at.toLocaleDateString('zh-CN')}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
