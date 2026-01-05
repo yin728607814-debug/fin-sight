@@ -48,20 +48,38 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
       {/* 头部：资产名称和操作按钮 */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center space-x-2 mb-1">
-            <h3 className="text-base font-medium text-gray-700 dark:text-gray-300">
-              {position.assetName}
-            </h3>
-            {position.autoInvest?.enabled && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                定投中
-              </span>
-            )}
-          </div>
-          {position.assetType === 'nasdaq' && position.fundName && (
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {position.fundName}
-            </p>
+          {/* 纳斯达克基金：基金名称为主标题 */}
+          {position.assetType === 'nasdaq' && position.fundName ? (
+            <>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1.5">
+                {position.fundName}
+              </h3>
+              <div className="flex items-center space-x-2">
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded border border-blue-200 dark:border-blue-800">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                  </svg>
+                  {position.assetName}
+                </span>
+                {position.autoInvest?.enabled && (
+                  <span className="px-2 py-0.5 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded border border-green-200 dark:border-green-800">
+                    定投中
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            /* 黄金或其他资产：资产名称为主标题 */
+            <div className="flex items-center space-x-2 mb-1">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                {position.assetName}
+              </h3>
+              {position.autoInvest?.enabled && (
+                <span className="px-2 py-0.5 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded border border-green-200 dark:border-green-800">
+                  定投中
+                </span>
+              )}
+            </div>
           )}
         </div>
         
