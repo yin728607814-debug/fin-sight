@@ -30,8 +30,9 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   
   // 颜色配置
   const COLORS = {
-    nasdaq: '#3B82F6', // blue-500
-    gold: '#F59E0B'    // amber-500
+    nasdaq: '#3B82F6',  // blue-500
+    astock: '#A855F7',  // purple-500
+    gold: '#F59E0B'     // amber-500
   };
 
   /**
@@ -41,26 +42,28 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   const calculateAssetHistory = () => {
     // 获取当前各资产的投资
     const nasdaqPositions = portfolio.positions.filter(p => p.assetType === 'nasdaq');
+    const astockPositions = portfolio.positions.filter(p => p.assetType === 'astock');
     const goldPositions = portfolio.positions.filter(p => p.assetType === 'gold');
     
     const nasdaqInvestment = nasdaqPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
+    const astockInvestment = astockPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
     const goldInvestment = goldPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
+    const totalInvestment = nasdaqInvestment + astockInvestment + goldInvestment;
     
     // 为历史数据添加分资产类型的值（按比例推算）
     return history.map(item => {
       const totalValue = item.value;
       
       // 按当前投资比例分配历史价值
-      const nasdaqRatio = (nasdaqInvestment + goldInvestment) > 0 ? nasdaqInvestment / (nasdaqInvestment + goldInvestment) : 0;
-      const goldRatio = 1 - nasdaqRatio;
-      
-      const nasdaqHistValue = totalValue * nasdaqRatio;
-      const goldHistValue = totalValue * goldRatio;
+      const nasdaqRatio = totalInvestment > 0 ? nasdaqInvestment / totalInvestment : 0;
+      const astockRatio = totalInvestment > 0 ? astockInvestment / totalInvestment : 0;
+      const goldRatio = totalInvestment > 0 ? goldInvestment / totalInvestment : 0;
       
       return {
         ...item,
-        nasdaqValue: nasdaqHistValue,
-        goldValue: goldHistValue
+        nasdaqValue: totalValue * nasdaqRatio,
+        astockValue: totalValue * astockRatio,
+        goldValue: totalValue * goldRatio
       };
     });
   };
@@ -126,9 +129,14 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
+                      animationDuration={300}
+                      isAnimationActive={true}
                     >
                       {allocationData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[entry.assetType]} />
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[entry.assetType as keyof typeof COLORS]} 
+                        />
                       ))}
                     </Pie>
                     <Tooltip
@@ -149,7 +157,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                       <div className="flex items-center">
                         <div
                           className="w-3 h-3 rounded-full mr-2"
-                          style={{ backgroundColor: COLORS[item.assetType] }}
+                          style={{ backgroundColor: COLORS[item.assetType as keyof typeof COLORS] }}
                         />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
                           {item.assetName}
@@ -203,25 +211,38 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                       name="总价值"
                       stroke="#10B981"
                       strokeWidth={2}
-                      dot={{ fill: '#10B981', r: 3 }}
+                      dot={false}
+                      animationDuration={300}
                     />
                     <Line
                       type="monotone"
                       dataKey="nasdaqValue"
                       name="纳斯达克"
                       stroke="#3B82F6"
-                      strokeWidth={2}
-                      dot={{ fill: '#3B82F6', r: 3 }}
+                      strokeWidth={1.5}
+                      dot={false}
                       strokeDasharray="5 5"
+                      animationDuration={300}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="astockValue"
+                      name="A股"
+                      stroke="#A855F7"
+                      strokeWidth={1.5}
+                      dot={false}
+                      strokeDasharray="5 5"
+                      animationDuration={300}
                     />
                     <Line
                       type="monotone"
                       dataKey="goldValue"
                       name="黄金"
                       stroke="#F59E0B"
-                      strokeWidth={2}
-                      dot={{ fill: '#F59E0B', r: 3 }}
+                      strokeWidth={1.5}
+                      dot={false}
                       strokeDasharray="5 5"
+                      animationDuration={300}
                     />
                   </LineChart>
                 </ResponsiveContainer>
