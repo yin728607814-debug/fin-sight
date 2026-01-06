@@ -1110,7 +1110,7 @@ ${finalNewsText}
       console.log(`🔑 API密钥前缀: ${this.config.apiKey?.substring(0, 10)}...`);
       
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-3-flash-preview:generateContent?key=${this.config.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.config.apiKey}`,
         {
           contents: [{
             parts: [{ text: prompt }]
