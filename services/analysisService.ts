@@ -1115,8 +1115,7 @@ ${finalNewsText}
           }],
           generationConfig: {
             temperature: 0.3,  // 降低温度，提高稳定性
-            maxOutputTokens: 2048,  // 适中的token数，确保完整输出
-            responseMimeType: "application/json"  // 明确要求JSON格式
+            maxOutputTokens: 2048  // 适中的token数，确保完整输出
           }
         },
         {
