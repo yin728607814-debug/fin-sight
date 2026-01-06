@@ -28,9 +28,9 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   onClose,
   onSave
 }) => {
-  // 纳斯达克字段
-  const [nasdaqInvestment, setNasdaqInvestment] = useState('');
-  const [nasdaqProfit, setNasdaqProfit] = useState('');
+  // 纳斯达克和A股基金字段
+  const [fundInvestment, setFundInvestment] = useState('');
+  const [fundProfit, setFundProfit] = useState('');
   const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
   
   // 黄金字段
@@ -45,9 +45,9 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
    */
   useEffect(() => {
     if (position) {
-      if (position.assetType === 'nasdaq') {
-        setNasdaqInvestment(position.investmentAmount.toString());
-        setNasdaqProfit(position.profitLoss.toString());
+      if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
+        setFundInvestment(position.investmentAmount.toString());
+        setFundProfit(position.profitLoss.toString());
         setAutoInvest(position.autoInvest);
       } else if (position.assetType === 'gold') {
         setGoldGrams(position.quantity?.toString() || '');
@@ -65,11 +65,11 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
 
     if (!position) return false;
 
-    if (position.assetType === 'nasdaq') {
-      if (!nasdaqInvestment || parseFloat(nasdaqInvestment) <= 0) {
+    if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
+      if (!fundInvestment || parseFloat(fundInvestment) <= 0) {
         newErrors.investment = '持仓金额必须大于0';
       }
-      if (nasdaqProfit === '' || isNaN(parseFloat(nasdaqProfit))) {
+      if (fundProfit === '' || isNaN(parseFloat(fundProfit))) {
         newErrors.profit = '请输入持仓收益';
       }
     } else if (position.assetType === 'gold') {
@@ -98,10 +98,10 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       return;
     }
 
-    if (position.assetType === 'nasdaq') {
+    if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
       onSave(position.id, {
-        investmentAmount: parseFloat(nasdaqInvestment),
-        profitLoss: parseFloat(nasdaqProfit),
+        investmentAmount: parseFloat(fundInvestment),
+        profitLoss: parseFloat(fundProfit),
         autoInvest,
         updatedAt: new Date()
       });
@@ -165,8 +165,8 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
 
           {/* 表单 */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* 纳斯达克表单 */}
-            {position.assetType === 'nasdaq' && (
+            {/* 纳斯达克和A股基金表单 */}
+            {(position.assetType === 'nasdaq' || position.assetType === 'astock') && (
               <>
                 {/* 持仓金额 */}
                 <div>
@@ -176,8 +176,8 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                   <input
                     type="number"
                     step="0.01"
-                    value={nasdaqInvestment}
-                    onChange={(e) => setNasdaqInvestment(e.target.value)}
+                    value={fundInvestment}
+                    onChange={(e) => setFundInvestment(e.target.value)}
                     placeholder="例如：10000"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
                       errors.investment ? 'border-red-500' : 'border-gray-300'
@@ -196,8 +196,8 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                   <input
                     type="number"
                     step="0.01"
-                    value={nasdaqProfit}
-                    onChange={(e) => setNasdaqProfit(e.target.value)}
+                    value={fundProfit}
+                    onChange={(e) => setFundProfit(e.target.value)}
                     placeholder="例如：500（可以是负数）"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 ${
                       errors.profit ? 'border-red-500' : 'border-gray-300'

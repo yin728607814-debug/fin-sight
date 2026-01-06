@@ -48,14 +48,18 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
       {/* 头部：资产名称和操作按钮 */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          {/* 纳斯达克基金：基金名称为主标题 */}
-          {position.assetType === 'nasdaq' && position.fundName ? (
+          {/* 纳斯达克基金和A股基金：基金名称为主标题 */}
+          {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.fundName ? (
             <>
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1.5">
                 {position.fundName}
               </h3>
               <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded border border-blue-200 dark:border-blue-800">
+                <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border ${
+                  position.assetType === 'nasdaq' 
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                    : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+                }`}>
                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
                   </svg>
