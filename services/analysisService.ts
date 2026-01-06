@@ -1078,30 +1078,28 @@ ${newsText}
     
     console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
-    // 优化prompt，要求更详细的分析，同时确保响应完整
-    const prompt = `你是专业的金融分析师。请深入分析以下${newsList.length}条${assetName}新闻，提供详细的市场洞察。
+    // 优化prompt，要求更简洁的分析，确保响应完整
+    const prompt = `你是专业的金融分析师。请分析以下${newsList.length}条${assetName}新闻。
 
 新闻内容：
 ${finalNewsText}
 
-请返回JSON格式（不要markdown代码块）：
+请返回JSON格式（不要markdown代码块，确保JSON完整）：
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "综合市场分析（200-300字）：深入分析当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对市场的综合影响",
-  "investmentAdvice": "投资建议（150-250字）：基于当前分析，提供具体的投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
-  "keyFactors": ["关键因素1：具体说明", "关键因素2：具体说明", "关键因素3：具体说明", "关键因素4：具体说明"],
+  "summary": "综合市场分析（150-200字）",
+  "investmentAdvice": "投资建议（100-150字）",
+  "keyFactors": ["关键因素1", "关键因素2", "关键因素3"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "趋势预测（120-180字）：预测未来价格走势，说明支撑位和阻力位，以及可能的突破方向"
+  "predictedTrend": "趋势预测（80-120字）"
 }
 
-分析要求：
-1. 只返回一个JSON对象（不要数组）
-2. 确保JSON格式完整，所有字段都有值
-3. 分析要深入、具体，避免泛泛而谈
-4. keyFactors要具体说明每个因素的影响机制
-5. 投资建议要实用、可操作`;
+要求：
+1. 只返回一个完整的JSON对象
+2. 确保所有字段都有值
+3. 分析要简洁明确`;
 
     try {
       // 添加请求前的日志
@@ -1116,8 +1114,9 @@ ${finalNewsText}
             parts: [{ text: prompt }]
           }],
           generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 3072  // 增加到3072，支持更详细的分析
+            temperature: 0.3,  // 降低温度，提高稳定性
+            maxOutputTokens: 2048,  // 适中的token数，确保完整输出
+            responseMimeType: "application/json"  // 明确要求JSON格式
           }
         },
         {
