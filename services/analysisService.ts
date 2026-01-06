@@ -1055,21 +1055,17 @@ ${newsText}
   ): Promise<import('../types').OverallMarketAnalysis> {
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 优化策略：使用标题+简短摘要（150字），进一步减少token消耗
-    // 黄金新闻分析失败的原因分析：
-    // 1. 50条新闻 × 200字 = 10,000字，加上prompt可能超过API限制
-    // 2. 减少到150字：50条 × 150字 = 7,500字，更安全
-    // 3. 只保留最核心的信息：标题 + 前100字内容
+    // 优化策略：使用标题+简短摘要（100字），最大化减少token消耗
     const newsText = newsList.map((news, index) => {
-      // 进一步缩短内容到150字
-      const shortContent = news.content.length > 150 
-        ? news.content.substring(0, 150) + '...' 
+      // 缩短内容到100字
+      const shortContent = news.content.length > 100 
+        ? news.content.substring(0, 100) + '...' 
         : news.content;
       return `[${index}] ${news.title}\n${shortContent}`;
     }).join('\n\n');
     
-    // 更严格的长度限制，确保不超过API限制
-    const maxPromptLength = 15000; // 进一步降低到15000字
+    // 更严格的长度限制
+    const maxPromptLength = 10000; // 降低到10000字，为输出留出更多空间
     let finalNewsText = newsText;
     if (newsText.length > maxPromptLength) {
       console.warn(`⚠️ 新闻内容过长 (${newsText.length}字)，截断到${maxPromptLength}字`);
@@ -1115,7 +1111,7 @@ ${finalNewsText}
           }],
           generationConfig: {
             temperature: 0.3,  // 降低温度，提高稳定性
-            maxOutputTokens: 2048  // 适中的token数，确保完整输出
+            maxOutputTokens: 4096  // 增加到4096，确保完整输出
           }
         },
         {
