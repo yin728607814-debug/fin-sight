@@ -1055,17 +1055,15 @@ ${newsText}
   ): Promise<import('../types').OverallMarketAnalysis> {
     const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
     
-    // 优化策略：使用标题+简短摘要（100字），最大化减少token消耗
+    // 使用标题+完整内容（最多200字）
     const newsText = newsList.map((news, index) => {
-      // 缩短内容到100字
-      const shortContent = news.content.length > 100 
-        ? news.content.substring(0, 100) + '...' 
+      const shortContent = news.content.length > 200 
+        ? news.content.substring(0, 200) + '...' 
         : news.content;
       return `[${index}] ${news.title}\n${shortContent}`;
     }).join('\n\n');
     
-    // 更严格的长度限制
-    const maxPromptLength = 10000; // 降低到10000字，为输出留出更多空间
+    const maxPromptLength = 20000; // 允许更长的输入
     let finalNewsText = newsText;
     if (newsText.length > maxPromptLength) {
       console.warn(`⚠️ 新闻内容过长 (${newsText.length}字)，截断到${maxPromptLength}字`);
@@ -1074,28 +1072,31 @@ ${newsText}
     
     console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
-    // 优化prompt，要求更简洁的分析，确保响应完整
-    const prompt = `你是专业的金融分析师。请分析以下${newsList.length}条${assetName}新闻。
+    // 详细的prompt，要求深入分析
+    const prompt = `你是专业的金融分析师。请深入分析以下${newsList.length}条${assetName}新闻，提供详细的市场洞察。
 
 新闻内容：
 ${finalNewsText}
 
-请返回JSON格式（不要markdown代码块，确保JSON完整）：
+请返回JSON格式（不要markdown代码块）：
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "综合市场分析（150-200字）",
-  "investmentAdvice": "投资建议（100-150字）",
-  "keyFactors": ["关键因素1", "关键因素2", "关键因素3"],
+  "summary": "综合市场分析（250-350字）：深入分析当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对市场的综合影响",
+  "investmentAdvice": "投资建议（200-300字）：基于当前分析，提供具体的投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
+  "keyFactors": ["关键因素1：具体说明影响机制", "关键因素2：具体说明影响机制", "关键因素3：具体说明影响机制", "关键因素4：具体说明影响机制"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "趋势预测（80-120字）"
+  "predictedTrend": "趋势预测（150-250字）：预测未来价格走势，说明支撑位和阻力位，以及可能的突破方向和时间点"
 }
 
-要求：
+分析要求：
 1. 只返回一个完整的JSON对象
-2. 确保所有字段都有值
-3. 分析要简洁明确`;
+2. 确保JSON格式完整，所有字段都有值
+3. 分析要深入、具体、详细，避免泛泛而谈
+4. keyFactors要具体说明每个因素的影响机制和传导路径
+5. 投资建议要实用、可操作、有针对性
+6. 趋势预测要有具体的价格区间和时间预期`;
 
     try {
       // 添加请求前的日志
@@ -1110,8 +1111,8 @@ ${finalNewsText}
             parts: [{ text: prompt }]
           }],
           generationConfig: {
-            temperature: 0.3,  // 降低温度，提高稳定性
-            maxOutputTokens: 4096  // 增加到4096，确保完整输出
+            temperature: 0.4,
+            maxOutputTokens: 8192  // 使用8192，足够详细的分析
           }
         },
         {
