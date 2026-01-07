@@ -11,17 +11,6 @@ import { AssetType } from '../types';
  * 将 PositionRecord 转换为 Position
  */
 export function positionRecordToPosition(record: PositionRecord): Position {
-  // 调试日志：查看原始数据
-  if (record.asset_type === 'nasdaq' && record.fund_name?.includes('景顺')) {
-    console.log('[DEBUG] 纳斯达克基金原始数据:', {
-      fundName: record.fund_name,
-      daily_profit_loss: record.daily_profit_loss,
-      daily_profit_loss_type: typeof record.daily_profit_loss,
-      daily_change: record.daily_change,
-      daily_change_type: typeof record.daily_change
-    });
-  }
-  
   const position: Position = {
     id: record.id,
     assetType: record.asset_type as AssetType,
@@ -48,17 +37,7 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     updatedAt: new Date(record.updated_at)
   };
   
-  // 调试日志：查看转换后的数据
-  if (record.asset_type === 'nasdaq' && record.fund_name?.includes('景顺')) {
-    console.log('[DEBUG] 纳斯达克基金转换后数据:', {
-      fundName: position.fundName,
-      dailyProfitLoss: position.dailyProfitLoss,
-      dailyChange: position.dailyChange
-    });
-  }
-  
-  return position;
-  
+  // 定投信息
   // 定投信息
   if (record.auto_invest_enabled && record.auto_invest_amount && record.auto_invest_frequency) {
     position.autoInvest = {
