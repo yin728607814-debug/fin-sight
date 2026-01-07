@@ -13,13 +13,9 @@ import { AddPositionModal } from '../components/AddPositionModal';
 import { EditPositionModal } from '../components/EditPositionModal';
 import { GoldSummary } from '../components/GoldSummary';
 import { MigrationPrompt } from '../components/MigrationPrompt';
-import { AutoInvestPlanList } from '../components/AutoInvestPlanList';
-import { AutoInvestModal } from '../components/AutoInvestModal';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
 import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion';
 import { usePortfolioWithSupabase } from '../hooks/usePortfolioWithSupabase';
-import { autoInvestService, AutoInvestPlan } from '../services/autoInvestService';
-import { useAuth } from '../hooks/useAuth';
 import { useAStockFundData } from '../hooks/useAStockFundData';
 import { aStockFundService } from '../services/aStockFundService';
 
@@ -40,14 +36,7 @@ export const PortfolioPage: React.FC = () => {
   // Tab状态：用于区分黄金、纳斯达克和A股
   const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold' | 'astock'>('all');
   const [summaryTab, setSummaryTab] = useState<'all' | 'nasdaq' | 'gold' | 'astock'>('all');
-  
-  // 定投相关状态
-  const [autoInvestPlans, setAutoInvestPlans] = useState<AutoInvestPlan[]>([]);
-  const [isAutoInvestModalOpen, setIsAutoInvestModalOpen] = useState(false);
-  const [autoInvestAssetType, setAutoInvestAssetType] = useState<'nasdaq' | 'astock'>('nasdaq');
-  
-  // 获取用户信息
-  const { user } = useAuth();
+
 
   // 使用增强的价格数据hook（自动处理黄金价格转换）
   const nasdaq = usePriceDataWithConversion('nasdaq');
@@ -228,35 +217,6 @@ export const PortfolioPage: React.FC = () => {
   };
 
   /**
-   * 加载定投计划
-   */
-  const loadAutoInvestPlans = async () => {
-    if (!user?.id || !isSupabaseEnabled) return;
-    
-    try {
-      const plans = await autoInvestService.getUserPlans(user.id);
-      setAutoInvestPlans(plans);
-    } catch (error) {
-      console.error('加载定投计划失败:', error);
-    }
-  };
-
-  /**
-   * 检查并执行到期的定投计划
-   */
-  const checkAndExecuteAutoInvest = async () => {
-    if (!user?.id || !isSupabaseEnabled) return;
-    
-    try {
-      await autoInvestService.checkAndExecutePlans(user.id);
-      // 执行后重新加载持仓和定投计划
-      await refetchSupabase();
-      await loadAutoInvestPlans();
-    } catch (error) {
-      console.error('执行定投计划失败:', error);
-    }
-  };
-
   /**
    * 初始加载
    */
@@ -264,17 +224,6 @@ export const PortfolioPage: React.FC = () => {
     loadPortfolio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData]);
-
-  /**
-   * 加载定投计划并检查执行
-   */
-  useEffect(() => {
-    if (user?.id && isSupabaseEnabled) {
-      loadAutoInvestPlans();
-      checkAndExecuteAutoInvest();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, isSupabaseEnabled]);
 
   /**
    * 每10秒自动更新黄金收益到数据库
@@ -779,45 +728,6 @@ export const PortfolioPage: React.FC = () => {
 
           {/* 右侧：统计信息 */}
           <div className="space-y-6">
-            {/* 定投计划管理 */}
-            {isSupabaseEnabled && user?.id && (
-              <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    定投计划
-                  </h2>
-                  <button
-                    onClick={() => {
-                      setAutoInvestAssetType('nasdaq');
-                      setIsAutoInvestModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    + 新建
-                  </button>
-                </div>
-                
-                {autoInvestPlans.length > 0 ? (
-                  <AutoInvestPlanList
-                    plans={autoInvestPlans}
-                    onUpdate={loadAutoInvestPlans}
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      暂无定投计划
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                      点击&ldquo;新建&rdquo;创建定投计划
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* 黄金持仓总览 */}
             {portfolio && (() => {
               const goldStats = portfolioService.getGoldStats(portfolio);
@@ -998,17 +908,6 @@ export const PortfolioPage: React.FC = () => {
         }}
         onSave={handleEditPosition}
       />
-
-      {/* 定投计划模态框 */}
-      {user?.id && (
-        <AutoInvestModal
-          isOpen={isAutoInvestModalOpen}
-          onClose={() => setIsAutoInvestModalOpen(false)}
-          onSuccess={loadAutoInvestPlans}
-          assetType={autoInvestAssetType}
-          userId={user.id}
-        />
-      )}
     </div>
   );
 };
