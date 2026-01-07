@@ -145,34 +145,37 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
         </div>
 
         {/* 纳斯达克和A股基金：当日收益和当天收益率 */}
-        {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
-          <>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
-              <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {position.dailyProfitLoss >= 0 ? '+' : ''}
-                {formatCurrency(Math.abs(position.dailyProfitLoss))}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
-              <p className={`text-sm font-bold ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
-              </p>
-            </div>
-          </>
-        ) : (position.assetType === 'nasdaq' || position.assetType === 'astock') ? (
-          <>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">加载中...</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">加载中...</p>
-            </div>
-          </>
-        ) : null}
+        {(() => {
+          // 调试日志
+          if (position.assetType === 'nasdaq' && position.fundName?.includes('景顺')) {
+            console.log('[DEBUG] EnhancedPositionCard 渲染数据:', {
+              fundName: position.fundName,
+              dailyProfitLoss: position.dailyProfitLoss,
+              dailyProfitLoss_undefined: position.dailyProfitLoss === undefined,
+              dailyChange: position.dailyChange,
+              dailyChange_undefined: position.dailyChange === undefined,
+              shouldShow: position.dailyProfitLoss !== undefined && position.dailyChange !== undefined
+            });
+          }
+          
+          return (position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
+            <>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
+                <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {position.dailyProfitLoss >= 0 ? '+' : ''}
+                  {formatCurrency(Math.abs(position.dailyProfitLoss))}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
+                <p className={`text-sm font-bold ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
+                </p>
+              </div>
+            </>
+          ) : null;
+        })()}
 
         {/* 黄金特有：克数和均价 */}
         {position.assetType === 'gold' && position.quantity && position.averageBuyPrice && (
