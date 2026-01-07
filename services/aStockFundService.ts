@@ -1,6 +1,6 @@
 /**
  * A股基金数据服务
- * 从天天基金网获取A股基金的实时数据
+ * 从Netlify Function代理获取A股基金的实时数据
  */
 
 import { getFundCode } from '../config/aStockFunds';
@@ -18,24 +18,11 @@ export interface FundRealtimeData {
 }
 
 /**
- * API响应数据接口
- */
-interface FundAPIResponse {
-  fundcode: string;
-  name: string;
-  jzrq: string;      // 净值日期
-  dwjz: string;      // 当日净值
-  gsz: string;       // 估算净值
-  gszzl: string;     // 估算涨跌幅
-  gztime: string;    // 估值时间
-}
-
-/**
  * A股基金数据服务类
  */
 class AStockFundService {
   private static instance: AStockFundService;
-  private readonly API_BASE_URL = 'http://fundgz.1234567.com.cn/js';
+  private readonly PROXY_URL = '/.netlify/functions/fund-proxy'; // Netlify Function代理
   private cache: Map<string, { data: FundRealtimeData; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 60 * 1000; // 缓存1分钟
 
@@ -63,37 +50,36 @@ class AStockFundService {
       // 检查缓存
       const cached = this.cache.get(fundCode);
       if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+        console.log(`使用缓存数据: ${fundName}`);
         return cached.data;
       }
 
-      // 获取数据
-      const url = `${this.API_BASE_URL}/${fundCode}.js`;
+      // 通过Netlify Function代理获取数据
+      const url = `${this.PROXY_URL}?code=${fundCode}`;
+      console.log(`请求代理: ${url}`);
       const response = await fetch(url);
-      const text = await response.text();
-
-      // 解析JSONP响应
-      const jsonMatch = text.match(/jsonpgz\((.*)\)/);
-      if (!jsonMatch) {
-        console.error(`无法解析基金数据: ${fundName}`);
-        return null;
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const apiData: FundAPIResponse = JSON.parse(jsonMatch[1]);
+      const data = await response.json();
+      console.log(`获取到数据:`, data);
 
       // 转换为标准格式
-      const data: FundRealtimeData = {
-        fundCode: apiData.fundcode,
-        fundName: apiData.name,
-        netValue: parseFloat(apiData.dwjz),
-        estimatedValue: parseFloat(apiData.gsz),
-        dailyReturn: parseFloat(apiData.gszzl),
-        updateTime: apiData.gztime
+      const fundData: FundRealtimeData = {
+        fundCode: data.fundCode,
+        fundName: data.fundName,
+        netValue: data.netValue,
+        estimatedValue: data.estimatedValue,
+        dailyReturn: data.dailyReturn,
+        updateTime: data.updateTime
       };
 
       // 更新缓存
-      this.cache.set(fundCode, { data, timestamp: Date.now() });
+      this.cache.set(fundCode, { data: fundData, timestamp: Date.now() });
 
-      return data;
+      return fundData;
     } catch (error) {
       console.error(`获取基金数据失败 (${fundName}):`, error);
       return null;

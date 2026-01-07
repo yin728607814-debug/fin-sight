@@ -3,9 +3,9 @@
  * 用于绕过CORS限制，代理天天基金网的API请求
  */
 
-import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
+import type { Handler, HandlerEvent } from '@netlify/functions';
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+const handler: Handler = async (event: HandlerEvent) => {
   // 只允许GET请求
   if (event.httpMethod !== 'GET') {
     return {
@@ -47,6 +47,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=300', // 缓存5分钟
+        'Access-Control-Allow-Origin': '*', // 允许跨域
       },
       body: JSON.stringify({
         fundCode: data.fundcode,
@@ -62,6 +63,10 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     console.error('Fund proxy error:', error);
     return {
       statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
       body: JSON.stringify({ 
         error: 'Failed to fetch fund data',
         details: error instanceof Error ? error.message : 'Unknown error'
