@@ -63,7 +63,7 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
                   </svg>
-                  {position.assetName}
+                  {position.assetType === 'nasdaq' ? '纳斯达克100' : 'A股基金'}
                 </span>
                 {position.autoInvest?.enabled && (
                   <span className="px-2 py-0.5 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded border border-green-200 dark:border-green-800">
@@ -74,16 +74,26 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             </>
           ) : (
             /* 黄金或其他资产：资产名称为主标题 */
-            <div className="flex items-center space-x-2 mb-1">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            <>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1.5">
                 {position.assetName}
               </h3>
-              {position.autoInvest?.enabled && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded border border-green-200 dark:border-green-800">
-                  定投中
-                </span>
-              )}
-            </div>
+              <div className="flex items-center space-x-2">
+                {position.assetType === 'gold' && (
+                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded border bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                    </svg>
+                    现货黄金
+                  </span>
+                )}
+                {position.autoInvest?.enabled && (
+                  <span className="px-2 py-0.5 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded border border-green-200 dark:border-green-800">
+                    定投中
+                  </span>
+                )}
+              </div>
+            </>
           )}
         </div>
         
