@@ -205,6 +205,12 @@ export class AnalysisService implements IAnalysisService {
   private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
     const prompt = this.buildBatchAnalysisPrompt(newsList, assetType);
     
+    logInfo('批量分析配置', { 
+      newsCount: newsList.length, 
+      model: this.config.model,
+      maxOutputTokens: 32768 // 尝试请求最大值，实际输出取决于API限制
+    });
+    
     const response = await this.makeGeminiRequest({
       contents: [
         {
@@ -216,8 +222,9 @@ export class AnalysisService implements IAnalysisService {
         }
       ],
       generationConfig: {
-        temperature: 0.3, // 适中的温度，平衡质量和速度
-        maxOutputTokens: 8192 // 使用模型最大值，确保50条新闻分析完整
+        temperature: 0.3,
+        maxOutputTokens: 32768, // 请求最大值，让API尽可能多输出
+        candidateCount: 1
       }
     });
 
@@ -267,7 +274,8 @@ ${newsText}
 - summary要具体说明影响机制和传导路径
 - keyPoints要提取核心要素（政策、数据、事件等）
 - predictedChange范围：-10到+10（百分比）
-- confidence反映信息完整度和影响确定性`;
+- confidence反映信息完整度和影响确定性
+- 必须返回所有${newsList.length}条新闻的完整分析`;
   }
 
   /**
@@ -623,33 +631,73 @@ ${newsText}
           parsed = JSON.parse(fixedJson);
           logInfo('JSON修复成功（策略1）');
         } catch {
-          // 策略2: 尝试提取analyses数组
-          const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)\]/);
+          // 策略2: 尝试提取analyses数组并修复
+          const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
           if (analysesMatch) {
             try {
-              // 尝试修复analyses数组内的JSON
               let analysesText = analysesMatch[1];
               
-              // 移除不完整的最后一个对象
-              const lastBrace = analysesText.lastIndexOf('}');
-              if (lastBrace > 0) {
-                analysesText = analysesText.substring(0, lastBrace + 1);
+              // 移除不完整的最后一个对象（找到最后一个完整的}）
+              const objects = [];
+              let depth = 0;
+              let currentObj = '';
+              let inString = false;
+              let escapeNext = false;
+              
+              for (let i = 0; i < analysesText.length; i++) {
+                const char = analysesText[i];
+                
+                if (escapeNext) {
+                  currentObj += char;
+                  escapeNext = false;
+                  continue;
+                }
+                
+                if (char === '\\') {
+                  escapeNext = true;
+                  currentObj += char;
+                  continue;
+                }
+                
+                if (char === '"' && !escapeNext) {
+                  inString = !inString;
+                }
+                
+                if (!inString) {
+                  if (char === '{') depth++;
+                  if (char === '}') {
+                    depth--;
+                    if (depth === 0) {
+                      currentObj += char;
+                      objects.push(currentObj.trim());
+                      currentObj = '';
+                      continue;
+                    }
+                  }
+                }
+                
+                if (depth > 0) {
+                  currentObj += char;
+                }
               }
               
-              // 移除末尾的逗号
-              analysesText = analysesText.replace(/,\s*$/, '');
-              
-              const analyses = JSON.parse('[' + analysesText + ']');
-              parsed = {
-                analyses,
-                overallImpact: 'neutral',
-                overallConfidence: 0.5,
-                overallSummary: '部分分析结果（已修复）'
-              };
-              logInfo('JSON修复成功（策略2）', { analysesCount: analyses.length });
+              // 使用完整的对象
+              if (objects.length > 0) {
+                const validAnalyses = objects.join(',');
+                const analyses = JSON.parse('[' + validAnalyses + ']');
+                parsed = {
+                  analyses,
+                  overallImpact: 'neutral',
+                  overallConfidence: 0.5,
+                  overallSummary: '部分分析结果（已修复）'
+                };
+                logInfo('JSON修复成功（策略2）', { analysesCount: analyses.length });
+              } else {
+                throw new Error('无法提取有效的分析对象');
+              }
             } catch (innerError) {
               logError('策略2修复失败', innerError);
-              throw parseError; // 如果还是失败，抛出原始错误
+              throw parseError;
             }
           } else {
             throw parseError;

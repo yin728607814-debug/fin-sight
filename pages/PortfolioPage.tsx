@@ -860,22 +860,22 @@ export const PortfolioPage: React.FC = () => {
                   {currentStats && (
                     <>
                       {/* 第一行：总投资、当前市值、总盈亏 */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总投资</p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      <div className="grid grid-cols-3 gap-6 mb-6">
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">总投资</p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                             ¥{currentStats.totalInvestment.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当前市值</p>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">当前市值</p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                             ¥{currentStats.currentValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总盈亏</p>
-                          <p className={`text-2xl font-bold ${
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">总盈亏</p>
+                          <p className={`text-xl font-bold ${
                             currentStats.totalProfitLoss >= 0 
                               ? 'text-red-600 dark:text-red-400' 
                               : 'text-green-600 dark:text-green-400'
@@ -886,10 +886,10 @@ export const PortfolioPage: React.FC = () => {
                       </div>
                       
                       {/* 第二行：收益率、当日总收益（仅纳斯达克和A股显示） */}
-                      <div className={`grid ${(summaryTab === 'nasdaq' || summaryTab === 'astock') ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">收益率</p>
-                          <p className={`text-2xl font-bold ${
+                      <div className={`grid ${(summaryTab === 'nasdaq' || summaryTab === 'astock') ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">收益率</p>
+                          <p className={`text-xl font-bold ${
                             currentStats.totalProfitLossPercent >= 0 
                               ? 'text-red-600 dark:text-red-400' 
                               : 'text-green-600 dark:text-green-400'
@@ -899,9 +899,9 @@ export const PortfolioPage: React.FC = () => {
                         </div>
                         {/* 只在纳斯达克和A股Tab显示当日总收益 */}
                         {(summaryTab === 'nasdaq' || summaryTab === 'astock') && currentStats.totalDailyProfit !== undefined && (
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当日总收益</p>
-                            <p className={`text-2xl font-bold ${
+                          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">当日总收益</p>
+                            <p className={`text-xl font-bold ${
                               currentStats.totalDailyProfit >= 0 
                                 ? 'text-red-600 dark:text-red-400' 
                                 : 'text-green-600 dark:text-green-400'
