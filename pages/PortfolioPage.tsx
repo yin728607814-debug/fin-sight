@@ -118,97 +118,27 @@ export const PortfolioPage: React.FC = () => {
       prevPrices.size > 0 ? prevPrices : undefined
     );
     
-    // 为A股基金添加当日收益数据
-    if (aStockData.size > 0) {
-      calculatedPortfolio = {
-        ...calculatedPortfolio,
-        positions: calculatedPortfolio.positions.map(position => {
-          if (position.assetType === 'astock' && position.fundName) {
-            // 优先使用手动输入的收益率
-            if (position.manualDailyReturn !== undefined) {
-              const dailyProfit = aStockFundService.calculateDailyProfit(
-                position.investmentAmount,
-                position.manualDailyReturn
-              );
-              return {
-                ...position,
-                dailyProfitLoss: dailyProfit,
-                dailyChange: position.manualDailyReturn,
-                // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit,
-                // 当前市值也要包含当日收益
-                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
-              };
-            }
-            
-            // 否则使用API数据
-            const fundData = aStockData.get(position.fundName);
-            if (fundData) {
-              const dailyProfit = aStockFundService.calculateDailyProfit(
-                position.investmentAmount,
-                fundData.dailyReturn
-              );
-              return {
-                ...position,
-                dailyProfitLoss: dailyProfit,
-                dailyChange: fundData.dailyReturn,
-                // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit,
-                // 当前市值也要包含当日收益
-                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
-              };
-            }
+    // 为A股和纳斯达克基金使用数据库中的当日收益数据（不自动计算）
+    calculatedPortfolio = {
+      ...calculatedPortfolio,
+      positions: calculatedPortfolio.positions.map(position => {
+        // 只使用数据库中已有的 dailyProfitLoss 和 dailyChange
+        // 不再自动从 API 计算
+        if ((position.assetType === 'astock' || position.assetType === 'nasdaq') && position.fundName) {
+          // 如果数据库中有当日收益数据，使用它来更新持仓收益和当前市值
+          if (position.dailyProfitLoss !== undefined && position.dailyProfitLoss !== null) {
+            return {
+              ...position,
+              // 持仓收益包含当日收益
+              profitLoss: position.profitLoss + position.dailyProfitLoss,
+              // 当前市值也要包含当日收益
+              currentValue: (position.currentValue || position.investmentAmount) + position.dailyProfitLoss
+            };
           }
-          return position;
-        })
-      };
-    }
-    
-    // 为纳斯达克基金添加当日收益数据
-    if (nasdaqData.size > 0) {
-      calculatedPortfolio = {
-        ...calculatedPortfolio,
-        positions: calculatedPortfolio.positions.map(position => {
-          if (position.assetType === 'nasdaq' && position.fundName) {
-            // 优先使用手动输入的收益率
-            if (position.manualDailyReturn !== undefined) {
-              const dailyProfit = nasdaqFundService.calculateDailyProfit(
-                position.investmentAmount,
-                position.manualDailyReturn
-              );
-              return {
-                ...position,
-                dailyProfitLoss: dailyProfit,
-                dailyChange: position.manualDailyReturn,
-                // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit,
-                // 当前市值也要包含当日收益
-                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
-              };
-            }
-            
-            // 否则使用API数据
-            const fundData = nasdaqData.get(position.fundName);
-            if (fundData) {
-              const dailyProfit = nasdaqFundService.calculateDailyProfit(
-                position.investmentAmount,
-                fundData.dailyReturn
-              );
-              return {
-                ...position,
-                dailyProfitLoss: dailyProfit,
-                dailyChange: fundData.dailyReturn,
-                // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit,
-                // 当前市值也要包含当日收益
-                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
-              };
-            }
-          }
-          return position;
-        })
-      };
-    }
+        }
+        return position;
+      })
+    };
     
     setPortfolio(calculatedPortfolio);
 
