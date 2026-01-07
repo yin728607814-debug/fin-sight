@@ -282,11 +282,17 @@ export const PortfolioPage: React.FC = () => {
   /**
   /**
    * 初始加载
+   * 注意：当编辑弹窗打开时，不触发重新加载，避免干扰用户编辑
    */
   useEffect(() => {
+    // 如果编辑弹窗打开，跳过自动加载
+    if (isEditModalOpen) {
+      return;
+    }
+    
     loadPortfolio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData]);
+  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData, isEditModalOpen]);
 
   /**
    * 每10秒自动更新黄金收益到数据库

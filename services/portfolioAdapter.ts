@@ -20,12 +20,12 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     fundName: record.fund_name || undefined,
     
     // 黄金信息
-    quantity: record.quantity ? Number(record.quantity) : undefined,
-    averageBuyPrice: record.average_buy_price ? Number(record.average_buy_price) : undefined,
+    quantity: record.quantity ? parseFloat(Number(record.quantity).toFixed(2)) : undefined,
+    averageBuyPrice: record.average_buy_price ? parseFloat(Number(record.average_buy_price).toFixed(2)) : undefined,
     
-    // 通用信息
-    investmentAmount: Number(record.investment_amount),
-    profitLoss: Number(record.profit_loss),
+    // 通用信息 - 使用 toFixed(2) 避免浮点数精度问题
+    investmentAmount: parseFloat(Number(record.investment_amount).toFixed(2)),
+    profitLoss: parseFloat(Number(record.profit_loss).toFixed(2)),
     
     // 元数据
     createdAt: new Date(record.created_at),
@@ -36,7 +36,7 @@ export function positionRecordToPosition(record: PositionRecord): Position {
   if (record.auto_invest_enabled && record.auto_invest_amount && record.auto_invest_frequency) {
     position.autoInvest = {
       enabled: true,
-      amount: Number(record.auto_invest_amount),
+      amount: parseFloat(Number(record.auto_invest_amount).toFixed(2)),
       frequency: record.auto_invest_frequency,
       startDate: record.auto_invest_start_date ? new Date(record.auto_invest_start_date) : new Date(),
       nextDate: record.auto_invest_next_date ? new Date(record.auto_invest_next_date) : new Date(),
