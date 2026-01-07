@@ -120,23 +120,14 @@ export const PortfolioPage: React.FC = () => {
     );
     
     // 为A股和纳斯达克基金使用数据库中的当日收益数据（不自动计算）
+    // 注意：数据库中的 profit_loss 字段已经是总收益（包含当日收益）
+    // dailyProfitLoss 只是当日收益，不应该再累加到 profitLoss 上
     calculatedPortfolio = {
       ...calculatedPortfolio,
       positions: calculatedPortfolio.positions.map(position => {
         // 只使用数据库中已有的 dailyProfitLoss 和 dailyChange
         // 不再自动从 API 计算
-        if ((position.assetType === 'astock' || position.assetType === 'nasdaq') && position.fundName) {
-          // 如果数据库中有当日收益数据，使用它来更新持仓收益和当前市值
-          if (position.dailyProfitLoss !== undefined && position.dailyProfitLoss !== null) {
-            return {
-              ...position,
-              // 持仓收益包含当日收益
-              profitLoss: position.profitLoss + position.dailyProfitLoss,
-              // 当前市值也要包含当日收益
-              currentValue: (position.currentValue || position.investmentAmount) + position.dailyProfitLoss
-            };
-          }
-        }
+        // 数据库中的 profitLoss 已经包含了当日收益，所以这里不需要做任何修改
         return position;
       })
     };
