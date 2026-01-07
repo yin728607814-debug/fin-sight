@@ -15,6 +15,15 @@ export const SentimentGauge: React.FC<SentimentGaugeProps> = ({
   data, 
   size = 'md' 
 }) => {
+  // 安全检查：确保data和data.level存在
+  if (!data || !data.level) {
+    return (
+      <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400">
+        <p className="text-sm">数据加载中...</p>
+      </div>
+    );
+  }
+
   const colors = sentimentService.getSentimentColor(data.level);
   const description = sentimentService.getSentimentDescription(data.level);
   const isExtreme = sentimentService.isExtremeValue(data.score);
