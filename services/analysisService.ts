@@ -604,23 +604,56 @@ ${newsText}
         parsed = JSON.parse(jsonText);
       } catch (parseError) {
         logError('JSON解析失败，尝试提取部分数据', parseError);
-        // 如果完整JSON解析失败，尝试提取analyses数组
-        const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)\]/);
-        if (analysesMatch) {
-          try {
-            const analysesText = '[' + analysesMatch[1] + ']';
-            const analyses = JSON.parse(analysesText);
-            parsed = {
-              analyses,
-              overallImpact: 'neutral',
-              overallConfidence: 0.5,
-              overallSummary: '部分分析结果'
-            };
-          } catch {
-            throw parseError; // 如果还是失败，抛出原始错误
+        
+        // 尝试多种修复策略
+        let fixedJson = jsonText;
+        
+        // 策略1: 移除不完整的最后一个对象
+        try {
+          // 找到最后一个完整的对象
+          const lastCompleteObject = fixedJson.lastIndexOf('}');
+          if (lastCompleteObject > 0) {
+            // 检查是否有未闭合的数组
+            const afterLastObject = fixedJson.substring(lastCompleteObject + 1);
+            if (afterLastObject.includes('[') && !afterLastObject.includes(']')) {
+              // 有未闭合的数组，尝试闭合
+              fixedJson = fixedJson.substring(0, lastCompleteObject + 1) + ']}';
+            }
           }
-        } else {
-          throw parseError;
+          parsed = JSON.parse(fixedJson);
+          logInfo('JSON修复成功（策略1）');
+        } catch {
+          // 策略2: 尝试提取analyses数组
+          const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)\]/);
+          if (analysesMatch) {
+            try {
+              // 尝试修复analyses数组内的JSON
+              let analysesText = analysesMatch[1];
+              
+              // 移除不完整的最后一个对象
+              const lastBrace = analysesText.lastIndexOf('}');
+              if (lastBrace > 0) {
+                analysesText = analysesText.substring(0, lastBrace + 1);
+              }
+              
+              // 移除末尾的逗号
+              analysesText = analysesText.replace(/,\s*$/, '');
+              
+              const analyses = JSON.parse('[' + analysesText + ']');
+              parsed = {
+                analyses,
+                overallImpact: 'neutral',
+                overallConfidence: 0.5,
+                overallSummary: '部分分析结果（已修复）'
+              };
+              logInfo('JSON修复成功（策略2）', { analysesCount: analyses.length });
+            } catch (innerError) {
+              logError('策略2修复失败', innerError);
+              throw parseError; // 如果还是失败，抛出原始错误
+            }
+          } else {
+            throw parseError;
+          }
         }
       }
       
