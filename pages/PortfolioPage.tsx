@@ -20,6 +20,8 @@ import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion'
 import { usePortfolioWithSupabase } from '../hooks/usePortfolioWithSupabase';
 import { autoInvestService, AutoInvestPlan } from '../services/autoInvestService';
 import { useAuth } from '../hooks/useAuth';
+import { useAStockFundData } from '../hooks/useAStockFundData';
+import { aStockFundService } from '../services/aStockFundService';
 
 /**
  * 投资组合页面组件
@@ -63,6 +65,18 @@ export const PortfolioPage: React.FC = () => {
     refetch: refetchSupabase,
     exportPositions: exportSupabasePositions
   } = usePortfolioWithSupabase();
+  
+  // 获取A股基金名称列表
+  const aStockFundNames = supabasePositions
+    .filter(p => p.assetType === 'astock' && p.fundName)
+    .map(p => p.fundName!);
+  
+  // 使用A股基金数据Hook（自动刷新）
+  const { fundDataMap: aStockData } = useAStockFundData(
+    aStockFundNames,
+    true, // 自动刷新
+    60000 // 每分钟刷新一次
+  );
 
   /**
    * 加载和计算投资组合（不更新数据库）
@@ -90,11 +104,37 @@ export const PortfolioPage: React.FC = () => {
       prevPrices.set('gold', previousPrices.get('gold'));
     }
 
-    const calculatedPortfolio = portfolioService.calculatePortfolio(
+    // 计算投资组合
+    let calculatedPortfolio = portfolioService.calculatePortfolio(
       positions, 
       prices,
       prevPrices.size > 0 ? prevPrices : undefined
     );
+    
+    // 为A股基金添加当日收益数据
+    if (aStockData.size > 0) {
+      calculatedPortfolio = {
+        ...calculatedPortfolio,
+        positions: calculatedPortfolio.positions.map(position => {
+          if (position.assetType === 'astock' && position.fundName) {
+            const fundData = aStockData.get(position.fundName);
+            if (fundData) {
+              const dailyProfit = aStockFundService.calculateDailyProfit(
+                position.investmentAmount,
+                fundData.dailyReturn
+              );
+              return {
+                ...position,
+                dailyProfitLoss: dailyProfit,
+                dailyChange: fundData.dailyReturn
+              };
+            }
+          }
+          return position;
+        })
+      };
+    }
+    
     setPortfolio(calculatedPortfolio);
 
     // 保存快照
@@ -103,7 +143,7 @@ export const PortfolioPage: React.FC = () => {
     }
 
     // 更新价格更新时间
-    if (prices.size > 0) {
+    if (prices.size > 0 || aStockData.size > 0) {
       setLastPriceUpdate(new Date());
     }
 
@@ -221,7 +261,7 @@ export const PortfolioPage: React.FC = () => {
   useEffect(() => {
     loadPortfolio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions]);
+  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData]);
 
   /**
    * 加载定投计划并检查执行

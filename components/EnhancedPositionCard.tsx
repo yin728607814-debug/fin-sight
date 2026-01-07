@@ -164,8 +164,8 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
           </span>
         </div>
 
-        {/* 纳斯达克特有：当日收益 */}
-        {position.assetType === 'nasdaq' && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined && (
+        {/* 纳斯达克和A股基金：当日收益 */}
+        {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-600 dark:text-gray-400">当日收益</span>
