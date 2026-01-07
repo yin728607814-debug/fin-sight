@@ -183,17 +183,18 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
         {/* 纳斯达克和A股基金：当日收益 */}
         {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-gray-600 dark:text-gray-400">当日收益</span>
-              <div className="text-right">
-                <span className={`text-sm font-semibold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                  {position.dailyProfitLoss >= 0 ? '+' : ''}
-                  {formatCurrency(Math.abs(position.dailyProfitLoss))}
-                </span>
-                <span className={`text-xs ml-1 ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                  ({position.dailyChange >= 0 ? '+' : ''}{formatPercent(position.dailyChange)})
-                </span>
-              </div>
+              <span className={`text-sm font-semibold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {position.dailyProfitLoss >= 0 ? '+' : ''}
+                {formatCurrency(Math.abs(position.dailyProfitLoss))}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-600 dark:text-gray-400">当天收益率</span>
+              <span className={`text-sm font-bold ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
+              </span>
             </div>
           </div>
         )}
