@@ -131,12 +131,22 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
         updatedAt: new Date()
       };
       
-      // 如果手动输入了当日收益率，保存它；如果清空了，则删除它
+      // 如果手动输入了当日收益率，保存它并计算当日收益
       if (manualDailyReturn && !isNaN(parseFloat(manualDailyReturn))) {
-        updates.manualDailyReturn = parseFloat(manualDailyReturn);
+        const dailyReturnValue = parseFloat(manualDailyReturn);
+        updates.manualDailyReturn = dailyReturnValue;
+        
+        // 计算当日收益 = 持仓金额 × 收益率 / 100
+        const investmentAmount = parseFloat(fundInvestment);
+        if (!isNaN(investmentAmount)) {
+          updates.dailyChange = dailyReturnValue;
+          updates.dailyProfitLoss = investmentAmount * (dailyReturnValue / 100);
+        }
       } else if (manualDailyReturn === '') {
-        // 用户清空了手动收益率，删除该字段，恢复使用API数据
+        // 用户清空了手动收益率，删除相关字段
         updates.manualDailyReturn = undefined;
+        updates.dailyChange = undefined;
+        updates.dailyProfitLoss = undefined;
       }
       
       onSave(position.id, updates);
