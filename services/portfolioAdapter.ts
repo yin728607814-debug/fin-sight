@@ -11,14 +11,6 @@ import { AssetType } from '../types';
  * 将 PositionRecord 转换为 Position
  */
 export function positionRecordToPosition(record: PositionRecord): Position {
-  // 调试：打印手动收益率的原始值
-  if (record.manual_daily_return) {
-    console.log('数据库原始值 manual_daily_return:', record.manual_daily_return, '类型:', typeof record.manual_daily_return);
-    console.log('Number转换:', Number(record.manual_daily_return));
-    console.log('toFixed(4):', Number(record.manual_daily_return).toFixed(4));
-    console.log('parseFloat:', parseFloat(Number(record.manual_daily_return).toFixed(4)));
-  }
-  
   const position: Position = {
     id: record.id,
     assetType: record.asset_type as AssetType,

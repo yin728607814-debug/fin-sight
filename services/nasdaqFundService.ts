@@ -99,13 +99,11 @@ class NasdaqFundService {
       // 检查缓存
       const cached = this.cache.get(fundCode);
       if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-        console.log(`使用缓存数据: ${fundName}`);
         return cached.data;
       }
 
       // 通过Netlify Function代理获取数据
       const url = `${this.PROXY_URL}?code=${fundCode}`;
-      console.log(`请求代理: ${url}`);
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -113,7 +111,6 @@ class NasdaqFundService {
       }
 
       const data = await response.json();
-      console.log(`获取到数据:`, data);
 
       // 转换为标准格式
       const fundData: NasdaqFundRealtimeData = {

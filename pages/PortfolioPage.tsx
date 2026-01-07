@@ -157,17 +157,13 @@ export const PortfolioPage: React.FC = () => {
     }
     
     // 为纳斯达克基金添加当日收益数据
-    console.log('纳斯达克数据大小:', nasdaqData.size);
     if (nasdaqData.size > 0) {
       calculatedPortfolio = {
         ...calculatedPortfolio,
         positions: calculatedPortfolio.positions.map(position => {
           if (position.assetType === 'nasdaq' && position.fundName) {
-            console.log('处理纳斯达克基金:', position.fundName);
-            
             // 优先使用手动输入的收益率
             if (position.manualDailyReturn !== undefined) {
-              console.log('使用手动收益率:', position.manualDailyReturn);
               const dailyProfit = nasdaqFundService.calculateDailyProfit(
                 position.investmentAmount,
                 position.manualDailyReturn
@@ -181,13 +177,11 @@ export const PortfolioPage: React.FC = () => {
             
             // 否则使用API数据
             const fundData = nasdaqData.get(position.fundName);
-            console.log('API数据:', fundData);
             if (fundData) {
               const dailyProfit = nasdaqFundService.calculateDailyProfit(
                 position.investmentAmount,
                 fundData.dailyReturn
               );
-              console.log('计算的当日收益:', dailyProfit, '收益率:', fundData.dailyReturn);
               return {
                 ...position,
                 dailyProfitLoss: dailyProfit,
@@ -552,11 +546,16 @@ export const PortfolioPage: React.FC = () => {
     if (!portfolio) return null;
     
     if (assetType === 'all') {
+      const totalDailyProfit = portfolio.positions
+        .filter(p => p.dailyProfitLoss !== undefined)
+        .reduce((sum, p) => sum + (p.dailyProfitLoss || 0), 0);
+      
       return {
         totalInvestment: portfolio.totalInvestment,
         currentValue: portfolio.currentValue,
         totalProfitLoss: portfolio.totalProfitLoss,
-        totalProfitLossPercent: portfolio.totalProfitLossPercent
+        totalProfitLossPercent: portfolio.totalProfitLossPercent,
+        totalDailyProfit
       };
     }
     
@@ -565,12 +564,16 @@ export const PortfolioPage: React.FC = () => {
     const currentValue = positions.reduce((sum, p) => sum + (p.currentValue || p.investmentAmount), 0);
     const totalProfitLoss = currentValue - totalInvestment;
     const totalProfitLossPercent = totalInvestment > 0 ? (totalProfitLoss / totalInvestment) * 100 : 0;
+    const totalDailyProfit = positions
+      .filter(p => p.dailyProfitLoss !== undefined)
+      .reduce((sum, p) => sum + (p.dailyProfitLoss || 0), 0);
     
     return {
       totalInvestment,
       currentValue,
       totalProfitLoss,
-      totalProfitLossPercent
+      totalProfitLossPercent,
+      totalDailyProfit
     };
   };
 
@@ -839,7 +842,7 @@ export const PortfolioPage: React.FC = () => {
                 {/* 统计数据 */}
                 <div className="p-6">
                   {currentStats && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className={`grid ${summaryTab === 'nasdaq' || summaryTab === 'astock' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-4'} gap-4`}>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总投资</p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -872,6 +875,19 @@ export const PortfolioPage: React.FC = () => {
                           {currentStats.totalProfitLossPercent >= 0 ? '+' : ''}{currentStats.totalProfitLossPercent.toFixed(2)}%
                         </p>
                       </div>
+                      {/* 只在纳斯达克和A股Tab显示当日总收益 */}
+                      {(summaryTab === 'nasdaq' || summaryTab === 'astock') && currentStats.totalDailyProfit !== undefined && (
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当日总收益</p>
+                          <p className={`text-2xl font-bold ${
+                            currentStats.totalDailyProfit >= 0 
+                              ? 'text-red-600 dark:text-red-400' 
+                              : 'text-green-600 dark:text-green-400'
+                          }`}>
+                            {currentStats.totalDailyProfit >= 0 ? '+' : ''}¥{currentStats.totalDailyProfit.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

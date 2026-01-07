@@ -24,13 +24,6 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
   onEdit,
   onDelete
 }) => {
-  // 调试：打印position数据
-  if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
-    console.log('持仓卡片 - 基金名称:', position.fundName);
-    console.log('持仓卡片 - 当日收益:', position.dailyProfitLoss);
-    console.log('持仓卡片 - 当天收益率:', position.dailyChange);
-  }
-  
   const isProfitable = (position.profitLoss || 0) >= 0;
   // 中国股市习惯：红涨绿跌
   const profitColor = isProfitable ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
