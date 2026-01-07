@@ -139,6 +139,25 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
           </p>
         </div>
 
+        {/* 纳斯达克和A股基金：当日收益和当天收益率 */}
+        {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
+          <>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
+              <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {position.dailyProfitLoss >= 0 ? '+' : ''}
+                {formatCurrency(Math.abs(position.dailyProfitLoss))}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
+              <p className={`text-sm font-bold ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
+              </p>
+            </div>
+          </>
+        ) : null}
+
         {/* 黄金特有：克数和均价 */}
         {position.assetType === 'gold' && position.quantity && position.averageBuyPrice && (
           <>
@@ -158,8 +177,15 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
         )}
       </div>
 
+      {/* 基金估值提示 */}
+      {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && (
+        <div className="mb-4 text-xs text-gray-500 dark:text-gray-400 italic">
+          * {position.assetType === 'nasdaq' ? 'QDII基金估值仅供参考' : '基金估值仅供参考'}
+        </div>
+      )}
+
       {/* 收益信息 */}
-      <div className={`p-3 rounded-lg ${bgColor} mb-4`}>
+      <div className={`p-3 rounded-lg ${bgColor}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">持仓收益</span>
           <div className="flex items-center space-x-1">
@@ -179,35 +205,11 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             {position.profitLossPercent !== undefined ? formatPercent(position.profitLossPercent) : '-'}
           </span>
         </div>
-
-        {/* 纳斯达克和A股基金：当日收益 */}
-        {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-600 dark:text-gray-400">当日收益</span>
-              <span className={`text-sm font-semibold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {position.dailyProfitLoss >= 0 ? '+' : ''}
-                {formatCurrency(Math.abs(position.dailyProfitLoss))}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">当天收益率</span>
-              <span className={`text-sm font-bold ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
-              </span>
-            </div>
-            {(position.assetType === 'nasdaq' || position.assetType === 'astock') && (
-              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">
-                * {position.assetType === 'nasdaq' ? 'QDII基金估值仅供参考' : '基金估值仅供参考'}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 底部信息 */}
       {position.autoInvest?.enabled && position.autoInvest.nextDate && (
-        <div className="text-xs text-blue-600 dark:text-blue-400">
+        <div className="text-xs text-blue-600 dark:text-blue-400 mt-4">
           下次定投: {new Date(position.autoInvest.nextDate).toLocaleDateString('zh-CN')} · 
           ¥{position.autoInvest.amount.toLocaleString()} · 
           {position.autoInvest.frequency === 'daily' && '每天'}
