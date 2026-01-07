@@ -24,6 +24,14 @@ export interface PositionRecord {
   investment_amount: number;  // 持仓金额（元）
   profit_loss: number;  // 持仓收益（元）
   
+  // 定投信息
+  auto_invest_enabled?: boolean;  // 是否启用定投
+  auto_invest_amount?: number;  // 定投金额（元）
+  auto_invest_frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly';  // 定投周期
+  auto_invest_start_date?: string;  // 首次扣款日期（ISO时间戳）
+  auto_invest_next_date?: string;  // 下次扣款日期（ISO时间戳）
+  auto_invest_last_executed_date?: string;  // 上次执行日期（ISO时间戳）
+  
   // 元数据
   created_at: string;  // ISO 时间戳
   updated_at: string;  // ISO 时间戳
@@ -39,6 +47,14 @@ export interface CreatePositionInput {
   average_buy_price?: number;
   investment_amount: number;
   profit_loss: number;
+  
+  // 定投信息
+  auto_invest_enabled?: boolean;
+  auto_invest_amount?: number;
+  auto_invest_frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly';
+  auto_invest_start_date?: string;
+  auto_invest_next_date?: string;
+  auto_invest_last_executed_date?: string;
 }
 
 /**
@@ -50,6 +66,14 @@ export interface UpdatePositionInput {
   average_buy_price?: number;
   investment_amount?: number;
   profit_loss?: number;
+  
+  // 定投信息
+  auto_invest_enabled?: boolean;
+  auto_invest_amount?: number;
+  auto_invest_frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly';
+  auto_invest_start_date?: string;
+  auto_invest_next_date?: string;
+  auto_invest_last_executed_date?: string;
 }
 
 /**

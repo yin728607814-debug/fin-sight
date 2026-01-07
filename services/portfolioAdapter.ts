@@ -11,12 +11,12 @@ import { AssetType } from '../types';
  * 将 PositionRecord 转换为 Position
  */
 export function positionRecordToPosition(record: PositionRecord): Position {
-  return {
+  const position: Position = {
     id: record.id,
     assetType: record.asset_type as AssetType,
-    assetName: record.asset_type === 'nasdaq' ? '纳斯达克100' : '现货黄金',
+    assetName: record.asset_type === 'nasdaq' ? '纳斯达克100' : record.asset_type === 'astock' ? 'A股基金' : '现货黄金',
     
-    // 纳斯达克基金信息
+    // 纳斯达克和A股基金信息
     fundName: record.fund_name || undefined,
     
     // 黄金信息
@@ -31,6 +31,20 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     createdAt: new Date(record.created_at),
     updatedAt: new Date(record.updated_at)
   };
+  
+  // 定投信息
+  if (record.auto_invest_enabled && record.auto_invest_amount && record.auto_invest_frequency) {
+    position.autoInvest = {
+      enabled: true,
+      amount: Number(record.auto_invest_amount),
+      frequency: record.auto_invest_frequency,
+      startDate: record.auto_invest_start_date ? new Date(record.auto_invest_start_date) : new Date(),
+      nextDate: record.auto_invest_next_date ? new Date(record.auto_invest_next_date) : new Date(),
+      lastExecutedDate: record.auto_invest_last_executed_date ? new Date(record.auto_invest_last_executed_date) : undefined
+    };
+  }
+  
+  return position;
 }
 
 /**
@@ -43,8 +57,8 @@ export function positionToCreateInput(position: Omit<Position, 'id' | 'createdAt
     profit_loss: position.profitLoss
   };
   
-  // 纳斯达克特定字段
-  if (position.assetType === 'nasdaq' && position.fundName) {
+  // 纳斯达克和A股特定字段
+  if ((position.assetType === 'nasdaq' || position.assetType === 'astock') && position.fundName) {
     input.fund_name = position.fundName;
   }
   
@@ -55,6 +69,20 @@ export function positionToCreateInput(position: Omit<Position, 'id' | 'createdAt
     }
     if (position.averageBuyPrice !== undefined) {
       input.average_buy_price = position.averageBuyPrice;
+    }
+  }
+  
+  // 定投信息
+  if (position.autoInvest) {
+    input.auto_invest_enabled = position.autoInvest.enabled;
+    if (position.autoInvest.enabled) {
+      input.auto_invest_amount = position.autoInvest.amount;
+      input.auto_invest_frequency = position.autoInvest.frequency;
+      input.auto_invest_start_date = position.autoInvest.startDate.toISOString();
+      input.auto_invest_next_date = position.autoInvest.nextDate.toISOString();
+      if (position.autoInvest.lastExecutedDate) {
+        input.auto_invest_last_executed_date = position.autoInvest.lastExecutedDate.toISOString();
+      }
     }
   }
   
@@ -85,6 +113,30 @@ export function positionToUpdateInput(updates: Partial<Position>): UpdatePositio
   
   if (updates.profitLoss !== undefined) {
     input.profit_loss = updates.profitLoss;
+  }
+  
+  // 定投信息
+  if (updates.autoInvest !== undefined) {
+    if (updates.autoInvest) {
+      input.auto_invest_enabled = updates.autoInvest.enabled;
+      if (updates.autoInvest.enabled) {
+        input.auto_invest_amount = updates.autoInvest.amount;
+        input.auto_invest_frequency = updates.autoInvest.frequency;
+        input.auto_invest_start_date = updates.autoInvest.startDate.toISOString();
+        input.auto_invest_next_date = updates.autoInvest.nextDate.toISOString();
+        if (updates.autoInvest.lastExecutedDate) {
+          input.auto_invest_last_executed_date = updates.autoInvest.lastExecutedDate.toISOString();
+        }
+      }
+    } else {
+      // 如果 autoInvest 为 undefined，表示禁用定投
+      input.auto_invest_enabled = false;
+      input.auto_invest_amount = null as any;
+      input.auto_invest_frequency = null as any;
+      input.auto_invest_start_date = null as any;
+      input.auto_invest_next_date = null as any;
+      input.auto_invest_last_executed_date = null as any;
+    }
   }
   
   return input;
