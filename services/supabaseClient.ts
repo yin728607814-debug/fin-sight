@@ -41,8 +41,9 @@ function createSupabaseClient(): SupabaseClient | null {
   try {
     const client = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        persistSession: false,  // 我们使用自定义的用户ID系统
-        autoRefreshToken: false
+        persistSession: true,  // 启用 session 持久化到 localStorage
+        autoRefreshToken: true, // 自动刷新 token
+        detectSessionInUrl: true // 检测 URL 中的 session
       },
       db: {
         schema: 'public'

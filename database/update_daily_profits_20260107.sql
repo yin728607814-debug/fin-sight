@@ -138,84 +138,84 @@ WHERE fund_name = '大成纳斯达克100ETF联接(QDII)A'
 -- A股基金
 -- ============================================================================
 
--- 前海开源嘉鑫混合C
+-- 前海开源嘉鑫灵活配置混合C
 UPDATE positions
 SET daily_change = 0.12,
     daily_profit_loss = 8.93,
     updated_at = NOW()
-WHERE fund_name LIKE '%前海开源嘉鑫混合C%'
+WHERE fund_name = '前海开源嘉鑫灵活配置混合C'
   AND asset_type = 'astock';
 
--- 长城久嘉创新成长
+-- 长城久嘉创新成长灵活配置混合C
 UPDATE positions
 SET daily_change = -0.15,
     daily_profit_loss = -6.61,
     updated_at = NOW()
-WHERE fund_name LIKE '%长城久嘉创新成长%'
+WHERE fund_name = '长城久嘉创新成长灵活配置混合C'
   AND asset_type = 'astock';
 
--- 永赢半导体产业智选
+-- 永赢半导体产业智选混合C
 UPDATE positions
 SET daily_change = 1.30,
     daily_profit_loss = 53.56,
     updated_at = NOW()
-WHERE fund_name LIKE '%永赢半导体产业智选%'
+WHERE fund_name = '永赢半导体产业智选混合C'
   AND asset_type = 'astock';
 
--- 汇添富中证电池主
+-- 汇添富中证电池主题ETF联接C
 UPDATE positions
 SET daily_change = -0.12,
     daily_profit_loss = -4.91,
     updated_at = NOW()
-WHERE fund_name LIKE '%汇添富中证电池主%'
+WHERE fund_name = '汇添富中证电池主题ETF联接C'
   AND asset_type = 'astock';
 
--- 永赢高端装备智选
+-- 永赢高端设备智选混合C
 UPDATE positions
 SET daily_change = -0.51,
     daily_profit_loss = -17.13,
     updated_at = NOW()
-WHERE fund_name LIKE '%永赢高端装备智选%'
+WHERE fund_name = '永赢高端设备智选混合C'
   AND asset_type = 'astock';
 
--- 天弘中证光伏C
+-- 天弘中证光伏产业指数C
 UPDATE positions
 SET daily_change = 0.60,
     daily_profit_loss = 19.64,
     updated_at = NOW()
-WHERE fund_name LIKE '%天弘中证光伏C%'
+WHERE fund_name = '天弘中证光伏产业指数C'
   AND asset_type = 'astock';
 
--- 国投瑞银白银期货
+-- 国投瑞银白银期货(LOF)C
 UPDATE positions
 SET daily_change = 3.65,
     daily_profit_loss = 23.80,
     updated_at = NOW()
-WHERE fund_name LIKE '%国投瑞银白银期货%'
+WHERE fund_name = '国投瑞银白银期货(LOF)C'
   AND asset_type = 'astock';
 
--- 永赢科技智选混合
+-- 永赢科技智选混合C
 UPDATE positions
 SET daily_change = 0.97,
     daily_profit_loss = 37.95,
     updated_at = NOW()
-WHERE fund_name LIKE '%永赢科技智选混合%'
+WHERE fund_name = '永赢科技智选混合C'
   AND asset_type = 'astock';
 
--- 华夏中证细分有色
+-- 华夏有色金属ETF联接C
 UPDATE positions
 SET daily_change = 0.36,
     daily_profit_loss = 9.91,
     updated_at = NOW()
-WHERE fund_name LIKE '%华夏中证细分有色%'
+WHERE fund_name = '华夏有色金属ETF联接C'
   AND asset_type = 'astock';
 
--- 华安黄金易ETF联
+-- 华安黄金ETF联接C
 UPDATE positions
 SET daily_change = -0.30,
     daily_profit_loss = -2.69,
     updated_at = NOW()
-WHERE fund_name LIKE '%华安黄金易ETF联%'
+WHERE fund_name = '华安黄金ETF联接C'
   AND asset_type = 'astock';
 
 -- ============================================================================

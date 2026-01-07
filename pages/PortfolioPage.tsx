@@ -72,17 +72,18 @@ export const PortfolioPage: React.FC = () => {
   }, [supabasePositions]);
   
   // 使用A股基金数据Hook（启用智能刷新）
+  // 禁用 A股和纳斯达克数据的自动获取，完全依赖数据库
   const { fundDataMap: aStockData } = useAStockFundData(
-    aStockFundNames,
-    true, // 启用智能刷新
-    undefined // 使用智能刷新逻辑，不指定手动间隔
+    [], // 传空数组，不获取任何数据
+    false, // 禁用自动刷新
+    undefined
   );
   
-  // 使用纳斯达克基金数据Hook（启用智能刷新）
+  // 禁用纳斯达克数据的自动获取，完全依赖数据库
   const { fundDataMap: nasdaqData } = useNasdaqFundData(
-    nasdaqFundNames,
-    true, // 启用智能刷新
-    undefined // 使用智能刷新逻辑，不指定手动间隔
+    [], // 传空数组，不获取任何数据
+    false, // 禁用自动刷新
+    undefined
   );
 
   /**
