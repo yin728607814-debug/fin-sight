@@ -42,9 +42,15 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
 
   /**
    * 当position变化时更新表单
+   * 使用 ref 来跟踪当前编辑的 position ID，避免在编辑过程中因数据刷新而重置表单
    */
+  const currentPositionIdRef = React.useRef<string | null>(null);
+  
   useEffect(() => {
-    if (position) {
+    // 只有在 position ID 变化时才更新表单（避免同一个 position 的数据更新导致表单重置）
+    if (position && position.id !== currentPositionIdRef.current) {
+      currentPositionIdRef.current = position.id;
+      
       if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
         setFundInvestment(position.investmentAmount.toString());
         setFundProfit(position.profitLoss.toString());
@@ -56,8 +62,9 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
         // 黄金不支持定投，清空定投状态
         setAutoInvest(undefined);
       }
-    } else {
+    } else if (!position) {
       // position 为 null 时，重置所有状态
+      currentPositionIdRef.current = null;
       setFundInvestment('');
       setFundProfit('');
       setGoldGrams('');
