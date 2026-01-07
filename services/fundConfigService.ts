@@ -10,6 +10,7 @@ export interface FundConfig {
   id: string;
   user_id: string;
   name: string;
+  fund_code?: string;          // 基金代码（可选）
   fund_type: 'nasdaq' | 'astock';
   created_at: Date;
   updated_at: Date;
@@ -17,6 +18,7 @@ export interface FundConfig {
 
 export interface CreateFundConfigInput {
   name: string;
+  fund_code?: string;          // 基金代码（可选）
   fund_type: 'nasdaq' | 'astock';
 }
 
@@ -87,7 +89,7 @@ class FundConfigService {
   /**
    * 添加基金
    */
-  public async addFund(name: string, fundType: 'nasdaq' | 'astock' = 'nasdaq'): Promise<FundConfig> {
+  public async addFund(name: string, fundType: 'nasdaq' | 'astock' = 'nasdaq', fundCode?: string): Promise<FundConfig> {
     this.checkAvailability();
 
     try {
@@ -97,13 +99,19 @@ class FundConfigService {
         throw new Error('该基金名称已存在');
       }
 
+      const insertData: any = {
+        user_id: this.userId,
+        name: name.trim(),
+        fund_type: fundType
+      };
+
+      if (fundCode) {
+        insertData.fund_code = fundCode.trim();
+      }
+
       const { data, error } = await supabase!
         .from('fund_configs')
-        .insert({
-          user_id: this.userId,
-          name: name.trim(),
-          fund_type: fundType
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -127,7 +135,7 @@ class FundConfigService {
   /**
    * 更新基金
    */
-  public async updateFund(id: string, name: string): Promise<FundConfig> {
+  public async updateFund(id: string, name: string, fundCode?: string): Promise<FundConfig> {
     this.checkAvailability();
 
     try {
@@ -137,9 +145,14 @@ class FundConfigService {
         throw new Error('该基金名称已存在');
       }
 
+      const updateData: any = { name: name.trim() };
+      if (fundCode !== undefined) {
+        updateData.fund_code = fundCode ? fundCode.trim() : null;
+      }
+
       const { data, error } = await supabase!
         .from('fund_configs')
-        .update({ name: name.trim() })
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', this.userId)
         .select()

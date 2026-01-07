@@ -65,6 +65,11 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
                   </svg>
                   {position.assetType === 'nasdaq' ? '纳斯达克100' : 'A股基金'}
                 </span>
+                {position.fundCode && (
+                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded border border-gray-300 dark:border-gray-600">
+                    {position.fundCode}
+                  </span>
+                )}
                 {position.autoInvest?.enabled && (
                   <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded border border-green-300 dark:border-green-700">
                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -205,9 +210,19 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             ) : (
               <ArrowTrendingDownIcon className={`h-4 w-4 ${profitColor}`} />
             )}
-            <span className={`text-lg font-bold ${profitColor}`}>
-              {formatCurrency(Math.abs(position.profitLoss))}
-            </span>
+            <div className="flex flex-col items-end">
+              <span className={`text-lg font-bold ${profitColor}`}>
+                {formatCurrency(Math.abs(position.profitLoss))}
+              </span>
+              {/* 显示收益分解：之前收益 + 当日收益 */}
+              {position.dailyProfitLoss !== undefined && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  ({formatCurrency(Math.abs(position.profitLoss - position.dailyProfitLoss))}
+                  {position.dailyProfitLoss >= 0 ? '+' : ''}
+                  {formatCurrency(Math.abs(position.dailyProfitLoss))})
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center justify-between">

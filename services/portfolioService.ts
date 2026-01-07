@@ -15,6 +15,7 @@ export interface Position {
   
   // 纳斯达克基金信息
   fundName?: string;           // 用户自定义基金名称
+  fundCode?: string;           // 基金代码（用于获取收益率）
   
   // 黄金信息
   quantity?: number;           // 黄金克数（仅黄金）

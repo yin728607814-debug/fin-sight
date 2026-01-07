@@ -18,6 +18,7 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     
     // 纳斯达克和A股基金信息
     fundName: record.fund_name || undefined,
+    fundCode: record.fund_code || undefined,  // 基金代码
     
     // 黄金信息
     quantity: record.quantity ? parseFloat(Number(record.quantity).toFixed(2)) : undefined,
@@ -64,6 +65,9 @@ export function positionToCreateInput(position: Omit<Position, 'id' | 'createdAt
   // 纳斯达克和A股特定字段
   if ((position.assetType === 'nasdaq' || position.assetType === 'astock') && position.fundName) {
     input.fund_name = position.fundName;
+    if (position.fundCode) {
+      input.fund_code = position.fundCode;  // 添加基金代码
+    }
   }
   
   // 黄金特定字段
@@ -101,6 +105,10 @@ export function positionToUpdateInput(updates: Partial<Position>): UpdatePositio
   
   if (updates.fundName !== undefined) {
     input.fund_name = updates.fundName;
+  }
+  
+  if (updates.fundCode !== undefined) {
+    input.fund_code = updates.fundCode;  // 添加基金代码
   }
   
   if (updates.quantity !== undefined) {

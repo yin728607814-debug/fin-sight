@@ -135,7 +135,9 @@ export const PortfolioPage: React.FC = () => {
                 dailyProfitLoss: dailyProfit,
                 dailyChange: position.manualDailyReturn,
                 // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit
+                profitLoss: position.profitLoss + dailyProfit,
+                // 当前市值也要包含当日收益
+                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
               };
             }
             
@@ -151,7 +153,9 @@ export const PortfolioPage: React.FC = () => {
                 dailyProfitLoss: dailyProfit,
                 dailyChange: fundData.dailyReturn,
                 // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit
+                profitLoss: position.profitLoss + dailyProfit,
+                // 当前市值也要包含当日收益
+                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
               };
             }
           }
@@ -177,7 +181,9 @@ export const PortfolioPage: React.FC = () => {
                 dailyProfitLoss: dailyProfit,
                 dailyChange: position.manualDailyReturn,
                 // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit
+                profitLoss: position.profitLoss + dailyProfit,
+                // 当前市值也要包含当日收益
+                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
               };
             }
             
@@ -193,7 +199,9 @@ export const PortfolioPage: React.FC = () => {
                 dailyProfitLoss: dailyProfit,
                 dailyChange: fundData.dailyReturn,
                 // 持仓收益包含当日收益
-                profitLoss: position.profitLoss + dailyProfit
+                profitLoss: position.profitLoss + dailyProfit,
+                // 当前市值也要包含当日收益
+                currentValue: (position.currentValue || position.investmentAmount) + dailyProfit
               };
             }
           }

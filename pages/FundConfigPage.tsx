@@ -14,6 +14,7 @@ export const FundConfigPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingFund, setEditingFund] = useState<FundConfig | null>(null);
   const [fundName, setFundName] = useState('');
+  const [fundCode, setFundCode] = useState(''); // 基金代码
   const [fundType, setFundType] = useState<'nasdaq' | 'astock'>('nasdaq');
   const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'astock'>('all');
   const [error, setError] = useState('');
@@ -55,8 +56,9 @@ export const FundConfigPage: React.FC = () => {
     }
 
     try {
-      await fundConfigService.addFund(fundName, fundType);
+      await fundConfigService.addFund(fundName, fundType, fundCode.trim() || undefined);
       setFundName('');
+      setFundCode('');
       setIsAddModalOpen(false);
       await loadFunds();
     } catch (err) {
@@ -75,8 +77,9 @@ export const FundConfigPage: React.FC = () => {
     }
 
     try {
-      await fundConfigService.updateFund(editingFund.id, fundName);
+      await fundConfigService.updateFund(editingFund.id, fundName, fundCode.trim() || undefined);
       setFundName('');
+      setFundCode('');
       setEditingFund(null);
       await loadFunds();
     } catch (err) {
@@ -99,6 +102,7 @@ export const FundConfigPage: React.FC = () => {
 
   const openAddModal = () => {
     setFundName('');
+    setFundCode('');
     setFundType('nasdaq');
     setError('');
     setEditingFund(null);
@@ -107,6 +111,7 @@ export const FundConfigPage: React.FC = () => {
 
   const openEditModal = (fund: FundConfig) => {
     setFundName(fund.name);
+    setFundCode(fund.fund_code || '');
     setFundType(fund.fund_type);
     setError('');
     setEditingFund(fund);
@@ -117,6 +122,7 @@ export const FundConfigPage: React.FC = () => {
     setIsAddModalOpen(false);
     setEditingFund(null);
     setFundName('');
+    setFundCode('');
     setError('');
   };
 
@@ -244,6 +250,11 @@ export const FundConfigPage: React.FC = () => {
                       }`}>
                         {fund.fund_type === 'nasdaq' ? '纳斯达克' : 'A股'}
                       </span>
+                      {fund.fund_code && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                          {fund.fund_code}
+                        </span>
+                      )}
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         添加于 {fund.created_at.toLocaleDateString('zh-CN')}
                       </p>
@@ -354,6 +365,22 @@ export const FundConfigPage: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     autoFocus
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    基金代码（可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={fundCode}
+                    onChange={(e) => setFundCode(e.target.value)}
+                    placeholder="例如：270042"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    用于自动获取基金收益率数据
+                  </p>
                   {error && (
                     <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
                   )}

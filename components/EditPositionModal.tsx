@@ -31,6 +31,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   // 纳斯达克和A股基金字段
   const [fundInvestment, setFundInvestment] = useState('');
   const [fundProfit, setFundProfit] = useState('');
+  const [fundCode, setFundCode] = useState(''); // 基金代码
   const [manualDailyReturn, setManualDailyReturn] = useState('');
   const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
   
@@ -55,6 +56,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
         setFundInvestment(position.investmentAmount.toString());
         setFundProfit(position.profitLoss.toString());
+        setFundCode(position.fundCode || ''); // 设置基金代码
         setManualDailyReturn(position.manualDailyReturn?.toString() || '');
         setAutoInvest(position.autoInvest);
       } else if (position.assetType === 'gold') {
@@ -69,6 +71,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       currentPositionIdRef.current = null;
       setFundInvestment('');
       setFundProfit('');
+      setFundCode(''); // 重置基金代码
       setManualDailyReturn('');
       setGoldGrams('');
       setGoldInvestment('');
@@ -123,14 +126,17 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       const updates: Partial<Position> = {
         investmentAmount: parseFloat(fundInvestment),
         profitLoss: parseFloat(fundProfit), // 保存原始持仓收益，不包含当日收益
+        fundCode: fundCode.trim() || undefined, // 保存基金代码
         autoInvest,
         updatedAt: new Date()
       };
       
-      // 如果手动输入了当日收益率，保存它
+      // 如果手动输入了当日收益率，保存它；如果清空了，则删除它
       if (manualDailyReturn && !isNaN(parseFloat(manualDailyReturn))) {
         updates.manualDailyReturn = parseFloat(manualDailyReturn);
-        // 当日收益和当日涨跌幅会在loadPortfolio中自动计算
+      } else if (manualDailyReturn === '') {
+        // 用户清空了手动收益率，删除该字段，恢复使用API数据
+        updates.manualDailyReturn = undefined;
       }
       
       onSave(position.id, updates);
@@ -200,6 +206,23 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
             {/* 纳斯达克和A股基金表单 */}
             {(position.assetType === 'nasdaq' || position.assetType === 'astock') && (
               <>
+                {/* 基金代码 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    基金代码（可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={fundCode}
+                    onChange={(e) => setFundCode(e.target.value)}
+                    placeholder="例如：161125"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    用于自动获取基金收益率数据
+                  </p>
+                </div>
+
                 {/* 持仓金额 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

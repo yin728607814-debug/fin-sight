@@ -13,8 +13,9 @@ export interface PositionRecord {
   user_id: string;
   asset_type: AssetType;
   
-  // 基金信息（纳斯达克）
+  // 基金信息（纳斯达克和A股）
   fund_name?: string;
+  fund_code?: string;  // 基金代码
   
   // 黄金信息
   quantity?: number;  // 黄金克数
@@ -46,6 +47,7 @@ export interface PositionRecord {
 export interface CreatePositionInput {
   asset_type: AssetType;
   fund_name?: string;
+  fund_code?: string;  // 基金代码
   quantity?: number;
   average_buy_price?: number;
   investment_amount: number;
@@ -68,6 +70,7 @@ export interface CreatePositionInput {
  */
 export interface UpdatePositionInput {
   fund_name?: string;
+  fund_code?: string;  // 基金代码
   quantity?: number;
   average_buy_price?: number;
   investment_amount?: number;
@@ -117,6 +120,7 @@ export interface FundConfigRecord {
   id: string;
   user_id: string;
   name: string;
+  fund_code?: string;  // 基金代码
   created_at: string;
   updated_at: string;
 }

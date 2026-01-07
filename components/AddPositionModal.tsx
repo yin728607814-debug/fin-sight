@@ -115,6 +115,7 @@ export const AddPositionModal: React.FC<AddPositionModalProps> = ({
         assetType: assetType,
         assetName: selectedFund.name,
         fundName: selectedFund.name,
+        fundCode: selectedFund.fund_code, // 保存基金代码
         investmentAmount: parseFloat(nasdaqInvestment),
         profitLoss: parseFloat(nasdaqProfit),
         autoInvest: assetType === 'nasdaq' ? autoInvest : undefined,
