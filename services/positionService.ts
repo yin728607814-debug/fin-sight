@@ -65,6 +65,8 @@ export class PositionService {
         ...pos,
         investment_amount: Number(pos.investment_amount),
         profit_loss: Number(pos.profit_loss),
+        daily_profit_loss: pos.daily_profit_loss != null ? Number(pos.daily_profit_loss) : undefined,
+        daily_change: pos.daily_change != null ? Number(pos.daily_change) : undefined,
         quantity: pos.quantity ? Number(pos.quantity) : undefined,
         average_buy_price: pos.average_buy_price ? Number(pos.average_buy_price) : undefined
       }));
@@ -130,6 +132,8 @@ export class PositionService {
         ...data,
         investment_amount: Number(data.investment_amount),
         profit_loss: Number(data.profit_loss),
+        daily_profit_loss: data.daily_profit_loss != null ? Number(data.daily_profit_loss) : undefined,
+        daily_change: data.daily_change != null ? Number(data.daily_change) : undefined,
         quantity: data.quantity ? Number(data.quantity) : undefined,
         average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined
       };
@@ -173,6 +177,8 @@ export class PositionService {
         ...data,
         investment_amount: Number(data.investment_amount),
         profit_loss: Number(data.profit_loss),
+        daily_profit_loss: data.daily_profit_loss != null ? Number(data.daily_profit_loss) : undefined,
+        daily_change: data.daily_change != null ? Number(data.daily_change) : undefined,
         quantity: data.quantity ? Number(data.quantity) : undefined,
         average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined
       };

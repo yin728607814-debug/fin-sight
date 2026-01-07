@@ -73,11 +73,13 @@ export function useNasdaqFundData(
   }, [fetchData]);
 
   /**
-   * 初始加载
+   * 初始加载（只在有基金名称时才加载）
    */
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (fundNamesKey.length > 0) {
+      fetchData();
+    }
+  }, [fetchData, fundNamesKey]);
 
   /**
    * 智能自动刷新
