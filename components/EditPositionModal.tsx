@@ -152,7 +152,10 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 编辑持仓
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {position.assetName}
+                {/* 纳斯达克和A股基金显示基金名称，黄金显示资产名称 */}
+                {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.fundName
+                  ? position.fundName
+                  : position.assetName}
               </p>
             </div>
             <button
