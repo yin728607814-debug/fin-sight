@@ -120,27 +120,17 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
     }
 
     if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
-      let totalProfit = parseFloat(fundProfit);
-      
-      // 如果手动输入了当日收益率，计算当日收益并加入持仓收益
-      if (manualDailyReturn && !isNaN(parseFloat(manualDailyReturn))) {
-        const dailyProfit = parseFloat(fundInvestment) * (parseFloat(manualDailyReturn) / 100);
-        // 将当日收益加入持仓收益
-        totalProfit = totalProfit + dailyProfit;
-      }
-      
       const updates: Partial<Position> = {
         investmentAmount: parseFloat(fundInvestment),
-        profitLoss: totalProfit,
+        profitLoss: parseFloat(fundProfit), // 保存原始持仓收益，不包含当日收益
         autoInvest,
         updatedAt: new Date()
       };
       
-      // 保存手动输入的当日收益率
+      // 如果手动输入了当日收益率，保存它
       if (manualDailyReturn && !isNaN(parseFloat(manualDailyReturn))) {
         updates.manualDailyReturn = parseFloat(manualDailyReturn);
-        updates.dailyChange = parseFloat(manualDailyReturn);
-        updates.dailyProfitLoss = parseFloat(fundInvestment) * (parseFloat(manualDailyReturn) / 100);
+        // 当日收益和当日涨跌幅会在loadPortfolio中自动计算
       }
       
       onSave(position.id, updates);
