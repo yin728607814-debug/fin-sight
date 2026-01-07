@@ -161,7 +161,7 @@ export const AutoInvestSettings: React.FC<AutoInvestSettingsProps> = ({
               id="autoInvestAmount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              step="100"
+              step="1"
               min="0"
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                 errors.amount

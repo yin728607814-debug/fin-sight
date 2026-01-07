@@ -217,7 +217,7 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
               {/* 显示收益分解：昨日收益 + 今日收益 */}
               {position.dailyProfitLoss !== undefined && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  (昨日收益：{formatCurrency(Math.abs(position.profitLoss - position.dailyProfitLoss))} + 今日收益：{position.dailyProfitLoss >= 0 ? '+' : '-'}{formatCurrency(Math.abs(position.dailyProfitLoss))})
+                  (昨日收益：{formatCurrency(Math.abs(position.profitLoss - position.dailyProfitLoss))}{position.dailyProfitLoss >= 0 ? '+' : '-'}{formatCurrency(Math.abs(position.dailyProfitLoss))})
                 </span>
               )}
             </div>
