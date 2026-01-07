@@ -17,7 +17,9 @@ import { portfolioService, Position, Portfolio } from '../services/portfolioServ
 import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion';
 import { usePortfolioWithSupabase } from '../hooks/usePortfolioWithSupabase';
 import { useAStockFundData } from '../hooks/useAStockFundData';
+import { useNasdaqFundData } from '../hooks/useNasdaqFundData';
 import { aStockFundService } from '../services/aStockFundService';
+import { nasdaqFundService } from '../services/nasdaqFundService';
 
 /**
  * 投资组合页面组件
@@ -62,9 +64,23 @@ export const PortfolioPage: React.FC = () => {
       .map(p => p.fundName!);
   }, [supabasePositions]);
   
+  // 获取纳斯达克基金名称列表
+  const nasdaqFundNames = React.useMemo(() => {
+    return supabasePositions
+      .filter(p => p.assetType === 'nasdaq' && p.fundName)
+      .map(p => p.fundName!);
+  }, [supabasePositions]);
+  
   // 使用A股基金数据Hook（启用智能刷新）
   const { fundDataMap: aStockData } = useAStockFundData(
     aStockFundNames,
+    true, // 启用智能刷新
+    undefined // 使用智能刷新逻辑，不指定手动间隔
+  );
+  
+  // 使用纳斯达克基金数据Hook（启用智能刷新）
+  const { fundDataMap: nasdaqData } = useNasdaqFundData(
+    nasdaqFundNames,
     true, // 启用智能刷新
     undefined // 使用智能刷新逻辑，不指定手动间隔
   );
@@ -111,6 +127,30 @@ export const PortfolioPage: React.FC = () => {
             const fundData = aStockData.get(position.fundName);
             if (fundData) {
               const dailyProfit = aStockFundService.calculateDailyProfit(
+                position.investmentAmount,
+                fundData.dailyReturn
+              );
+              return {
+                ...position,
+                dailyProfitLoss: dailyProfit,
+                dailyChange: fundData.dailyReturn
+              };
+            }
+          }
+          return position;
+        })
+      };
+    }
+    
+    // 为纳斯达克基金添加当日收益数据
+    if (nasdaqData.size > 0) {
+      calculatedPortfolio = {
+        ...calculatedPortfolio,
+        positions: calculatedPortfolio.positions.map(position => {
+          if (position.assetType === 'nasdaq' && position.fundName) {
+            const fundData = nasdaqData.get(position.fundName);
+            if (fundData) {
+              const dailyProfit = nasdaqFundService.calculateDailyProfit(
                 position.investmentAmount,
                 fundData.dailyReturn
               );
@@ -292,7 +332,7 @@ export const PortfolioPage: React.FC = () => {
     
     loadPortfolio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData, isEditModalOpen]);
+  }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData, nasdaqData, isEditModalOpen]);
 
   /**
    * 每10秒自动更新黄金收益到数据库
