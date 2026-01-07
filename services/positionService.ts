@@ -68,7 +68,8 @@ export class PositionService {
         daily_profit_loss: pos.daily_profit_loss != null ? Number(pos.daily_profit_loss) : undefined,
         daily_change: pos.daily_change != null ? Number(pos.daily_change) : undefined,
         quantity: pos.quantity ? Number(pos.quantity) : undefined,
-        average_buy_price: pos.average_buy_price ? Number(pos.average_buy_price) : undefined
+        average_buy_price: pos.average_buy_price ? Number(pos.average_buy_price) : undefined,
+        auto_invest_amount: pos.auto_invest_amount ? Number(pos.auto_invest_amount) : undefined
       }));
 
       logInfo('获取持仓列表成功', { count: positions.length });
@@ -135,7 +136,8 @@ export class PositionService {
         daily_profit_loss: data.daily_profit_loss != null ? Number(data.daily_profit_loss) : undefined,
         daily_change: data.daily_change != null ? Number(data.daily_change) : undefined,
         quantity: data.quantity ? Number(data.quantity) : undefined,
-        average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined
+        average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined,
+        auto_invest_amount: data.auto_invest_amount ? Number(data.auto_invest_amount) : undefined
       };
 
       logInfo('创建持仓成功', { id: position.id });
@@ -180,7 +182,8 @@ export class PositionService {
         daily_profit_loss: data.daily_profit_loss != null ? Number(data.daily_profit_loss) : undefined,
         daily_change: data.daily_change != null ? Number(data.daily_change) : undefined,
         quantity: data.quantity ? Number(data.quantity) : undefined,
-        average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined
+        average_buy_price: data.average_buy_price ? Number(data.average_buy_price) : undefined,
+        auto_invest_amount: data.auto_invest_amount ? Number(data.auto_invest_amount) : undefined
       };
 
       logInfo('更新持仓成功', { id });
