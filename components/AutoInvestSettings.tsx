@@ -34,6 +34,21 @@ export const AutoInvestSettings: React.FC<AutoInvestSettingsProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   /**
+   * 当 autoInvest prop 改变时，重置状态
+   */
+  useEffect(() => {
+    setEnabled(autoInvest?.enabled || false);
+    setAmount(autoInvest?.amount?.toString() || '');
+    setFrequency(autoInvest?.frequency || 'monthly');
+    setStartDate(
+      autoInvest?.startDate 
+        ? new Date(autoInvest.startDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0]
+    );
+    setErrors({});
+  }, [autoInvest]);
+
+  /**
    * 验证表单
    */
   const validateForm = (): boolean => {
