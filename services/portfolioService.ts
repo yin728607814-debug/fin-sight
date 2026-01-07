@@ -30,6 +30,7 @@ export interface Position {
   profitLossPercent?: number;  // 收益率
   dailyProfitLoss?: number;    // 当日收益（元）
   dailyChange?: number;        // 当日涨跌幅（%）
+  manualDailyReturn?: number;  // 手动输入的当日收益率（%）- 用于校准不准确的API数据
   
   // 定投计划（仅纳斯达克）
   autoInvest?: AutoInvestPlan;

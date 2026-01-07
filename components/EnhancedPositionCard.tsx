@@ -196,6 +196,11 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
                 {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
               </span>
             </div>
+            {position.assetType === 'nasdaq' && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">
+                * QDII基金估值仅供参考
+              </div>
+            )}
           </div>
         )}
       </div>

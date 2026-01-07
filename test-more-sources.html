@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试更多基金数据源</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        .source { margin: 30px 0; padding: 20px; border: 2px solid #ddd; border-radius: 8px; background: white; }
+        .source-name { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: #2563eb; }
+        .fund-data { margin: 10px 0; padding: 10px; background: #f9fafb; border-left: 3px solid #3b82f6; }
+        .fund-name { font-weight: bold; color: #333; }
+        .value { color: #666; margin: 5px 0; }
+        .positive { color: #dc2626; font-weight: bold; }
+        .negative { color: #16a34a; font-weight: bold; }
+        .error { color: #dc2626; }
+        .note { color: #666; font-size: 14px; margin-top: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>测试更多基金数据源</h1>
+    <p>测试基金：摩根纳斯达克100指数(QDII)人民币A (019172)</p>
+    
+    <div id="results"></div>
+
+    <script>
+        const testFundCode = '019172';
+        const testFundName = '摩根纳斯达克100指数(QDII)人民币A';
+        
+        function displayResult(sourceName, data, note) {
+            const resultsDiv = document.getElementById('results');
+            let html = resultsDiv.innerHTML;
+            
+            html += `
+                <div class="source">
+                    <div class="source-name">${sourceName}</div>
+                    <div class="fund-data">
+                        ${data.error ? 
+                            `<div class="error">错误: ${data.error}</div>` :
+                            `
+                            <div class="fund-name">${data.fundName || testFundName}</div>
+                            <div class="value">基金代码: ${data.fundCode || testFundCode}</div>
+                            <div class="value">单位净值: ${data.netValue || 'N/A'} (${data.netValueDate || 'N/A'})</div>
+                            <div class="value">估算净值: ${data.estimatedValue || 'N/A'}</div>
+                            <div class="value ${data.dailyReturn >= 0 ? 'positive' : 'negative'}">
+                                当日收益率: ${data.dailyReturn >= 0 ? '+' : ''}${data.dailyReturn}%
+                            </div>
+                            <div class="value">更新时间: ${data.updateTime || 'N/A'}</div>
+                            `
+                        }
+                        ${note ? `<div class="note">${note}</div>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // 1. 天天基金网（作为对比基准）
+        function testTiantian() {
+            const script = document.createElement('script');
+            script.src = `http://fundgz.1234567.com.cn/js/${testFundCode}.js?t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('1. 天天基金网（东方财富）- 基准', { error: '请求超时' });
+                document.head.removeChild(script);
+            }, 5000);
+            
+            window.jsonpgz = function(data) {
+                clearTimeout(timeout);
+                displayResult('1. 天天基金网（东方财富）- 基准', {
+                    fundCode: data.fundcode,
+                    fundName: data.name,
+                    netValue: parseFloat(data.dwjz),
+                    estimatedValue: parseFloat(data.gsz),
+                    dailyReturn: parseFloat(data.gszzl),
+                    updateTime: data.gztime,
+                    netValueDate: data.jzrq
+                }, '目前唯一可用的公开API数据源');
+                document.head.removeChild(script);
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('1. 天天基金网（东方财富）- 基准', { error: '加载失败' });
+                document.head.removeChild(script);
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 2. 蛋卷基金（雪球）
+        function testDanjuan() {
+            fetch(`https://danjuanapp.com/djapi/fund/${testFundCode}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.data) {
+                        displayResult('2. 蛋卷基金（雪球）', {
+                            fundName: data.data.fd_name,
+                            netValue: data.data.nav,
+                            estimatedValue: data.data.nav_acc,
+                            dailyReturn: data.data.nav_grl * 100,
+                            updateTime: data.data.nav_date,
+                            netValueDate: data.data.nav_date
+                        }, '雪球旗下专业基金平台');
+                    } else {
+                        displayResult('2. 蛋卷基金（雪球）', { error: '无数据' });
+                    }
+                })
+                .catch(error => {
+                    displayResult('2. 蛋卷基金（雪球）', { error: 'CORS限制或API不可用: ' + error.message });
+                });
+        }
+
+        // 3. 好买基金
+        function testHowbuy() {
+            const script = document.createElement('script');
+            script.src = `https://www.howbuy.com/fund/ajax/gmfund/valuation/valuationnav.htm?jjdm=${testFundCode}&callback=howbuyCallback&t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('3. 好买基金', { error: '请求超时' });
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.howbuyCallback;
+            }, 5000);
+            
+            window.howbuyCallback = function(data) {
+                clearTimeout(timeout);
+                try {
+                    if (data && data.success) {
+                        displayResult('3. 好买基金', {
+                            fundName: data.data.name,
+                            netValue: data.data.nav,
+                            estimatedValue: data.data.gsz,
+                            dailyReturn: data.data.gszzl,
+                            updateTime: data.data.gztime,
+                            netValueDate: data.data.jzrq
+                        }, '专业基金销售平台');
+                    } else {
+                        displayResult('3. 好买基金', { error: '无数据或格式不支持' });
+                    }
+                } catch (error) {
+                    displayResult('3. 好买基金', { error: '数据解析失败: ' + error.message });
+                }
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.howbuyCallback;
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('3. 好买基金', { error: 'API不可用或不支持JSONP' });
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.howbuyCallback;
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 4. 集思录
+        function testJisilu() {
+            fetch(`https://www.jisilu.cn/data/fund/detail/${testFundCode}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.data) {
+                        displayResult('4. 集思录', {
+                            fundName: data.data.name,
+                            netValue: data.data.unit_nav,
+                            estimatedValue: data.data.estimate_nav,
+                            dailyReturn: data.data.increase_rt * 100,
+                            updateTime: data.data.update_time,
+                            netValueDate: data.data.nav_date
+                        }, '专注于可转债和基金的投资社区');
+                    } else {
+                        displayResult('4. 集思录', { error: '无数据' });
+                    }
+                })
+                .catch(error => {
+                    displayResult('4. 集思录', { error: 'CORS限制或API不可用: ' + error.message });
+                });
+        }
+
+        // 5. 基金豆
+        function testJijindou() {
+            const script = document.createElement('script');
+            script.src = `http://api.jijindou.com/fund/nav/${testFundCode}?callback=jijindouCallback&t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('5. 基金豆', { error: '请求超时' });
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.jijindouCallback;
+            }, 5000);
+            
+            window.jijindouCallback = function(data) {
+                clearTimeout(timeout);
+                try {
+                    if (data && data.code === 0) {
+                        displayResult('5. 基金豆', {
+                            fundName: data.data.name,
+                            netValue: data.data.nav,
+                            estimatedValue: data.data.gsz,
+                            dailyReturn: data.data.gszzl,
+                            updateTime: data.data.gztime,
+                            netValueDate: data.data.jzrq
+                        }, '基金数据聚合平台');
+                    } else {
+                        displayResult('5. 基金豆', { error: '无数据或格式不支持' });
+                    }
+                } catch (error) {
+                    displayResult('5. 基金豆', { error: '数据解析失败: ' + error.message });
+                }
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.jijindouCallback;
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('5. 基金豆', { error: 'API不可用' });
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.jijindouCallback;
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 依次测试各个数据源
+        setTimeout(() => testTiantian(), 100);
+        setTimeout(() => testDanjuan(), 1000);
+        setTimeout(() => testHowbuy(), 2000);
+        setTimeout(() => testJisilu(), 3000);
+        setTimeout(() => testJijindou(), 4000);
+    </script>
+</body>
+</html>

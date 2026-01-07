@@ -23,6 +23,9 @@ export interface PositionRecord {
   // 通用信息
   investment_amount: number;  // 持仓金额（元）
   profit_loss: number;  // 持仓收益（元）
+  daily_profit_loss?: number;  // 当日收益（元）
+  daily_change?: number;  // 当日涨跌幅（%）
+  manual_daily_return?: number;  // 手动输入的当日收益率（%）
   
   // 定投信息
   auto_invest_enabled?: boolean;  // 是否启用定投
@@ -47,6 +50,9 @@ export interface CreatePositionInput {
   average_buy_price?: number;
   investment_amount: number;
   profit_loss: number;
+  daily_profit_loss?: number;
+  daily_change?: number;
+  manual_daily_return?: number;
   
   // 定投信息
   auto_invest_enabled?: boolean;
@@ -66,6 +72,9 @@ export interface UpdatePositionInput {
   average_buy_price?: number;
   investment_amount?: number;
   profit_loss?: number;
+  daily_profit_loss?: number;
+  daily_change?: number;
+  manual_daily_return?: number;
   
   // 定投信息
   auto_invest_enabled?: boolean;

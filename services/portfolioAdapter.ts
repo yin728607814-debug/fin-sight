@@ -26,6 +26,9 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     // 通用信息 - 使用 toFixed(2) 避免浮点数精度问题
     investmentAmount: parseFloat(Number(record.investment_amount).toFixed(2)),
     profitLoss: parseFloat(Number(record.profit_loss).toFixed(2)),
+    dailyProfitLoss: record.daily_profit_loss ? parseFloat(Number(record.daily_profit_loss).toFixed(2)) : undefined,
+    dailyChange: record.daily_change ? parseFloat(Number(record.daily_change).toFixed(2)) : undefined,
+    manualDailyReturn: record.manual_daily_return ? parseFloat(Number(record.manual_daily_return).toFixed(2)) : undefined,
     
     // 元数据
     createdAt: new Date(record.created_at),
@@ -113,6 +116,18 @@ export function positionToUpdateInput(updates: Partial<Position>): UpdatePositio
   
   if (updates.profitLoss !== undefined) {
     input.profit_loss = updates.profitLoss;
+  }
+  
+  if (updates.dailyProfitLoss !== undefined) {
+    input.daily_profit_loss = updates.dailyProfitLoss;
+  }
+  
+  if (updates.dailyChange !== undefined) {
+    input.daily_change = updates.dailyChange;
+  }
+  
+  if (updates.manualDailyReturn !== undefined) {
+    input.manual_daily_return = updates.manualDailyReturn;
   }
   
   // 定投信息

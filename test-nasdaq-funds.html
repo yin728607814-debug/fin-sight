@@ -4,78 +4,71 @@
     <meta charset="UTF-8">
     <title>测试纳斯达克基金数据</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .fund { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-        .fund-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
-        .fund-data { margin: 5px 0; }
-        .positive { color: #dc2626; }
-        .negative { color: #16a34a; }
-        .loading { color: #666; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        .fund { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: white; }
+        .fund-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #333; }
+        .fund-data { margin: 5px 0; color: #666; }
+        .positive { color: #dc2626; font-weight: bold; }
+        .negative { color: #16a34a; font-weight: bold; }
+        .loading { color: #666; text-align: center; padding: 20px; }
         .error { color: #dc2626; }
+        .success { color: #16a34a; }
     </style>
 </head>
 <body>
-    <h1>纳斯达克基金当日收益率查询</h1>
+    <h1>纳斯达克基金当日收益率查询（18支）</h1>
+    <div id="status" class="loading">正在加载数据...</div>
     <div id="results"></div>
 
     <script>
-        // 基金代码映射
+        // 基金代码映射（18支纳斯达克基金）
         const fundCodes = {
-            '摩根纳斯达克100指数(QDII)人民币A': '008975',
-            '建信纳斯达克100指数QDII A': '539003',
-            '南方纳斯达克100指数发起(QDII) A': '012842',
-            '易方达全球成长精选混合人民币A类': '010198',
-            '易方达全球成长精选混合人民币C类': '010199',
+            '摩根纳斯达克100指数(QDII)人民币A': '019172',
+            '建信纳斯达克100指数QDII A': '539001',
+            '南方纳斯达克100指数发起(QDII) A': '016452',
+            '易方达全球成长精选混合人民币A类': '012920',
+            '易方达全球成长精选混合人民币C类': '012922',
             '华安纳斯达克100ETF联接(QDII) A': '040046',
-            '华安纳斯达克100ETF联接(QDII) C': '040047',
-            '嘉实纳斯达克100联接(QDII)C人民币': '017546'
+            '华安纳斯达克100ETF联接(QDII) C': '014978',
+            '嘉实纳斯达克100联接(QDII)C人民币': '016533',
+            '广发纳斯达克100ETF联接(QDII) A': '270042',
+            '南方纳斯达克100指数发起(QDII) C': '016453',
+            '大成纳斯达克100ETF联接(QDII)A': '000834',
+            '华宝纳斯达克精选股票发起式(QDII) A': '017436',
+            '景顺长城纳斯达克科技ETF联接A': '017091',
+            '景顺长城纳斯达克科技ETF联接E': '019118',
+            '景顺长城纳斯达克科技ETF联接C': '017093',
+            '博时标普500ETF联接(QDII)A': '050025',
+            '博时纳斯达克100A人名币': '016055',
+            '南方纳斯达克100指数发起(QDII) I': '021000'
         };
 
-        async function fetchFundData(fundName, fundCode) {
-            try {
-                const url = `http://fundgz.1234567.com.cn/js/${fundCode}.js`;
-                const response = await fetch(url);
-                const text = await response.text();
-                
-                // 解析JSONP
-                const jsonMatch = text.match(/jsonpgz\((.*)\)/);
-                if (!jsonMatch) {
-                    return { error: '无法解析数据' };
-                }
-                
-                const data = JSON.parse(jsonMatch[1]);
-                return {
-                    fundCode: data.fundcode,
-                    fundName: data.name,
-                    netValue: parseFloat(data.dwjz),
-                    estimatedValue: parseFloat(data.gsz),
-                    dailyReturn: parseFloat(data.gszzl),
-                    updateTime: data.gztime,
-                    netValueDate: data.jzrq
-                };
-            } catch (error) {
-                return { error: error.message };
-            }
+        let results = [];
+        let loadedCount = 0;
+        const totalCount = Object.keys(fundCodes).length;
+
+        function updateStatus() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `正在加载数据... (${loadedCount}/${totalCount})`;
         }
 
-        async function loadAllFunds() {
+        function displayResults() {
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<p class="loading">正在加载数据...</p>';
+            const statusDiv = document.getElementById('status');
             
-            const results = [];
-            for (const [fundName, fundCode] of Object.entries(fundCodes)) {
-                const data = await fetchFundData(fundName, fundCode);
-                results.push({ fundName, fundCode, data });
+            if (loadedCount === totalCount) {
+                const successCount = results.filter(r => !r.data.error).length;
+                statusDiv.innerHTML = `<span class="success">加载完成！成功: ${successCount}/${totalCount}</span>`;
             }
             
-            // 显示结果
             let html = '';
             results.forEach(({ fundName, fundCode, data }) => {
                 if (data.error) {
                     html += `
                         <div class="fund">
                             <div class="fund-name">${fundName}</div>
-                            <div class="fund-data error">基金代码: ${fundCode}</div>
+                            <div class="fund-data">基金代码: ${fundCode}</div>
                             <div class="fund-data error">错误: ${data.error}</div>
                         </div>
                     `;
@@ -99,8 +92,102 @@
             resultsDiv.innerHTML = html;
         }
 
-        // 页面加载时执行
-        loadAllFunds();
+        function loadFundData(fundName, fundCode) {
+            // 创建全局回调函数
+            const callbackName = 'jsonpgz';
+            
+            // 如果回调已存在，先删除
+            if (window[callbackName]) {
+                delete window[callbackName];
+            }
+            
+            // 创建script标签
+            const script = document.createElement('script');
+            script.src = `http://fundgz.1234567.com.cn/js/${fundCode}.js?t=${Date.now()}`;
+            
+            // 设置超时
+            const timeout = setTimeout(() => {
+                loadedCount++;
+                results.push({
+                    fundName,
+                    fundCode,
+                    data: { error: '请求超时' }
+                });
+                updateStatus();
+                displayResults();
+                document.head.removeChild(script);
+            }, 5000);
+            
+            // 定义回调函数
+            window[callbackName] = function(data) {
+                clearTimeout(timeout);
+                loadedCount++;
+                
+                try {
+                    results.push({
+                        fundName,
+                        fundCode,
+                        data: {
+                            fundCode: data.fundcode,
+                            fundName: data.name,
+                            netValue: parseFloat(data.dwjz),
+                            estimatedValue: parseFloat(data.gsz),
+                            dailyReturn: parseFloat(data.gszzl),
+                            updateTime: data.gztime,
+                            netValueDate: data.jzrq
+                        }
+                    });
+                } catch (error) {
+                    results.push({
+                        fundName,
+                        fundCode,
+                        data: { error: '数据解析失败' }
+                    });
+                }
+                
+                updateStatus();
+                displayResults();
+                
+                // 清理
+                document.head.removeChild(script);
+                
+                // 加载下一个基金（延迟200ms避免请求过快）
+                setTimeout(loadNext, 200);
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                loadedCount++;
+                results.push({
+                    fundName,
+                    fundCode,
+                    data: { error: '加载失败' }
+                });
+                updateStatus();
+                displayResults();
+                document.head.removeChild(script);
+                
+                // 加载下一个基金
+                setTimeout(loadNext, 200);
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 基金队列
+        const fundQueue = Object.entries(fundCodes);
+        let currentIndex = 0;
+
+        function loadNext() {
+            if (currentIndex < fundQueue.length) {
+                const [fundName, fundCode] = fundQueue[currentIndex];
+                currentIndex++;
+                loadFundData(fundName, fundCode);
+            }
+        }
+
+        // 开始加载
+        loadNext();
     </script>
 </body>
 </html>

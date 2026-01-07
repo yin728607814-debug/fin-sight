@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试不同基金数据源</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        .source { margin: 30px 0; padding: 20px; border: 2px solid #ddd; border-radius: 8px; background: white; }
+        .source-name { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: #2563eb; }
+        .fund-data { margin: 10px 0; padding: 10px; background: #f9fafb; border-left: 3px solid #3b82f6; }
+        .fund-name { font-weight: bold; color: #333; }
+        .value { color: #666; margin: 5px 0; }
+        .positive { color: #dc2626; font-weight: bold; }
+        .negative { color: #16a34a; font-weight: bold; }
+        .loading { color: #666; }
+        .error { color: #dc2626; }
+        .success { color: #16a34a; }
+    </style>
+</head>
+<body>
+    <h1>测试不同基金数据源的准确性</h1>
+    <p>测试基金：摩根纳斯达克100指数(QDII)人民币A (019172)</p>
+    
+    <div id="results"></div>
+
+    <script>
+        const testFundCode = '019172';
+        const testFundName = '摩根纳斯达克100指数(QDII)人民币A';
+        
+        const results = [];
+
+        function displayResult(sourceName, data) {
+            const resultsDiv = document.getElementById('results');
+            let html = resultsDiv.innerHTML;
+            
+            html += `
+                <div class="source">
+                    <div class="source-name">${sourceName}</div>
+                    <div class="fund-data">
+                        ${data.error ? 
+                            `<div class="error">错误: ${data.error}</div>` :
+                            `
+                            <div class="fund-name">${data.fundName || testFundName}</div>
+                            <div class="value">基金代码: ${data.fundCode || testFundCode}</div>
+                            <div class="value">单位净值: ${data.netValue || 'N/A'} (${data.netValueDate || 'N/A'})</div>
+                            <div class="value">估算净值: ${data.estimatedValue || 'N/A'}</div>
+                            <div class="value ${data.dailyReturn >= 0 ? 'positive' : 'negative'}">
+                                当日收益率: ${data.dailyReturn >= 0 ? '+' : ''}${data.dailyReturn}%
+                            </div>
+                            <div class="value">更新时间: ${data.updateTime || 'N/A'}</div>
+                            `
+                        }
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // 1. 天天基金网（东方财富）
+        function testTiantian() {
+            const script = document.createElement('script');
+            script.src = `http://fundgz.1234567.com.cn/js/${testFundCode}.js?t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('1. 天天基金网（东方财富）', { error: '请求超时' });
+                document.head.removeChild(script);
+            }, 5000);
+            
+            window.jsonpgz = function(data) {
+                clearTimeout(timeout);
+                displayResult('1. 天天基金网（东方财富）', {
+                    fundCode: data.fundcode,
+                    fundName: data.name,
+                    netValue: parseFloat(data.dwjz),
+                    estimatedValue: parseFloat(data.gsz),
+                    dailyReturn: parseFloat(data.gszzl),
+                    updateTime: data.gztime,
+                    netValueDate: data.jzrq
+                });
+                document.head.removeChild(script);
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('1. 天天基金网（东方财富）', { error: '加载失败' });
+                document.head.removeChild(script);
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 2. 新浪财经
+        function testSina() {
+            const script = document.createElement('script');
+            script.src = `https://hq.sinajs.cn/list=fu_${testFundCode}?t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('2. 新浪财经', { error: '请求超时' });
+                if (script.parentNode) document.head.removeChild(script);
+            }, 5000);
+            
+            script.onload = function() {
+                clearTimeout(timeout);
+                try {
+                    const varName = `hq_str_fu_${testFundCode}`;
+                    if (window[varName]) {
+                        const data = window[varName].split(',');
+                        displayResult('2. 新浪财经', {
+                            fundName: data[0] || testFundName,
+                            netValue: parseFloat(data[1]) || 'N/A',
+                            estimatedValue: parseFloat(data[2]) || 'N/A',
+                            dailyReturn: parseFloat(data[3]) || 0,
+                            updateTime: data[4] || 'N/A',
+                            netValueDate: data[5] || 'N/A'
+                        });
+                    } else {
+                        displayResult('2. 新浪财经', { error: '数据格式不支持或无数据' });
+                    }
+                } catch (error) {
+                    displayResult('2. 新浪财经', { error: '数据解析失败: ' + error.message });
+                }
+                if (script.parentNode) document.head.removeChild(script);
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('2. 新浪财经', { error: '加载失败（可能不支持QDII基金）' });
+                if (script.parentNode) document.head.removeChild(script);
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 3. 网易财经
+        function testNetease() {
+            const script = document.createElement('script');
+            script.src = `http://api.money.126.net/data/feed/${testFundCode}?callback=neteaseCallback&t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('3. 网易财经', { error: '请求超时' });
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.neteaseCallback;
+            }, 5000);
+            
+            window.neteaseCallback = function(data) {
+                clearTimeout(timeout);
+                try {
+                    const fundData = data[testFundCode];
+                    if (fundData) {
+                        displayResult('3. 网易财经', {
+                            fundName: fundData.name || testFundName,
+                            netValue: fundData.dwjz || 'N/A',
+                            estimatedValue: fundData.gsz || 'N/A',
+                            dailyReturn: fundData.gszzl || 0,
+                            updateTime: fundData.gztime || 'N/A',
+                            netValueDate: fundData.jzrq || 'N/A'
+                        });
+                    } else {
+                        displayResult('3. 网易财经', { error: '无数据' });
+                    }
+                } catch (error) {
+                    displayResult('3. 网易财经', { error: '数据解析失败: ' + error.message });
+                }
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.neteaseCallback;
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('3. 网易财经', { error: '加载失败' });
+                if (script.parentNode) document.head.removeChild(script);
+                delete window.neteaseCallback;
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 4. 腾讯财经
+        function testTencent() {
+            const script = document.createElement('script');
+            script.src = `https://qt.gtimg.cn/q=jj${testFundCode}?t=${Date.now()}`;
+            
+            const timeout = setTimeout(() => {
+                displayResult('4. 腾讯财经', { error: '请求超时' });
+                if (script.parentNode) document.head.removeChild(script);
+            }, 5000);
+            
+            script.onload = function() {
+                clearTimeout(timeout);
+                try {
+                    const varName = `v_jj${testFundCode}`;
+                    if (window[varName]) {
+                        const data = window[varName].split('~');
+                        displayResult('4. 腾讯财经', {
+                            fundName: data[1] || testFundName,
+                            netValue: parseFloat(data[2]) || 'N/A',
+                            estimatedValue: parseFloat(data[3]) || 'N/A',
+                            dailyReturn: parseFloat(data[4]) || 0,
+                            updateTime: data[5] || 'N/A',
+                            netValueDate: data[6] || 'N/A'
+                        });
+                    } else {
+                        displayResult('4. 腾讯财经', { error: '数据格式不支持或无数据' });
+                    }
+                } catch (error) {
+                    displayResult('4. 腾讯财经', { error: '数据解析失败: ' + error.message });
+                }
+                if (script.parentNode) document.head.removeChild(script);
+            };
+            
+            script.onerror = function() {
+                clearTimeout(timeout);
+                displayResult('4. 腾讯财经', { error: '加载失败' });
+                if (script.parentNode) document.head.removeChild(script);
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        // 依次测试各个数据源
+        setTimeout(() => testTiantian(), 100);
+        setTimeout(() => testSina(), 1000);
+        setTimeout(() => testNetease(), 2000);
+        setTimeout(() => testTencent(), 3000);
+    </script>
+</body>
+</html>

@@ -148,6 +148,20 @@ export const PortfolioPage: React.FC = () => {
         ...calculatedPortfolio,
         positions: calculatedPortfolio.positions.map(position => {
           if (position.assetType === 'nasdaq' && position.fundName) {
+            // 优先使用手动输入的收益率
+            if (position.manualDailyReturn !== undefined) {
+              const dailyProfit = nasdaqFundService.calculateDailyProfit(
+                position.investmentAmount,
+                position.manualDailyReturn
+              );
+              return {
+                ...position,
+                dailyProfitLoss: dailyProfit,
+                dailyChange: position.manualDailyReturn
+              };
+            }
+            
+            // 否则使用API数据
             const fundData = nasdaqData.get(position.fundName);
             if (fundData) {
               const dailyProfit = nasdaqFundService.calculateDailyProfit(

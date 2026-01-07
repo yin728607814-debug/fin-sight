@@ -31,6 +31,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   // 纳斯达克和A股基金字段
   const [fundInvestment, setFundInvestment] = useState('');
   const [fundProfit, setFundProfit] = useState('');
+  const [manualDailyReturn, setManualDailyReturn] = useState('');
   const [autoInvest, setAutoInvest] = useState<AutoInvestPlan | undefined>();
   
   // 黄金字段
@@ -54,6 +55,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
         setFundInvestment(position.investmentAmount.toString());
         setFundProfit(position.profitLoss.toString());
+        setManualDailyReturn(position.manualDailyReturn?.toString() || '');
         setAutoInvest(position.autoInvest);
       } else if (position.assetType === 'gold') {
         setGoldGrams(position.quantity?.toString() || '');
@@ -67,6 +69,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       currentPositionIdRef.current = null;
       setFundInvestment('');
       setFundProfit('');
+      setManualDailyReturn('');
       setGoldGrams('');
       setGoldInvestment('');
       setGoldProfit('');
@@ -117,12 +120,22 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
     }
 
     if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
-      onSave(position.id, {
+      const updates: Partial<Position> = {
         investmentAmount: parseFloat(fundInvestment),
         profitLoss: parseFloat(fundProfit),
         autoInvest,
         updatedAt: new Date()
-      });
+      };
+      
+      // 如果手动输入了当日收益率，保存它
+      if (manualDailyReturn && !isNaN(parseFloat(manualDailyReturn))) {
+        updates.manualDailyReturn = parseFloat(manualDailyReturn);
+        // 计算手动当日收益
+        updates.dailyChange = parseFloat(manualDailyReturn);
+        updates.dailyProfitLoss = parseFloat(fundInvestment) * (parseFloat(manualDailyReturn) / 100);
+      }
+      
+      onSave(position.id, updates);
     } else if (position.assetType === 'gold') {
       const grams = parseFloat(goldGrams);
       const investment = parseFloat(goldInvestment);
@@ -231,6 +244,31 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                     盈利输入正数，亏损输入负数
                   </p>
                 </div>
+
+                {/* 手动输入当日收益率（可选） */}
+                {position.assetType === 'nasdaq' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      手动校准当日收益率（可选）
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={manualDailyReturn}
+                        onChange={(e) => setManualDailyReturn(e.target.value)}
+                        placeholder="例如：0.86"
+                        className="w-full px-4 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        %
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      如果天天基金的估值不准确，可以手动输入更准确的收益率（如从小倍养基获取）
+                    </p>
+                  </div>
+                )}
 
                 {/* 定投设置 */}
                 <AutoInvestSettings
