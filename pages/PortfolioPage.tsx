@@ -157,13 +157,17 @@ export const PortfolioPage: React.FC = () => {
     }
     
     // 为纳斯达克基金添加当日收益数据
+    console.log('纳斯达克数据大小:', nasdaqData.size);
     if (nasdaqData.size > 0) {
       calculatedPortfolio = {
         ...calculatedPortfolio,
         positions: calculatedPortfolio.positions.map(position => {
           if (position.assetType === 'nasdaq' && position.fundName) {
+            console.log('处理纳斯达克基金:', position.fundName);
+            
             // 优先使用手动输入的收益率
             if (position.manualDailyReturn !== undefined) {
+              console.log('使用手动收益率:', position.manualDailyReturn);
               const dailyProfit = nasdaqFundService.calculateDailyProfit(
                 position.investmentAmount,
                 position.manualDailyReturn
@@ -177,11 +181,13 @@ export const PortfolioPage: React.FC = () => {
             
             // 否则使用API数据
             const fundData = nasdaqData.get(position.fundName);
+            console.log('API数据:', fundData);
             if (fundData) {
               const dailyProfit = nasdaqFundService.calculateDailyProfit(
                 position.investmentAmount,
                 fundData.dailyReturn
               );
+              console.log('计算的当日收益:', dailyProfit, '收益率:', fundData.dailyReturn);
               return {
                 ...position,
                 dailyProfitLoss: dailyProfit,
