@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试纳斯达克基金数据</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .fund { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .fund-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+        .fund-data { margin: 5px 0; }
+        .positive { color: #dc2626; }
+        .negative { color: #16a34a; }
+        .loading { color: #666; }
+        .error { color: #dc2626; }
+    </style>
+</head>
+<body>
+    <h1>纳斯达克基金当日收益率查询</h1>
+    <div id="results"></div>
+
+    <script>
+        // 基金代码映射
+        const fundCodes = {
+            '摩根纳斯达克100指数(QDII)人民币A': '008975',
+            '建信纳斯达克100指数QDII A': '539003',
+            '南方纳斯达克100指数发起(QDII) A': '012842',
+            '易方达全球成长精选混合人民币A类': '010198',
+            '易方达全球成长精选混合人民币C类': '010199',
+            '华安纳斯达克100ETF联接(QDII) A': '040046',
+            '华安纳斯达克100ETF联接(QDII) C': '040047',
+            '嘉实纳斯达克100联接(QDII)C人民币': '017546'
+        };
+
+        async function fetchFundData(fundName, fundCode) {
+            try {
+                const url = `http://fundgz.1234567.com.cn/js/${fundCode}.js`;
+                const response = await fetch(url);
+                const text = await response.text();
+                
+                // 解析JSONP
+                const jsonMatch = text.match(/jsonpgz\((.*)\)/);
+                if (!jsonMatch) {
+                    return { error: '无法解析数据' };
+                }
+                
+                const data = JSON.parse(jsonMatch[1]);
+                return {
+                    fundCode: data.fundcode,
+                    fundName: data.name,
+                    netValue: parseFloat(data.dwjz),
+                    estimatedValue: parseFloat(data.gsz),
+                    dailyReturn: parseFloat(data.gszzl),
+                    updateTime: data.gztime,
+                    netValueDate: data.jzrq
+                };
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        async function loadAllFunds() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="loading">正在加载数据...</p>';
+            
+            const results = [];
+            for (const [fundName, fundCode] of Object.entries(fundCodes)) {
+                const data = await fetchFundData(fundName, fundCode);
+                results.push({ fundName, fundCode, data });
+            }
+            
+            // 显示结果
+            let html = '';
+            results.forEach(({ fundName, fundCode, data }) => {
+                if (data.error) {
+                    html += `
+                        <div class="fund">
+                            <div class="fund-name">${fundName}</div>
+                            <div class="fund-data error">基金代码: ${fundCode}</div>
+                            <div class="fund-data error">错误: ${data.error}</div>
+                        </div>
+                    `;
+                } else {
+                    const returnClass = data.dailyReturn >= 0 ? 'positive' : 'negative';
+                    const returnSign = data.dailyReturn >= 0 ? '+' : '';
+                    html += `
+                        <div class="fund">
+                            <div class="fund-name">${fundName}</div>
+                            <div class="fund-data">基金代码: ${data.fundCode}</div>
+                            <div class="fund-data">基金名称: ${data.fundName}</div>
+                            <div class="fund-data">单位净值: ${data.netValue} (${data.netValueDate})</div>
+                            <div class="fund-data">估算净值: ${data.estimatedValue}</div>
+                            <div class="fund-data ${returnClass}">当日收益率: ${returnSign}${data.dailyReturn}%</div>
+                            <div class="fund-data">更新时间: ${data.updateTime}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // 页面加载时执行
+        loadAllFunds();
+    </script>
+</body>
+</html>
