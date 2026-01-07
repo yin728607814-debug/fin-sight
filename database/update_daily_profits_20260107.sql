@@ -54,20 +54,20 @@ SET daily_change = 0.81,
 WHERE fund_name = '南方纳斯达克100指数发起(QDII) A'
   AND asset_type = 'nasdaq';
 
--- 南方纳斯达克100指数发起(QDII) C
+-- 南方纳斯达克100指数发起(QDII) I
 UPDATE positions
 SET daily_change = 0.81,
     daily_profit_loss = 241.28,
     updated_at = NOW()
-WHERE fund_name = '南方纳斯达克100指数发起(QDII) C'
+WHERE fund_name = '南方纳斯达克100指数发起(QDII) I'
   AND asset_type = 'nasdaq';
 
--- 南方纳斯达克100指数发起(QDII) I
+-- 南方纳斯达克100指数发起(QDII) C
 UPDATE positions
 SET daily_change = 0.86,
     daily_profit_loss = 87.49,
     updated_at = NOW()
-WHERE fund_name = '南方纳斯达克100指数发起(QDII) I'
+WHERE fund_name = '南方纳斯达克100指数发起(QDII) C'
   AND asset_type = 'nasdaq';
 
 -- 华宝纳斯达克精选股票发起式(QDII) A

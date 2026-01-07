@@ -206,11 +206,13 @@ export class PortfolioService {
         const positionValue = investment + position.profitLoss;
         const profitLossPercent = investment > 0 ? (position.profitLoss / investment) * 100 : 0;
 
-        // 计算当日收益（基于涨跌幅）
-        let dailyProfitLoss: number | undefined;
-        let dailyChange: number | undefined;
+        // 保留数据库中的当日收益数据，不自动计算
+        // 只有当数据库中没有数据时，才尝试从价格计算
+        let dailyProfitLoss: number | undefined = position.dailyProfitLoss;
+        let dailyChange: number | undefined = position.dailyChange;
         
-        if (currentPrice !== undefined && previousPrice !== undefined && previousPrice > 0) {
+        // 只有当数据库中没有当日收益数据，且有价格数据时，才计算
+        if (dailyProfitLoss === undefined && currentPrice !== undefined && previousPrice !== undefined && previousPrice > 0) {
           dailyChange = ((currentPrice - previousPrice) / previousPrice) * 100;
           // 当日收益 = 持仓金额 × 当日涨跌幅
           dailyProfitLoss = investment * (dailyChange / 100);
@@ -254,7 +256,7 @@ export class PortfolioService {
         const positionValue = investment + (position.profitLoss || 0);
         currentValue += positionValue;
         return {
-          ...position,
+          ...position,  // 保留所有原始字段，包括 dailyProfitLoss 和 dailyChange
           currentValue: positionValue,
           profitLoss: position.profitLoss || 0,
           profitLossPercent: investment > 0 ? ((position.profitLoss || 0) / investment) * 100 : 0
