@@ -850,53 +850,60 @@ export const PortfolioPage: React.FC = () => {
                 {/* 统计数据 */}
                 <div className="p-6">
                   {currentStats && (
-                    <div className={`grid ${summaryTab === 'nasdaq' || summaryTab === 'astock' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-4'} gap-4`}>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总投资</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                          ¥{currentStats.totalInvestment.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当前市值</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                          ¥{currentStats.currentValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总盈亏</p>
-                        <p className={`text-2xl font-bold ${
-                          currentStats.totalProfitLoss >= 0 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-green-600 dark:text-green-400'
-                        }`}>
-                          {currentStats.totalProfitLoss >= 0 ? '+' : ''}¥{currentStats.totalProfitLoss.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">收益率</p>
-                        <p className={`text-2xl font-bold ${
-                          currentStats.totalProfitLossPercent >= 0 
-                            ? 'text-red-600 dark:text-red-400' 
-                            : 'text-green-600 dark:text-green-400'
-                        }`}>
-                          {currentStats.totalProfitLossPercent >= 0 ? '+' : ''}{currentStats.totalProfitLossPercent.toFixed(2)}%
-                        </p>
-                      </div>
-                      {/* 只在纳斯达克和A股Tab显示当日总收益 */}
-                      {(summaryTab === 'nasdaq' || summaryTab === 'astock') && currentStats.totalDailyProfit !== undefined && (
+                    <>
+                      {/* 第一行：总投资、当前市值、总盈亏 */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当日总收益</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总投资</p>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            ¥{currentStats.totalInvestment.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当前市值</p>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            ¥{currentStats.currentValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">总盈亏</p>
                           <p className={`text-2xl font-bold ${
-                            currentStats.totalDailyProfit >= 0 
+                            currentStats.totalProfitLoss >= 0 
                               ? 'text-red-600 dark:text-red-400' 
                               : 'text-green-600 dark:text-green-400'
                           }`}>
-                            {currentStats.totalDailyProfit >= 0 ? '+' : ''}¥{currentStats.totalDailyProfit.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {currentStats.totalProfitLoss >= 0 ? '+' : ''}¥{currentStats.totalProfitLoss.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                      
+                      {/* 第二行：收益率、当日总收益（仅纳斯达克和A股显示） */}
+                      <div className={`grid ${(summaryTab === 'nasdaq' || summaryTab === 'astock') ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">收益率</p>
+                          <p className={`text-2xl font-bold ${
+                            currentStats.totalProfitLossPercent >= 0 
+                              ? 'text-red-600 dark:text-red-400' 
+                              : 'text-green-600 dark:text-green-400'
+                          }`}>
+                            {currentStats.totalProfitLossPercent >= 0 ? '+' : ''}{currentStats.totalProfitLossPercent.toFixed(2)}%
+                          </p>
+                        </div>
+                        {/* 只在纳斯达克和A股Tab显示当日总收益 */}
+                        {(summaryTab === 'nasdaq' || summaryTab === 'astock') && currentStats.totalDailyProfit !== undefined && (
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">当日总收益</p>
+                            <p className={`text-2xl font-bold ${
+                              currentStats.totalDailyProfit >= 0 
+                                ? 'text-red-600 dark:text-red-400' 
+                                : 'text-green-600 dark:text-green-400'
+                            }`}>
+                              {currentStats.totalDailyProfit >= 0 ? '+' : ''}¥{currentStats.totalDailyProfit.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
