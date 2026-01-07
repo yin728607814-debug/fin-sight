@@ -66,16 +66,18 @@ export const PortfolioPage: React.FC = () => {
     exportPositions: exportSupabasePositions
   } = usePortfolioWithSupabase();
   
-  // 获取A股基金名称列表
-  const aStockFundNames = supabasePositions
-    .filter(p => p.assetType === 'astock' && p.fundName)
-    .map(p => p.fundName!);
+  // 获取A股基金名称列表（使用useMemo避免无限循环）
+  const aStockFundNames = React.useMemo(() => {
+    return supabasePositions
+      .filter(p => p.assetType === 'astock' && p.fundName)
+      .map(p => p.fundName!);
+  }, [supabasePositions]);
   
-  // 使用A股基金数据Hook（自动刷新）
+  // 使用A股基金数据Hook（禁用自动刷新避免性能问题）
   const { fundDataMap: aStockData } = useAStockFundData(
     aStockFundNames,
-    true, // 自动刷新
-    60000 // 每分钟刷新一次
+    false, // 禁用自动刷新
+    60000
   );
 
   /**

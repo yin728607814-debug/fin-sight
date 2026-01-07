@@ -30,11 +30,16 @@ export function useAStockFundData(
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
+  // 将fundNames转换为字符串，避免引用比较问题
+  const fundNamesKey = fundNames.sort().join(',');
+
   /**
    * 获取基金数据
    */
   const fetchData = useCallback(async () => {
-    if (fundNames.length === 0) {
+    const names = fundNamesKey.split(',').filter(n => n.length > 0);
+    
+    if (names.length === 0) {
       setFundDataMap(new Map());
       return;
     }
@@ -43,7 +48,7 @@ export function useAStockFundData(
     setError(null);
 
     try {
-      const data = await aStockFundService.getBatchFundData(fundNames);
+      const data = await aStockFundService.getBatchFundData(names);
       setFundDataMap(data);
       setLastUpdate(new Date());
     } catch (err) {
@@ -53,7 +58,7 @@ export function useAStockFundData(
     } finally {
       setLoading(false);
     }
-  }, [fundNames]);
+  }, [fundNamesKey]);
 
   /**
    * 手动刷新
@@ -73,7 +78,7 @@ export function useAStockFundData(
    * 自动刷新
    */
   useEffect(() => {
-    if (!autoRefresh || fundNames.length === 0) {
+    if (!autoRefresh || fundNamesKey.length === 0) {
       return;
     }
 
@@ -82,7 +87,7 @@ export function useAStockFundData(
     }, refreshInterval);
 
     return () => clearInterval(intervalId);
-  }, [autoRefresh, refreshInterval, fetchData, fundNames.length]);
+  }, [autoRefresh, refreshInterval, fetchData, fundNamesKey]);
 
   return {
     fundDataMap,
