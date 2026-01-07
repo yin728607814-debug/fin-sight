@@ -53,7 +53,18 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
         setGoldGrams(position.quantity?.toString() || '');
         setGoldInvestment(position.investmentAmount.toString());
         setGoldProfit(position.profitLoss?.toString() || '0');
+        // 黄金不支持定投，清空定投状态
+        setAutoInvest(undefined);
       }
+    } else {
+      // position 为 null 时，重置所有状态
+      setFundInvestment('');
+      setFundProfit('');
+      setGoldGrams('');
+      setGoldInvestment('');
+      setGoldProfit('');
+      setAutoInvest(undefined);
+      setErrors({});
     }
   }, [position]);
 
