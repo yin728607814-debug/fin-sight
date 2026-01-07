@@ -15,15 +15,17 @@ interface UseAStockFundDataResult {
 }
 
   /**
-   * 使用A股基金数据Hook
+   * 使用A股基金数据Hook（智能刷新版本）
    * @param fundNames 基金名称列表
-   * @param autoRefresh 是否自动刷新（默认false）
-   * @param refreshInterval 刷新间隔（毫秒，默认60000 = 1分钟）
+   * @param enableSmartRefresh 是否启用智能刷新（默认false）
+   * - 交易时间内（工作日 9:30-15:00）：每1分钟刷新一次
+   * - 收盘后（15:00-15:30）：每5分钟刷新一次，获取最终数据
+   * - 其他时间：不刷新
    */
   export function useAStockFundData(
     fundNames: string[],
-    autoRefresh: boolean = false,
-    refreshInterval: number = 60000
+    enableSmartRefresh: boolean = false,
+    manualRefreshInterval?: number
   ): UseAStockFundDataResult {
     const [fundDataMap, setFundDataMap] = useState<Map<string, FundRealtimeData>>(new Map());
     const [loading, setLoading] = useState<boolean>(false);
@@ -75,19 +77,79 @@ interface UseAStockFundDataResult {
     }, [fetchData]);
   
     /**
-     * 自动刷新
+     * 智能自动刷新
      */
     useEffect(() => {
-      if (!autoRefresh || fundNamesKey.length === 0) {
+      if (!enableSmartRefresh || fundNamesKey.length === 0) {
         return;
       }
   
-      const intervalId = setInterval(() => {
-        fetchData();
-      }, refreshInterval);
+      const checkAndRefresh = () => {
+        const now = new Date();
+        const day = now.getDay();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
+        const currentTime = hour * 60 + minute;
   
-      return () => clearInterval(intervalId);
-    }, [autoRefresh, refreshInterval, fetchData, fundNamesKey]);
+        // 周末不刷新
+        if (day === 0 || day === 6) {
+          return null;
+        }
+  
+        // 交易时间内（9:30-15:00）：每1分钟刷新
+        const marketOpen = 9 * 60 + 30; // 9:30
+        const marketClose = 15 * 60; // 15:00
+        const afterMarketClose = 15 * 60 + 30; // 15:30
+  
+        if (currentTime >= marketOpen && currentTime < marketClose) {
+          // 交易时间内：1分钟刷新
+          return 60 * 1000;
+        } else if (currentTime >= marketClose && currentTime < afterMarketClose) {
+          // 收盘后30分钟内：5分钟刷新一次，获取最终数据
+          return 5 * 60 * 1000;
+        }
+  
+        // 其他时间不刷新
+        return null;
+      };
+  
+      // 如果有手动指定的刷新间隔，使用手动间隔
+      if (manualRefreshInterval) {
+        const intervalId = setInterval(() => {
+          fetchData();
+        }, manualRefreshInterval);
+        return () => clearInterval(intervalId);
+      }
+  
+      // 使用智能刷新
+      const setupNextRefresh = () => {
+        const interval = checkAndRefresh();
+        if (interval) {
+          const intervalId = setInterval(() => {
+            fetchData();
+          }, interval);
+          return intervalId;
+        }
+        return null;
+      };
+  
+      let intervalId = setupNextRefresh();
+  
+      // 每分钟检查一次是否需要调整刷新间隔
+      const checkIntervalId = setInterval(() => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+        intervalId = setupNextRefresh();
+      }, 60 * 1000);
+  
+      return () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+        clearInterval(checkIntervalId);
+      };
+    }, [enableSmartRefresh, manualRefreshInterval, fetchData, fundNamesKey]);
   
     return {
       fundDataMap,

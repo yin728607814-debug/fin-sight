@@ -62,11 +62,11 @@ export const PortfolioPage: React.FC = () => {
       .map(p => p.fundName!);
   }, [supabasePositions]);
   
-  // 使用A股基金数据Hook（禁用自动刷新避免性能问题）
+  // 使用A股基金数据Hook（启用智能刷新）
   const { fundDataMap: aStockData } = useAStockFundData(
     aStockFundNames,
-    false, // 禁用自动刷新
-    60000
+    true, // 启用智能刷新
+    undefined // 使用智能刷新逻辑，不指定手动间隔
   );
 
   /**
@@ -201,6 +201,69 @@ export const PortfolioPage: React.FC = () => {
   };
 
   /**
+   * 更新A股持仓收益到数据库
+   */
+  const updateAStockProfitToDb = async () => {
+    if (!isSupabaseEnabled || !portfolio || aStockData.size === 0) {
+      return;
+    }
+
+    const aStockPositions = portfolio.positions.filter(p => p.assetType === 'astock');
+    
+    let hasUpdates = false;
+    for (const position of aStockPositions) {
+      if (!position.fundName) continue;
+      
+      const fundData = aStockData.get(position.fundName);
+      if (!fundData) continue;
+
+      // 计算当日收益
+      const dailyProfit = aStockFundService.calculateDailyProfit(
+        position.investmentAmount,
+        fundData.dailyReturn
+      );
+
+      // 检查是否需要更新（当日收益变化超过0.01元）
+      const originalPosition = supabasePositions.find(p => p.id === position.id);
+      if (originalPosition) {
+        const currentDailyProfit = originalPosition.dailyProfitLoss || 0;
+        const profitDiff = Math.abs(currentDailyProfit - dailyProfit);
+        
+        // 只有当差异大于 0.01 元时才更新
+        if (profitDiff > 0.01) {
+          try {
+            await updateSupabasePosition(position.id, {
+              dailyProfitLoss: dailyProfit,
+              dailyChange: fundData.dailyReturn
+            });
+            hasUpdates = true;
+          } catch (error) {
+            console.error('更新A股持仓收益失败:', error);
+          }
+        }
+      }
+    }
+
+    if (hasUpdates) {
+      setLastDbUpdate(new Date());
+    }
+  };
+
+  /**
+   * 手动刷新A股收益到数据库
+   */
+  const handleRefreshAStockProfit = async () => {
+    setIsRefreshing(true);
+    try {
+      await updateAStockProfitToDb();
+    } catch (error) {
+      console.error('刷新A股收益失败:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  /**
    * 手动刷新价格
    */
   const handleRefreshPrices = async () => {
@@ -242,6 +305,76 @@ export const PortfolioPage: React.FC = () => {
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gold.currentPrice, isSupabaseEnabled]); // 移除 portfolio 依赖，只在价格变化时重置定时器
+
+  /**
+   * 智能更新A股收益到数据库
+   * - 交易时间内（工作日 9:30-15:00）：每2分钟更新一次
+   * - 收盘后（15:00-15:30）：每5分钟更新一次
+   * - 其他时间：不更新
+   */
+  useEffect(() => {
+    if (!isSupabaseEnabled || !portfolio || aStockData.size === 0) {
+      return;
+    }
+
+    const checkAndUpdate = () => {
+      const now = new Date();
+      const day = now.getDay();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const currentTime = hour * 60 + minute;
+
+      // 周末不更新
+      if (day === 0 || day === 6) {
+        return null;
+      }
+
+      // 交易时间内（9:30-15:00）：每2分钟更新
+      const marketOpen = 9 * 60 + 30; // 9:30
+      const marketClose = 15 * 60; // 15:00
+      const afterMarketClose = 15 * 60 + 30; // 15:30
+
+      if (currentTime >= marketOpen && currentTime < marketClose) {
+        // 交易时间内：2分钟更新一次
+        return 2 * 60 * 1000;
+      } else if (currentTime >= marketClose && currentTime < afterMarketClose) {
+        // 收盘后30分钟内：5分钟更新一次
+        return 5 * 60 * 1000;
+      }
+
+      // 其他时间不更新
+      return null;
+    };
+
+    const setupNextUpdate = () => {
+      const interval = checkAndUpdate();
+      if (interval) {
+        const intervalId = setInterval(() => {
+          updateAStockProfitToDb();
+        }, interval);
+        return intervalId;
+      }
+      return null;
+    };
+
+    let intervalId = setupNextUpdate();
+
+    // 每分钟检查一次是否需要调整更新间隔
+    const checkIntervalId = setInterval(() => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      intervalId = setupNextUpdate();
+    }, 60 * 1000);
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      clearInterval(checkIntervalId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aStockData.size, isSupabaseEnabled]); // 当A股数据变化或启用状态变化时重置定时器
 
   /**
    * 添加持仓
@@ -541,6 +674,19 @@ export const PortfolioPage: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   <span>{isRefreshing ? '同步中' : '同步黄金'}</span>
+                </button>
+              )}
+              {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'astock') && (
+                <button
+                  onClick={handleRefreshAStockProfit}
+                  disabled={isRefreshing}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
+                  title="更新A股收益到数据库"
+                >
+                  <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>{isRefreshing ? '同步中' : '同步A股'}</span>
                 </button>
               )}
               <button
