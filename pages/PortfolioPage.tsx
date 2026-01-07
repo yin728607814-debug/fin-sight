@@ -285,44 +285,80 @@ export const PortfolioPage: React.FC = () => {
   };
 
   /**
-   * 更新A股持仓收益到数据库
+   * 更新A股和纳斯达克持仓收益到数据库
    */
-  const updateAStockProfitToDb = async () => {
-    if (!isSupabaseEnabled || !portfolio || aStockData.size === 0) {
+  const updateFundProfitToDb = async () => {
+    if (!isSupabaseEnabled || !portfolio) {
       return;
     }
 
-    const aStockPositions = portfolio.positions.filter(p => p.assetType === 'astock');
-    
     let hasUpdates = false;
-    for (const position of aStockPositions) {
-      if (!position.fundName) continue;
+    
+    // 更新A股持仓
+    if (aStockData.size > 0) {
+      const aStockPositions = portfolio.positions.filter(p => p.assetType === 'astock');
       
-      const fundData = aStockData.get(position.fundName);
-      if (!fundData) continue;
-
-      // 计算当日收益
-      const dailyProfit = aStockFundService.calculateDailyProfit(
-        position.investmentAmount,
-        fundData.dailyReturn
-      );
-
-      // 检查是否需要更新（当日收益变化超过0.01元）
-      const originalPosition = supabasePositions.find(p => p.id === position.id);
-      if (originalPosition) {
-        const currentDailyProfit = originalPosition.dailyProfitLoss || 0;
-        const profitDiff = Math.abs(currentDailyProfit - dailyProfit);
+      for (const position of aStockPositions) {
+        if (!position.fundName) continue;
         
-        // 只有当差异大于 0.01 元时才更新
-        if (profitDiff > 0.01) {
-          try {
-            await updateSupabasePosition(position.id, {
-              dailyProfitLoss: dailyProfit,
-              dailyChange: fundData.dailyReturn
-            });
-            hasUpdates = true;
-          } catch (error) {
-            console.error('更新A股持仓收益失败:', error);
+        const fundData = aStockData.get(position.fundName);
+        if (!fundData) continue;
+
+        const dailyProfit = aStockFundService.calculateDailyProfit(
+          position.investmentAmount,
+          fundData.dailyReturn
+        );
+
+        const originalPosition = supabasePositions.find(p => p.id === position.id);
+        if (originalPosition) {
+          const currentDailyProfit = originalPosition.dailyProfitLoss || 0;
+          const profitDiff = Math.abs(currentDailyProfit - dailyProfit);
+          
+          if (profitDiff > 0.01) {
+            try {
+              await updateSupabasePosition(position.id, {
+                dailyProfitLoss: dailyProfit,
+                dailyChange: fundData.dailyReturn
+              });
+              hasUpdates = true;
+            } catch (error) {
+              console.error('更新A股持仓收益失败:', error);
+            }
+          }
+        }
+      }
+    }
+    
+    // 更新纳斯达克持仓
+    if (nasdaqData.size > 0) {
+      const nasdaqPositions = portfolio.positions.filter(p => p.assetType === 'nasdaq');
+      
+      for (const position of nasdaqPositions) {
+        if (!position.fundName) continue;
+        
+        const fundData = nasdaqData.get(position.fundName);
+        if (!fundData) continue;
+
+        const dailyProfit = nasdaqFundService.calculateDailyProfit(
+          position.investmentAmount,
+          fundData.dailyReturn
+        );
+
+        const originalPosition = supabasePositions.find(p => p.id === position.id);
+        if (originalPosition) {
+          const currentDailyProfit = originalPosition.dailyProfitLoss || 0;
+          const profitDiff = Math.abs(currentDailyProfit - dailyProfit);
+          
+          if (profitDiff > 0.01) {
+            try {
+              await updateSupabasePosition(position.id, {
+                dailyProfitLoss: dailyProfit,
+                dailyChange: fundData.dailyReturn
+              });
+              hasUpdates = true;
+            } catch (error) {
+              console.error('更新纳斯达克持仓收益失败:', error);
+            }
           }
         }
       }
@@ -334,14 +370,14 @@ export const PortfolioPage: React.FC = () => {
   };
 
   /**
-   * 手动刷新A股收益到数据库
+   * 手动刷新A股和纳斯达克收益到数据库
    */
-  const handleRefreshAStockProfit = async () => {
+  const handleRefreshFundProfit = async () => {
     setIsRefreshing(true);
     try {
-      await updateAStockProfitToDb();
+      await updateFundProfitToDb();
     } catch (error) {
-      console.error('刷新A股收益失败:', error);
+      console.error('刷新基金收益失败:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -775,17 +811,17 @@ export const PortfolioPage: React.FC = () => {
                   <span>{isRefreshing ? '同步中' : '同步黄金'}</span>
                 </button>
               )}
-              {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'astock') && (
+              {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'astock' || p.assetType === 'nasdaq') && (
                 <button
-                  onClick={handleRefreshAStockProfit}
+                  onClick={handleRefreshFundProfit}
                   disabled={isRefreshing}
                   className="flex items-center space-x-1 px-3 py-1.5 text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
-                  title="更新A股收益到数据库"
+                  title="更新A股和纳斯达克收益到数据库"
                 >
                   <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  <span>{isRefreshing ? '同步中' : '同步A股'}</span>
+                  <span>{isRefreshing ? '同步中' : '同步A股和纳斯达克'}</span>
                 </button>
               )}
               <button
