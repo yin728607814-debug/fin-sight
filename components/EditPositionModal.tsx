@@ -246,7 +246,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 </div>
 
                 {/* 手动输入当日收益率（可选） */}
-                {position.assetType === 'nasdaq' && (
+                {(position.assetType === 'nasdaq' || position.assetType === 'astock') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       手动校准当日收益率（可选）
@@ -265,7 +265,10 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      如果天天基金的估值不准确，可以手动输入更准确的收益率（如从小倍养基获取）
+                      {position.assetType === 'nasdaq' 
+                        ? '如果天天基金的估值不准确，可以手动输入更准确的收益率（如从小倍养基获取）'
+                        : '如果自动获取的收益率不准确，可以手动输入更准确的收益率'
+                      }
                     </p>
                   </div>
                 )}

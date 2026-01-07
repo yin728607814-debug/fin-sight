@@ -124,6 +124,20 @@ export const PortfolioPage: React.FC = () => {
         ...calculatedPortfolio,
         positions: calculatedPortfolio.positions.map(position => {
           if (position.assetType === 'astock' && position.fundName) {
+            // 优先使用手动输入的收益率
+            if (position.manualDailyReturn !== undefined) {
+              const dailyProfit = aStockFundService.calculateDailyProfit(
+                position.investmentAmount,
+                position.manualDailyReturn
+              );
+              return {
+                ...position,
+                dailyProfitLoss: dailyProfit,
+                dailyChange: position.manualDailyReturn
+              };
+            }
+            
+            // 否则使用API数据
             const fundData = aStockData.get(position.fundName);
             if (fundData) {
               const dailyProfit = aStockFundService.calculateDailyProfit(
