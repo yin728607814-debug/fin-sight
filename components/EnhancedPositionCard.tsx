@@ -156,6 +156,17 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
               </p>
             </div>
           </>
+        ) : (position.assetType === 'nasdaq' || position.assetType === 'astock') ? (
+          <>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">加载中...</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">加载中...</p>
+            </div>
+          </>
         ) : null}
 
         {/* 黄金特有：克数和均价 */}
