@@ -11,6 +11,17 @@ import { AssetType } from '../types';
  * 将 PositionRecord 转换为 Position
  */
 export function positionRecordToPosition(record: PositionRecord): Position {
+  // 调试日志：查看原始数据
+  if (record.asset_type === 'nasdaq' && record.fund_name?.includes('景顺')) {
+    console.log('[DEBUG] 纳斯达克基金原始数据:', {
+      fundName: record.fund_name,
+      daily_profit_loss: record.daily_profit_loss,
+      daily_profit_loss_type: typeof record.daily_profit_loss,
+      daily_change: record.daily_change,
+      daily_change_type: typeof record.daily_change
+    });
+  }
+  
   const position: Position = {
     id: record.id,
     assetType: record.asset_type as AssetType,
@@ -27,8 +38,8 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     // 通用信息 - 使用 toFixed(2) 避免浮点数精度问题
     investmentAmount: parseFloat(Number(record.investment_amount).toFixed(2)),
     profitLoss: parseFloat(Number(record.profit_loss).toFixed(2)),
-    dailyProfitLoss: record.daily_profit_loss ? parseFloat(Number(record.daily_profit_loss).toFixed(2)) : undefined,
-    dailyChange: record.daily_change ? parseFloat(Number(record.daily_change).toFixed(2)) : undefined,
+    dailyProfitLoss: record.daily_profit_loss != null ? parseFloat(Number(record.daily_profit_loss).toFixed(2)) : undefined,
+    dailyChange: record.daily_change != null ? parseFloat(Number(record.daily_change).toFixed(2)) : undefined,
     // 手动收益率保留更高精度（4位小数）
     manualDailyReturn: record.manual_daily_return ? parseFloat(Number(record.manual_daily_return).toFixed(4)) : undefined,
     
@@ -36,6 +47,17 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     createdAt: new Date(record.created_at),
     updatedAt: new Date(record.updated_at)
   };
+  
+  // 调试日志：查看转换后的数据
+  if (record.asset_type === 'nasdaq' && record.fund_name?.includes('景顺')) {
+    console.log('[DEBUG] 纳斯达克基金转换后数据:', {
+      fundName: position.fundName,
+      dailyProfitLoss: position.dailyProfitLoss,
+      dailyChange: position.dailyChange
+    });
+  }
+  
+  return position;
   
   // 定投信息
   if (record.auto_invest_enabled && record.auto_invest_amount && record.auto_invest_frequency) {
