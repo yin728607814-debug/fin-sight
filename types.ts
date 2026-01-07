@@ -400,7 +400,7 @@ export interface FundProduct {
 export interface AutoInvestPlan {
   enabled: boolean;
   amount: number;              // 定投金额
-  frequency: 'weekly' | 'monthly' | 'quarterly'; // 周期
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly'; // 周期
   startDate: Date;             // 首次扣款日期
   nextDate: Date;              // 下次扣款日期
   lastExecutedDate?: Date;     // 上次执行日期

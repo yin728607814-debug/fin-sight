@@ -198,6 +198,7 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
         <div className="text-xs text-blue-600 dark:text-blue-400">
           下次定投: {new Date(position.autoInvest.nextDate).toLocaleDateString('zh-CN')} · 
           ¥{position.autoInvest.amount.toLocaleString()} · 
+          {position.autoInvest.frequency === 'daily' && '每天'}
           {position.autoInvest.frequency === 'weekly' && '每周'}
           {position.autoInvest.frequency === 'monthly' && '每月'}
           {position.autoInvest.frequency === 'quarterly' && '每季度'}

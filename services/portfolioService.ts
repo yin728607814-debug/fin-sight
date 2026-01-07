@@ -617,11 +617,14 @@ export class PortfolioService {
    */
   public calculateNextAutoInvestDate(
     lastDate: Date,
-    frequency: 'weekly' | 'monthly' | 'quarterly'
+    frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly'
   ): Date {
     const next = new Date(lastDate);
     
     switch (frequency) {
+      case 'daily':
+        next.setDate(next.getDate() + 1);
+        break;
       case 'weekly':
         next.setDate(next.getDate() + 7);
         break;

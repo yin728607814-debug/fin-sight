@@ -23,7 +23,7 @@ export const AutoInvestSettings: React.FC<AutoInvestSettingsProps> = ({
 }) => {
   const [enabled, setEnabled] = useState(autoInvest?.enabled || false);
   const [amount, setAmount] = useState(autoInvest?.amount?.toString() || '');
-  const [frequency, setFrequency] = useState<'weekly' | 'monthly' | 'quarterly'>(
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly'>(
     autoInvest?.frequency || 'monthly'
   );
   const [startDate, setStartDate] = useState(
@@ -91,8 +91,10 @@ export const AutoInvestSettings: React.FC<AutoInvestSettingsProps> = ({
   /**
    * 获取频率描述
    */
-  const getFrequencyDescription = (freq: 'weekly' | 'monthly' | 'quarterly'): string => {
+  const getFrequencyDescription = (freq: 'daily' | 'weekly' | 'monthly' | 'quarterly'): string => {
     switch (freq) {
+      case 'daily':
+        return '每天';
       case 'weekly':
         return '每周';
       case 'monthly':
@@ -163,7 +165,18 @@ export const AutoInvestSettings: React.FC<AutoInvestSettingsProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               定投周期
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
+              <button
+                type="button"
+                onClick={() => setFrequency('daily')}
+                className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                  frequency === 'daily'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+              >
+                每天
+              </button>
               <button
                 type="button"
                 onClick={() => setFrequency('weekly')}
