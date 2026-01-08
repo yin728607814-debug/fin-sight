@@ -10,19 +10,57 @@ jobs:
   trigger-auto-invest:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Auto Invest Function
+      - name: Get Netlify Site URL from API
+        id: netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X GET \
-            "${{ secrets.NETLIFY_SITE_URL }}/.netlify/functions/trigger-auto-invest?token=${{ secrets.AUTO_INVEST_TOKEN }}")
+          if [ -n "$NETLIFY_AUTH_TOKEN" ] && [ -n "$NETLIFY_SITE_ID" ]; then
+            echo "从 Netlify API 获取站点 URL..."
+            site_url=$(curl -s -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID" | \
+              jq -r '.url')
+            echo "site_url=$site_url" >> $GITHUB_OUTPUT
+            echo "✅ 获取到站点 URL: $site_url"
+          elif [ -n "${{ secrets.NETLIFY_SITE_URL }}" ]; then
+            echo "使用手动配置的站点 URL..."
+            echo "site_url=${{ secrets.NETLIFY_SITE_URL }}" >> $GITHUB_OUTPUT
+            echo "✅ 使用配置的 URL: ${{ secrets.NETLIFY_SITE_URL }}"
+          else
+            echo "❌ 错误：未配置 Netlify 站点信息"
+            echo "请配置以下任一方案："
+            echo "1. NETLIFY_AUTH_TOKEN + NETLIFY_SITE_ID (推荐，自动获取)"
+            echo "2. NETLIFY_SITE_URL (手动配置)"
+            exit 1
+          fi
+      
+      - name: Trigger Auto Invest Function
+        env:
+          SITE_URL: ${{ steps.netlify.outputs.site_url }}
+          AUTO_INVEST_TOKEN: ${{ secrets.AUTO_INVEST_TOKEN }}
+        run: |
+          # 构建 URL
+          if [ -n "$AUTO_INVEST_TOKEN" ]; then
+            url="$SITE_URL/.netlify/functions/trigger-auto-invest?token=$AUTO_INVEST_TOKEN"
+          else
+            url="$SITE_URL/.netlify/functions/trigger-auto-invest"
+          fi
+          
+          echo "调用 URL: $url"
+          
+          # 调用函数
+          response=$(curl -s -w "\n%{http_code}" -X GET "$url")
           
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
           
           echo "HTTP Status: $http_code"
-          echo "Response: $body"
+          echo "Response Body:"
+          echo "$body" | jq '.' 2>/dev/null || echo "$body"
           
           if [ "$http_code" != "200" ]; then
-            echo "❌ 定投执行失败"
+            echo "❌ 定投执行失败 (HTTP $http_code)"
             exit 1
           fi
           
