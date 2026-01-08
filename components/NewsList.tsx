@@ -38,14 +38,7 @@ export const NewsList: React.FC<NewsListProps> = ({
    * 获取新闻对应的分析结果
    */
   const getAnalysisForNews = (newsId: string): NewsAnalysis | undefined => {
-    const result = analysis.find(a => a.newsId === newsId);
-    if (!result && analysis.length > 0) {
-      console.log(`⚠️ 未找到新闻 ${newsId} 的分析结果`);
-      console.log(`   当前新闻总数: ${news.length}, 分析结果总数: ${analysis.length}`);
-      console.log(`   前3条新闻ID:`, news.slice(0, 3).map(n => n.id));
-      console.log(`   前3条分析newsId:`, analysis.slice(0, 3).map(a => a.newsId));
-    }
-    return result;
+    return analysis.find(a => a.newsId === newsId);
   };
 
   /**
