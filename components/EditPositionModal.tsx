@@ -1,6 +1,7 @@
 /**
  * 编辑持仓弹窗组件
  * 用于编辑现有的投资持仓
+ * @version 1.0.1 - 支持黄金克数4位小数精度
  */
 
 import React, { useState, useEffect } from 'react';
