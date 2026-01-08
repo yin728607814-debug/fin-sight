@@ -23,9 +23,3 @@
 
 [build.environment]
   NODE_VERSION = "20"
-
-# 定时任务配置
-# 每天凌晨 2:00 (北京时间) = 18:00 (UTC) 执行定投
-[[functions]]
-  name = "auto-invest-cron"
-  schedule = "0 18 * * *"

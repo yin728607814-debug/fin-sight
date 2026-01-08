@@ -1,27 +1,27 @@
 /**
- * Netlify Scheduled Function: 自动执行定投计划
- * 每天凌晨 2:00 (UTC+8 = 18:00 UTC) 执行一次
+ * Netlify Function: 手动触发定投执行
  * 
- * 配置方法：在 netlify.toml 中添加：
- * [[functions]]
- *   name = "auto-invest-cron"
- *   schedule = "0 18 * * *"
+ * 使用方法：
+ * 1. 手动访问：https://your-site.netlify.app/.netlify/functions/trigger-auto-invest?token=YOUR_SECRET
+ * 2. 配合 GitHub Actions 定时触发
+ * 3. 使用外部 Cron 服务（如 cron-job.org）
  */
 
-import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
+import type { Handler, HandlerEvent } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  console.log('定投定时任务开始执行...');
+const handler: Handler = async (event: HandlerEvent) => {
+  console.log('定投任务开始执行...');
   
-  // 检查是否是定时触发（Netlify 会设置特殊的 header）
-  const isScheduled = event.headers['x-nf-event'] === 'schedule';
+  // 简单的认证保护（可选）
+  const token = event.queryStringParameters?.token;
+  const expectedToken = process.env.AUTO_INVEST_TOKEN;
   
-  // 如果不是定时触发，返回错误（防止手动调用）
-  if (!isScheduled && process.env.NODE_ENV === 'production') {
+  // 如果设置了 token，则验证
+  if (expectedToken && token !== expectedToken) {
     return {
       statusCode: 403,
-      body: JSON.stringify({ error: 'This function can only be triggered by schedule' })
+      body: JSON.stringify({ error: 'Unauthorized' })
     };
   }
 
@@ -55,6 +55,9 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       console.log('没有需要执行的定投计划');
       return {
         statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           success: true,
           message: '没有需要执行的定投计划',
@@ -69,7 +72,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     const results = [];
     for (const position of positions) {
       try {
-        // 计算新的持仓金额（只更新持仓金额，不改变收益）
+        // 计算新的持仓金额
         const currentInvestment = parseFloat(position.investment_amount);
         const autoInvestAmount = parseFloat(position.auto_invest_amount);
         
@@ -78,7 +81,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
         // 计算下次执行日期
         const nextDate = calculateNextDate(position.auto_invest_frequency);
 
-        // 更新持仓（只更新持仓金额，保持收益不变）
+        // 更新持仓
         const { error: updateError } = await supabase
           .from('positions')
           .update({
@@ -135,7 +138,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       })
     };
   } catch (error) {
-    console.error('定投定时任务执行失败:', error);
+    console.error('定投任务执行失败:', error);
     return {
       statusCode: 500,
       headers: {

@@ -4,54 +4,62 @@
 
 经过检查，发现**定投功能没有自动执行的定时器**。虽然代码中有定投服务 (`autoInvestService.ts`)，但缺少触发机制。
 
-## 解决方案
+## 解决方案（已更新）
 
-### 方案一：使用 Netlify Scheduled Functions（推荐）
+### 方案一：GitHub Actions 自动定时执行（推荐 - 免费）
 
-已创建 Netlify 定时函数来自动执行定投：
+已创建 GitHub Actions 工作流来自动执行定投：
 
 #### 1. 文件说明
 
-- **`netlify/functions/auto-invest-cron.ts`**: 定时执行函数
+- **`.github/workflows/auto-invest.yml`**: GitHub Actions 工作流
   - 每天凌晨 2:00 (北京时间) 自动执行
+  - 调用 Netlify Function 触发定投
+  - 完全免费
+
+- **`netlify/functions/trigger-auto-invest.ts`**: 定投触发函数
+  - 可以被 GitHub Actions 或手动调用
   - 查询所有到期的定投计划
   - 自动更新持仓金额
   - 计算下次执行日期
 
-- **`netlify.toml`**: 已添加定时任务配置
-  ```toml
-  [[functions]]
-    name = "auto-invest-cron"
-    schedule = "0 18 * * *"  # UTC 18:00 = 北京时间 02:00
-  ```
+#### 2. 配置步骤
 
-#### 2. 部署步骤
+**第一步：在 GitHub 仓库设置 Secrets**
 
-1. **推送代码到 GitHub**
-   ```bash
-   git add .
-   git commit -m "添加定投定时任务"
-   git push origin main
-   ```
+1. 打开你的 GitHub 仓库
+2. 进入 Settings → Secrets and variables → Actions
+3. 添加以下 Secrets：
 
-2. **在 Netlify 控制台启用 Scheduled Functions**
-   - 登录 Netlify Dashboard
-   - 进入你的站点设置
-   - 找到 "Functions" → "Scheduled Functions"
-   - 确认 `auto-invest-cron` 已启用
+   - `NETLIFY_SITE_URL`: 你的 Netlify 站点 URL
+     - 例如：`https://your-site.netlify.app`
+   
+   - `AUTO_INVEST_TOKEN`: 自定义的安全令牌（可选，用于保护 API）
+     - 例如：`your-secret-token-123456`
+     - 如果不设置，任何人都可以调用触发函数
 
-3. **验证配置**
-   - 查看 Netlify 函数日志
-   - 第一次执行时间：明天凌晨 2:00
+**第二步：在 Netlify 设置环境变量（可选）**
 
-#### 3. 注意事项
+如果你设置了 `AUTO_INVEST_TOKEN`，需要在 Netlify 中也添加：
 
-- Netlify Scheduled Functions 需要 **Pro 计划**（$19/月）
-- 如果你使用的是免费计划，需要升级或使用方案二
+1. 登录 Netlify Dashboard
+2. 进入你的站点设置
+3. 找到 Environment variables
+4. 添加：`AUTO_INVEST_TOKEN` = `your-secret-token-123456`
+
+**第三步：启用 GitHub Actions**
+
+1. 推送代码后，GitHub Actions 会自动启用
+2. 查看 Actions 标签页确认工作流已创建
+3. 可以手动触发测试：Actions → Auto Invest Daily → Run workflow
+
+#### 3. 验证配置
+
+- 第一次自动执行时间：明天凌晨 2:00 (北京时间)
+- 查看执行日志：GitHub → Actions → Auto Invest Daily
+- 手动测试：Actions → Auto Invest Daily → Run workflow → Run workflow
 
 ### 方案二：手动执行 SQL（临时方案）
-
-如果不想使用定时任务，可以手动执行 SQL 来触发定投。
 
 #### 使用方法
 
@@ -99,69 +107,21 @@
    WHERE auto_invest_enabled = true;
    ```
 
-### 方案三：使用外部 Cron 服务
+### 方案三：手动调用 Netlify Function
 
-如果 Netlify 免费计划不支持定时任务，可以使用外部服务：
+你也可以手动访问 URL 来触发定投：
 
-#### 1. 创建触发端点
-
-创建一个可以被外部调用的 Netlify Function：
-
-```typescript
-// netlify/functions/trigger-auto-invest.ts
-// 需要添加认证 token 保护
+```
+https://your-site.netlify.app/.netlify/functions/trigger-auto-invest?token=YOUR_TOKEN
 ```
 
-#### 2. 使用免费 Cron 服务
-
-- **EasyCron** (https://www.easycron.com/) - 免费计划
-- **cron-job.org** (https://cron-job.org/) - 完全免费
-- **GitHub Actions** - 免费（推荐）
-
-#### 3. GitHub Actions 示例
-
-创建 `.github/workflows/auto-invest.yml`:
-
-```yaml
-name: Auto Invest Daily
-
-on:
-  schedule:
-    - cron: '0 18 * * *'  # UTC 18:00 = 北京时间 02:00
-  workflow_dispatch:  # 允许手动触发
-
-jobs:
-  trigger-auto-invest:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Auto Invest
-        run: |
-          curl -X POST https://your-site.netlify.app/.netlify/functions/trigger-auto-invest \
-            -H "Authorization: Bearer ${{ secrets.AUTO_INVEST_TOKEN }}"
-```
-
-## 当前状态检查
-
-运行以下 SQL 检查当前定投状态：
-
-```sql
--- 查看所有定投计划
-SELECT 
-  fund_name,
-  auto_invest_enabled,
-  auto_invest_amount,
-  auto_invest_frequency,
-  auto_invest_next_date,
-  auto_invest_last_executed_date
-FROM positions
-WHERE auto_invest_enabled = true;
-```
+或者使用外部 Cron 服务（如 cron-job.org）定时调用这个 URL。
 
 ## 推荐方案
 
-1. **如果有 Netlify Pro 计划**：使用方案一（Netlify Scheduled Functions）
-2. **如果是免费计划**：使用方案三（GitHub Actions）
-3. **临时解决**：使用方案二（手动执行 SQL）
+1. **GitHub Actions**（推荐）- 完全免费，自动执行
+2. **手动执行 SQL** - 临时方案，需要手动操作
+3. **手动调用 Function** - 可以配合外部 Cron 服务
 
 ## 下一步
 

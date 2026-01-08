@@ -1,0 +1,29 @@
+name: Auto Invest Daily
+
+on:
+  schedule:
+    # 每天 UTC 18:00 执行 (北京时间 02:00)
+    - cron: '0 18 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  trigger-auto-invest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Auto Invest Function
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            "${{ secrets.NETLIFY_SITE_URL }}/.netlify/functions/trigger-auto-invest?token=${{ secrets.AUTO_INVEST_TOKEN }}")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" != "200" ]; then
+            echo "❌ 定投执行失败"
+            exit 1
+          fi
+          
+          echo "✅ 定投执行成功"
