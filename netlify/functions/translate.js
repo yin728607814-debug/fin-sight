@@ -9,10 +9,10 @@ const https = require('https');
  * Gemini 模型列表（按优先级排序）
  */
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',      // 首选：最新最快
-  'gemini-2.0-flash-exp',  // 备选1：实验版，通常负载较低
-  'gemini-1.5-flash',      // 备选2：稳定版
-  'gemini-1.5-pro'         // 备选3：功能最强
+  'gemini-2.5-pro',        // 首选：最强大的模型
+  'gemini-2.5-flash',      // 备选1：快速版本
+  'gemini-2.0-flash',      // 备选2：2.0 版本
+  'gemini-2.0-flash-lite'  // 备选3：轻量版
 ];
 
 /**
