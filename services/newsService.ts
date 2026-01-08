@@ -28,10 +28,10 @@ import { measureAsync, recordError } from '../utils/monitoring';
  * 注意：Gemini 3 系列需要使用 v1beta API
  */
 const GEMINI_MODELS = [
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大）
-  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
-  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
-  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
+  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 首选：Gemini 3.0 Flash（快速且强大）
+  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 备选1：Gemini 3.0 Pro（最强但较慢）
+  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选2：Gemini 2.5 Flash
+  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选3：Gemini 2.5 Pro
   { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
 ];
 
@@ -73,10 +73,12 @@ async function callGeminiWithFallback(
     } catch (error: any) {
       lastError = error;
       const status = error.response?.status;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
       
-      // 503 (服务过载) 或 429 (配额限制) 时尝试下一个模型
-      if (status === 503 || status === 429) {
-        console.log(`⚠️ ${model} 不可用 (${status})，尝试下一个模型...`);
+      // 503 (服务过载)、429 (配额限制) 或超时时尝试下一个模型
+      if (status === 503 || status === 429 || isTimeout) {
+        const reason = isTimeout ? '超时' : status;
+        console.log(`⚠️ ${model} 不可用 (${reason})，尝试下一个模型...`);
         continue;
       }
       
