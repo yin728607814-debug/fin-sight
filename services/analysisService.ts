@@ -23,10 +23,10 @@ import { config } from '../config/env';
  * 注意：Gemini 3 系列需要使用 v1beta API
  */
 const GEMINI_MODELS = [
-  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 首选：Gemini 3.0 Flash（快速且强大）
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 备选1：Gemini 3.0 Pro（最强但较慢）
-  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选2：Gemini 2.5 Flash
-  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选3：Gemini 2.5 Pro
+  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大，分析质量最高）
+  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
+  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
+  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
   { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
 ];
 
@@ -340,7 +340,7 @@ export class AnalysisService implements IAnalysisService {
       prompt,
       0.3,
       8192,
-      60000  // 60秒超时（20条新闻应该足够）
+      120000  // 120秒超时（Pro 模型较慢，给足够时间）
     );
 
     return this.parseBatchGeminiResponseText(responseText, newsList.length);
@@ -1339,8 +1339,8 @@ ${finalNewsText}
         this.config.apiKey,
         prompt,
         0.4,
-        8192,  // 最大输出 tokens，用于分析 50 条新闻
-        90000  // 90秒超时，给足够时间处理大量新闻
+        8192,  // 最大输出 tokens
+        120000  // 120秒超时（Pro 模型较慢，给足够时间）
       );
 
       if (!responseText) {

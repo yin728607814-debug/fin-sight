@@ -10,10 +10,10 @@ const https = require('https');
  * 注意：Gemini 3 系列需要使用 v1beta API
  */
 const GEMINI_MODELS = [
-  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 首选：Gemini 3.0 Flash（快速且强大）
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 备选1：Gemini 3.0 Pro（最强但较慢）
-  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选2：Gemini 2.5 Flash
-  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选3：Gemini 2.5 Pro
+  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大，分析质量最高）
+  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
+  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
+  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
   { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
 ];
 
