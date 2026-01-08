@@ -20,8 +20,8 @@ export function positionRecordToPosition(record: PositionRecord): Position {
     fundName: record.fund_name || undefined,
     fundCode: record.fund_code || undefined,  // 基金代码
     
-    // 黄金信息
-    quantity: record.quantity ? parseFloat(Number(record.quantity).toFixed(2)) : undefined,
+    // 黄金信息 - 克数保留4位小数，均价保留2位小数
+    quantity: record.quantity ? parseFloat(Number(record.quantity).toFixed(4)) : undefined,
     averageBuyPrice: record.average_buy_price ? parseFloat(Number(record.average_buy_price).toFixed(2)) : undefined,
     
     // 通用信息 - 使用 toFixed(2) 避免浮点数精度问题
