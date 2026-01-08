@@ -5,6 +5,109 @@
 
 const https = require('https');
 
+/**
+ * Gemini 模型列表（按优先级排序）
+ */
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',      // 首选：最新最快
+  'gemini-2.0-flash-exp',  // 备选1：实验版，通常负载较低
+  'gemini-1.5-flash',      // 备选2：稳定版
+  'gemini-1.5-pro'         // 备选3：功能最强
+];
+
+/**
+ * 调用 Gemini API（带自动降级）
+ */
+async function callGeminiWithFallback(apiKey, prompt) {
+  let lastError = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const requestData = JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2048
+        }
+      });
+
+      const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+
+      const response = await new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const options = {
+          hostname: urlObj.hostname,
+          path: urlObj.pathname + urlObj.search,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(requestData)
+          }
+        };
+
+        const req = https.request(options, (res) => {
+          let data = '';
+          
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          res.on('end', () => {
+            try {
+              const jsonData = JSON.parse(data);
+              resolve({
+                statusCode: res.statusCode,
+                data: jsonData
+              });
+            } catch (error) {
+              reject(new Error(`Failed to parse JSON: ${error.message}`));
+            }
+          });
+        });
+
+        req.on('error', (error) => {
+          reject(error);
+        });
+
+        req.write(requestData);
+        req.end();
+      });
+
+      const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (translatedText) {
+        if (model !== GEMINI_MODELS[0]) {
+          console.log(`ℹ️ 使用备用模型: ${model}`);
+        }
+        return translatedText.trim();
+      }
+
+      // 如果没有文本但有错误信息
+      if (response.data?.error) {
+        throw new Error(response.data.error.message || 'Unknown error');
+      }
+
+    } catch (error) {
+      lastError = error;
+      const status = error.response?.status || error.statusCode;
+      
+      // 503 (服务过载) 或 429 (配额限制) 时尝试下一个模型
+      if (status === 503 || status === 429) {
+        console.log(`⚠️ ${model} 不可用 (${status})，尝试下一个模型...`);
+        continue;
+      }
+      
+      // 其他错误直接抛出
+      throw error;
+    }
+  }
+
+  // 所有模型都失败
+  throw lastError || new Error('所有 Gemini 模型都不可用');
+}
+
 exports.handler = async (event, _context) => {
   // 只允许POST请求
   if (event.httpMethod !== 'POST') {
@@ -73,93 +176,15 @@ exports.handler = async (event, _context) => {
 
     console.log('📥 收到翻译请求:', { textLength: text.length });
 
-    // 调用Gemini API
-    const requestData = JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `请将以下英文翻译成中文，保持原意和专业性，只返回翻译结果，不要添加任何解释：\n\n${text}`
-        }]
-      }]
-    });
+    // 调用Gemini API（带自动降级）
+    try {
+      const translatedText = await callGeminiWithFallback(
+        apiKey,
+        `请将以下英文翻译成中文，保持原意和专业性，只返回翻译结果，不要添加任何解释：\n\n${text}`
+      );
 
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      console.log('✅ 翻译成功，长度:', translatedText.length);
 
-    const response = await new Promise((resolve, reject) => {
-      const urlObj = new URL(url);
-      const options = {
-        hostname: urlObj.hostname,
-        path: urlObj.pathname + urlObj.search,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(requestData)
-        }
-      };
-
-      const req = https.request(options, (res) => {
-        let data = '';
-        
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-        
-        res.on('end', () => {
-          try {
-            const jsonData = JSON.parse(data);
-            console.log('📡 Gemini API响应:', {
-              statusCode: res.statusCode,
-              hasCandidates: !!jsonData.candidates,
-              candidatesLength: jsonData.candidates?.length || 0
-            });
-            
-            resolve({
-              statusCode: res.statusCode,
-              data: jsonData
-            });
-          } catch (error) {
-            console.error('❌ JSON解析失败:', error.message);
-            reject(new Error(`Failed to parse JSON: ${error.message}`));
-          }
-        });
-      });
-
-      req.on('error', (error) => {
-        console.error('❌ 请求失败:', error);
-        reject(error);
-      });
-
-      req.write(requestData);
-      req.end();
-    });
-
-    // 记录完整响应用于调试
-    console.log('📦 Gemini完整响应:', JSON.stringify(response.data, null, 2));
-    
-    // 提取翻译结果
-    const translatedText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    console.log('📝 提取的翻译文本:', translatedText);
-    
-    if (!translatedText) {
-      console.warn('⚠️ 翻译结果为空');
-      
-      // 检查是否有错误信息
-      if (response.data?.error) {
-        console.error('❌ Gemini API错误:', response.data.error);
-        return {
-          statusCode: 500,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            error: 'Gemini API error',
-            details: response.data.error.message || 'Unknown error',
-            translatedText: text // 返回原文作为后备
-          })
-        };
-      }
-      
       return {
         statusCode: 200,
         headers: {
@@ -167,24 +192,25 @@ exports.handler = async (event, _context) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          translatedText: text // 返回原文
+          translatedText
+        })
+      };
+    } catch (apiError) {
+      console.error('❌ Gemini API调用失败:', apiError.message);
+      
+      // 返回原文作为后备
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          translatedText: text,
+          error: 'Translation failed, returning original text'
         })
       };
     }
-
-    console.log('✅ 翻译成功，长度:', translatedText.length);
-
-    // 返回结果
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        translatedText: translatedText.trim()
-      })
-    };
 
   } catch (error) {
     console.error('Translation error:', error);

@@ -19,6 +19,70 @@ import { logInfo, logError } from './logger';
 import { config } from '../config/env';
 
 /**
+ * Gemini 模型列表（按优先级排序）
+ */
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',      // 首选：最新最快
+  'gemini-2.0-flash-exp',  // 备选1：实验版，通常负载较低
+  'gemini-1.5-flash',      // 备选2：稳定版
+  'gemini-1.5-pro'         // 备选3：功能最强
+];
+
+/**
+ * 调用 Gemini API（带自动降级）
+ */
+async function callGeminiWithFallback(
+  apiKey: string,
+  prompt: string,
+  temperature: number = 0.7,
+  maxOutputTokens: number = 2048,
+  timeout: number = 30000
+): Promise<string> {
+  let lastError: Error | null = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+        {
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature,
+            maxOutputTokens
+          }
+        },
+        { timeout }
+      );
+
+      const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (responseText) {
+        if (model !== GEMINI_MODELS[0]) {
+          console.log(`ℹ️ 使用备用模型: ${model}`);
+        }
+        return responseText;
+      }
+    } catch (error: any) {
+      lastError = error;
+      const status = error.response?.status;
+      
+      // 503 (服务过载) 或 429 (配额限制) 时尝试下一个模型
+      if (status === 503 || status === 429) {
+        console.log(`⚠️ ${model} 不可用 (${status})，尝试下一个模型...`);
+        continue;
+      }
+      
+      // 其他错误直接抛出
+      throw error;
+    }
+  }
+
+  // 所有模型都失败
+  throw lastError || new Error('所有 Gemini 模型都不可用');
+}
+
+/**
  * AI分析API配置
  */
 interface AnalysisAPIConfig {
@@ -1185,24 +1249,14 @@ ${finalNewsText}
       console.log(`📊 Prompt总长度: ${prompt.length}字`);
       console.log(`🔑 API密钥前缀: ${this.config.apiKey?.substring(0, 10)}...`);
       
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${this.config.apiKey}`,
-        {
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 8192  // 使用8192，足够详细的分析
-          }
-        },
-        {
-          timeout: 60000
-        }
+      const responseText = await callGeminiWithFallback(
+        this.config.apiKey,
+        prompt,
+        0.4,
+        8192,
+        60000
       );
 
-      const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      
       if (!responseText) {
         throw new Error('整体分析响应为空');
       }
