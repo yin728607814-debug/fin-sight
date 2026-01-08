@@ -219,12 +219,26 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
             {/* 价格趋势图表 */}
             <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20">
               <div className="px-4 sm:px-6 py-4 border-b border-white/20 dark:border-gray-700/20">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  价格趋势
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  过去5天的黄金价格走势
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      价格趋势
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      过去5天的黄金价格走势
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="flex items-center space-x-1 px-3 py-1.5 text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/40 transition-colors"
+                    title="刷新黄金价格"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>刷新价格</span>
+                  </button>
+                </div>
               </div>
               <div className="p-4 sm:p-6">
                 {pricesLoading || loading.prices ? (

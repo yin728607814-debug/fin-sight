@@ -335,40 +335,6 @@ export const PortfolioPage: React.FC = () => {
   };
 
   /**
-   * 刷新纳斯达克价格
-   */
-  const handleRefreshNasdaqPrice = async () => {
-    setIsRefreshing(true);
-    try {
-      console.log('刷新纳斯达克价格...');
-      // 清除价格缓存并重新加载
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.reload();
-    } catch (error) {
-      console.error('刷新纳斯达克价格失败:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  /**
-   * 刷新黄金价格
-   */
-  const handleRefreshGoldPrice = async () => {
-    setIsRefreshing(true);
-    try {
-      console.log('刷新黄金价格...');
-      // 清除价格缓存并重新加载
-      await new Promise(resolve => setTimeout(resolve, 500));
-      window.location.reload();
-    } catch (error) {
-      console.error('刷新黄金价格失败:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  /**
   /**
    * 初始加载
    * 注意：当编辑弹窗打开时，不触发重新加载，避免干扰用户编辑
@@ -767,36 +733,6 @@ export const PortfolioPage: React.FC = () => {
               )}
             </div>
             <div className="flex items-center space-x-2">
-              {/* 黄金价格刷新按钮 */}
-              {portfolio.positions.some(p => p.assetType === 'gold') && (
-                <button
-                  onClick={handleRefreshGoldPrice}
-                  disabled={isRefreshing}
-                  className="flex items-center space-x-1 px-3 py-1.5 text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/40 transition-colors disabled:opacity-50"
-                  title="刷新黄金价格"
-                >
-                  <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>{isRefreshing ? '刷新中' : '刷新黄金价格'}</span>
-                </button>
-              )}
-              
-              {/* 纳斯达克价格刷新按钮 */}
-              {portfolio.positions.some(p => p.assetType === 'nasdaq') && (
-                <button
-                  onClick={handleRefreshNasdaqPrice}
-                  disabled={isRefreshing}
-                  className="flex items-center space-x-1 px-3 py-1.5 text-xs text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-50"
-                  title="刷新纳斯达克价格"
-                >
-                  <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>{isRefreshing ? '刷新中' : '刷新纳斯达克价格'}</span>
-                </button>
-              )}
-              
               {/* 同步黄金收益按钮 */}
               {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'gold') && (
                 <button
