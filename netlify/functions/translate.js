@@ -29,7 +29,7 @@ async function callGeminiWithFallback(apiKey, prompt) {
         }],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 2048
+          maxOutputTokens: 4096  // 增加到 4096，用于翻译较长的文本
         }
       });
 

@@ -904,8 +904,8 @@ ${newsTexts}
         config.apiKeys.gemini,
         prompt,
         0.3,
-        8192,
-        60000
+        8192,  // 最大输出 tokens，用于翻译 50 条新闻
+        90000  // 90秒超时
       );
       
       if (!responseText) {

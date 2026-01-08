@@ -1253,8 +1253,8 @@ ${finalNewsText}
         this.config.apiKey,
         prompt,
         0.4,
-        8192,
-        60000
+        8192,  // 最大输出 tokens，用于分析 50 条新闻
+        90000  // 90秒超时，给足够时间处理大量新闻
       );
 
       if (!responseText) {
