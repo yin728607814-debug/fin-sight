@@ -448,16 +448,23 @@ export class NewsService implements INewsService {
           return hasKeyword;
         })
         .slice(0, limit)
-        .map((article: any, index: number) => ({
-          id: `sina_us_${Date.now()}_${index}`,
-          title: article.title || '',
-          content: article.description || article.content || article.title || '',
-          source: '新浪财经',
-          publishedAt: new Date(article.publishedAt || Date.now()),
-          url: article.url || '#',
-          relevanceScore: 0.5,
-          image: article.image
-        }));
+        .map((article: any, index: number) => {
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `sina_us_${this.hashString(article.url)}`
+            : `sina_us_${this.hashString(article.title)}_${index}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '新浪财经',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.5,
+            image: article.image
+          };
+        });
 
       return usStockNews;
     } catch (error) {
@@ -501,16 +508,23 @@ export class NewsService implements INewsService {
           return hasKeyword;
         })
         .slice(0, limit)
-        .map((article: any, index: number) => ({
-          id: `sina_gold_${Date.now()}_${index}`,
-          title: article.title || '',
-          content: article.description || article.content || article.title || '',
-          source: '新浪财经',
-          publishedAt: new Date(article.publishedAt || Date.now()),
-          url: article.url || '#',
-          relevanceScore: 0.5,
-          image: article.image
-        }));
+        .map((article: any, index: number) => {
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `sina_gold_${this.hashString(article.url)}`
+            : `sina_gold_${this.hashString(article.title)}_${index}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '新浪财经',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.5,
+            image: article.image
+          };
+        });
 
       return goldNews;
     } catch (error) {
@@ -535,16 +549,23 @@ export class NewsService implements INewsService {
 
       return response.data.articles
         .slice(0, limit)
-        .map((article: any, index: number) => ({
-          id: `eastmoney_${Date.now()}_${index}`,
-          title: article.title || '',
-          content: article.description || article.content || article.title || '',
-          source: '东方财富',
-          publishedAt: new Date(article.publishedAt || Date.now()),
-          url: article.url || '#',
-          relevanceScore: 0.5,
-          image: article.image
-        }));
+        .map((article: any, index: number) => {
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `eastmoney_${this.hashString(article.url)}`
+            : `eastmoney_${this.hashString(article.title)}_${index}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '东方财富',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.5,
+            image: article.image
+          };
+        });
     } catch (error) {
       console.error('东方财富新闻获取失败:', error);
       return [];
@@ -567,16 +588,23 @@ export class NewsService implements INewsService {
 
       return response.data.articles
         .slice(0, limit)
-        .map((article: any, index: number) => ({
-          id: `eastmoney_gold_${Date.now()}_${index}`,
-          title: article.title || '',
-          content: article.description || article.content || article.title || '',
-          source: '东方财富',
-          publishedAt: new Date(article.publishedAt || Date.now()),
-          url: article.url || '#',
-          relevanceScore: 0.5,
-          image: article.image
-        }));
+        .map((article: any, index: number) => {
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `eastmoney_gold_${this.hashString(article.url)}`
+            : `eastmoney_gold_${this.hashString(article.title)}_${index}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '东方财富',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.5,
+            image: article.image
+          };
+        });
     } catch (error) {
       console.error('东方财富黄金新闻获取失败:', error);
       return [];
@@ -757,8 +785,13 @@ export class NewsService implements INewsService {
         .slice(0, limit);
 
       const newsItems = sortedNews.map((article: unknown, index: number) => {
+        // 使用 URL 生成稳定的 ID（不使用时间戳）
+        const stableId = article.url 
+          ? `finnhub_news_${this.hashString(article.url)}`
+          : `finnhub_news_${this.hashString(article.headline || 'untitled')}_${index}`;
+        
         return {
-          id: `finnhub_news_${Date.now()}_${index}`,
+          id: stableId,
           title: article.headline || 'Untitled',
           content: article.summary || article.headline || '',
           source: article.source || 'Finnhub',
@@ -850,8 +883,13 @@ export class NewsService implements INewsService {
         .slice(0, limit);
 
       const newsItems = sortedNews.map((article: unknown, index: number) => {
+        // 使用 URL 生成稳定的 ID（不使用时间戳）
+        const stableId = article.url 
+          ? `finnhub_gold_${this.hashString(article.url)}`
+          : `finnhub_gold_${this.hashString(article.headline || 'untitled')}_${index}`;
+        
         return {
-          id: `finnhub_gold_${Date.now()}_${index}`,
+          id: stableId,
           title: article.headline || 'Untitled',
           content: article.summary || article.headline || '',
           source: article.source || 'Finnhub',
@@ -1195,8 +1233,13 @@ ${newsTexts}
             return null;
           }
 
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `news_${this.hashString(article.url)}`
+            : `news_${this.hashString(article.title)}_${index}`;
+          
           const newsItem = {
-            id: `news_${Date.now()}_${index}`,
+            id: stableId,
             title: article.title.trim(),
             content: (article.description || article.content || article.title).trim(), // 确保有内容
             source: article.source?.name || 'Unknown',
@@ -1673,6 +1716,19 @@ ${newsTexts}
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 工具方法：生成字符串的简单哈希值（用于生成稳定的 ID）
+   */
+  private hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
   }
 }
 

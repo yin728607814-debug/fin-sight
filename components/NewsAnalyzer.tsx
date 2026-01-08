@@ -201,15 +201,24 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
    */
   const fetchAndAnalyze = useCallback(async (): Promise<boolean> => {
     try {
-      // 先获取新闻数据，直接拿到返回的新闻
+      // 先获取新闻数据，但不立即更新状态
       const fetchedNews = await fetchNews();
+      
+      console.log('🔍 fetchAndAnalyze - 获取到的新闻ID:', fetchedNews?.slice(0, 3).map(n => n.id));
       
       // 并行获取价格数据（不依赖新闻）
       const pricePromise = fetchPriceData();
       
-      // 如果新闻获取成功，直接用返回的新闻数据进行分析
+      // 如果新闻获取成功，先分析，然后一起更新状态
       if (fetchedNews && fetchedNews.length > 0) {
+        console.log('🔍 fetchAndAnalyze - 开始分析，使用的新闻ID:', fetchedNews.slice(0, 3).map(n => n.id));
+        
+        // 分析新闻（这会内部调用 setAnalysis）
         await analyzeNews(fetchedNews);
+        
+        // 分析完成后，确保新闻状态也是最新的
+        // 因为 fetchNews() 已经调用了 setNews()，这里再次确认
+        console.log('🔍 fetchAndAnalyze - 分析完成，确认新闻状态已更新');
       }
       
       const priceSuccess = await pricePromise;
