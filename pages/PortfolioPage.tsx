@@ -3,7 +3,7 @@
  * 管理和追踪投资组合
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeftIcon, PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -34,6 +34,9 @@ export const PortfolioPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showMigration, setShowMigration] = useState(true);
   const [lastDbUpdate, setLastDbUpdate] = useState<Date | null>(null);
+  
+  // 记录上次更新日期，用于检测跨日
+  const lastUpdateDateRef = useRef<string | null>(null);
   
   // Tab状态：用于区分黄金、纳斯达克和A股
   const [activeTab, setActiveTab] = useState<'all' | 'nasdaq' | 'gold' | 'astock'>('all');
@@ -213,6 +216,13 @@ export const PortfolioPage: React.FC = () => {
       return;
     }
 
+    // 检测是否跨日
+    const today = new Date().toDateString();
+    const isNewDay = lastUpdateDateRef.current !== null && lastUpdateDateRef.current !== today;
+    
+    // 更新日期记录
+    lastUpdateDateRef.current = today;
+
     let hasUpdates = false;
     
     // 更新A股持仓
@@ -225,23 +235,38 @@ export const PortfolioPage: React.FC = () => {
         const fundData = aStockData.get(position.fundName);
         if (!fundData) continue;
 
-        const dailyProfit = aStockFundService.calculateDailyProfit(
+        const newDailyProfit = aStockFundService.calculateDailyProfit(
           position.investmentAmount,
           fundData.dailyReturn
         );
 
         const originalPosition = supabasePositions.find(p => p.id === position.id);
         if (originalPosition) {
-          const currentDailyProfit = originalPosition.dailyProfitLoss || 0;
-          const profitDiff = Math.abs(currentDailyProfit - dailyProfit);
+          const oldDailyProfit = originalPosition.dailyProfitLoss || 0;
+          const profitDiff = Math.abs(oldDailyProfit - newDailyProfit);
           
-          if (profitDiff > 0.01) {
+          // 如果是新的一天，需要将昨天的当日收益累加到持仓收益，然后设置新的当日收益
+          if (isNewDay && oldDailyProfit !== 0) {
             try {
               await updateSupabasePosition(position.id, {
-                dailyProfitLoss: dailyProfit,
+                profitLoss: originalPosition.profitLoss + oldDailyProfit, // 累加昨天的当日收益
+                dailyProfitLoss: newDailyProfit, // 设置新的当日收益
                 dailyChange: fundData.dailyReturn
               });
               hasUpdates = true;
+              console.log(`A股持仓 ${position.fundName} 跨日更新: 累加昨日收益 ${oldDailyProfit.toFixed(2)}, 新当日收益 ${newDailyProfit.toFixed(2)}`);
+            } catch (error) {
+              console.error('A股持仓跨日更新失败:', error);
+            }
+          } else if (profitDiff > 0.01) {
+            // 同一天内，当日收益变化超过0.01元时才更新
+            try {
+              await updateSupabasePosition(position.id, {
+                dailyProfitLoss: newDailyProfit,
+                dailyChange: fundData.dailyReturn
+              });
+              hasUpdates = true;
+              console.log(`A股持仓 ${position.fundName} 当日收益更新: ${newDailyProfit.toFixed(2)}`);
             } catch (error) {
               console.error('更新A股持仓收益失败:', error);
             }
@@ -260,23 +285,38 @@ export const PortfolioPage: React.FC = () => {
         const fundData = nasdaqData.get(position.fundName);
         if (!fundData) continue;
 
-        const dailyProfit = nasdaqFundService.calculateDailyProfit(
+        const newDailyProfit = nasdaqFundService.calculateDailyProfit(
           position.investmentAmount,
           fundData.dailyReturn
         );
 
         const originalPosition = supabasePositions.find(p => p.id === position.id);
         if (originalPosition) {
-          const currentDailyProfit = originalPosition.dailyProfitLoss || 0;
-          const profitDiff = Math.abs(currentDailyProfit - dailyProfit);
+          const oldDailyProfit = originalPosition.dailyProfitLoss || 0;
+          const profitDiff = Math.abs(oldDailyProfit - newDailyProfit);
           
-          if (profitDiff > 0.01) {
+          // 如果是新的一天，需要将昨天的当日收益累加到持仓收益，然后设置新的当日收益
+          if (isNewDay && oldDailyProfit !== 0) {
             try {
               await updateSupabasePosition(position.id, {
-                dailyProfitLoss: dailyProfit,
+                profitLoss: originalPosition.profitLoss + oldDailyProfit, // 累加昨天的当日收益
+                dailyProfitLoss: newDailyProfit, // 设置新的当日收益
                 dailyChange: fundData.dailyReturn
               });
               hasUpdates = true;
+              console.log(`纳斯达克持仓 ${position.fundName} 跨日更新: 累加昨日收益 ${oldDailyProfit.toFixed(2)}, 新当日收益 ${newDailyProfit.toFixed(2)}`);
+            } catch (error) {
+              console.error('纳斯达克持仓跨日更新失败:', error);
+            }
+          } else if (profitDiff > 0.01) {
+            // 同一天内，当日收益变化超过0.01元时才更新
+            try {
+              await updateSupabasePosition(position.id, {
+                dailyProfitLoss: newDailyProfit,
+                dailyChange: fundData.dailyReturn
+              });
+              hasUpdates = true;
+              console.log(`纳斯达克持仓 ${position.fundName} 当日收益更新: ${newDailyProfit.toFixed(2)}`);
             } catch (error) {
               console.error('更新纳斯达克持仓收益失败:', error);
             }
@@ -313,6 +353,21 @@ export const PortfolioPage: React.FC = () => {
       console.log('同步完成');
     } catch (error) {
       console.error('刷新基金收益失败:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  /**
+   * 手动刷新价格数据（黄金和纳斯达克）
+   */
+  const handleRefreshPrices = async () => {
+    setIsRefreshing(true);
+    try {
+      // 刷新页面来重新获取价格数据
+      window.location.reload();
+    } catch (error) {
+      console.error('刷新价格失败:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -394,7 +449,7 @@ export const PortfolioPage: React.FC = () => {
       const interval = checkAndUpdate();
       if (interval) {
         const intervalId = setInterval(() => {
-          updateAStockProfitToDb();
+          updateFundProfitToDb();
         }, interval);
         return intervalId;
       }

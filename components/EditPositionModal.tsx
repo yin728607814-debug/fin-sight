@@ -126,28 +126,39 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
     if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
       const updates: Partial<Position> = {
         investmentAmount: parseFloat(fundInvestment),
-        profitLoss: parseFloat(fundProfit), // 保存原始持仓收益，不包含当日收益
         fundCode: fundCode.trim() || undefined, // 保存基金代码
         autoInvest,
         updatedAt: new Date()
       };
       
-      // 如果手动输入了当日收益率，保存它并计算当日收益
+      // 计算持仓收益的变化
+      const newProfitLoss = parseFloat(fundProfit);
+      const oldProfitLoss = position.profitLoss || 0;
+      const oldDailyProfitLoss = position.dailyProfitLoss || 0;
+      
+      // 如果手动输入了当日收益率，需要先减去旧的当日收益，再加上新的当日收益
       if (manualDailyReturn && !isNaN(parseFloat(manualDailyReturn))) {
         const dailyReturnValue = parseFloat(manualDailyReturn);
-        updates.manualDailyReturn = dailyReturnValue;
-        
-        // 计算当日收益 = 持仓金额 × 收益率 / 100
         const investmentAmount = parseFloat(fundInvestment);
+        
         if (!isNaN(investmentAmount)) {
+          const newDailyProfitLoss = investmentAmount * (dailyReturnValue / 100);
+          
+          // 持仓收益 = 用户输入的持仓收益 - 旧的当日收益 + 新的当日收益
+          updates.profitLoss = newProfitLoss - oldDailyProfitLoss + newDailyProfitLoss;
           updates.dailyChange = dailyReturnValue;
-          updates.dailyProfitLoss = investmentAmount * (dailyReturnValue / 100);
+          updates.dailyProfitLoss = newDailyProfitLoss;
+          updates.manualDailyReturn = dailyReturnValue;
         }
       } else if (manualDailyReturn === '') {
-        // 用户清空了手动收益率，删除相关字段
+        // 用户清空了手动收益率，持仓收益需要减去旧的当日收益
+        updates.profitLoss = newProfitLoss - oldDailyProfitLoss;
         updates.manualDailyReturn = undefined;
         updates.dailyChange = undefined;
         updates.dailyProfitLoss = undefined;
+      } else {
+        // 没有修改当日收益率，只更新持仓收益
+        updates.profitLoss = newProfitLoss;
       }
       
       onSave(position.id, updates);
