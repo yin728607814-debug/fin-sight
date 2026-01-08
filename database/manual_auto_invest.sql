@@ -57,21 +57,17 @@ DECLARE
   v_position_id UUID := '{position_id}'; -- 替换为实际ID
   v_auto_invest_amount NUMERIC;
   v_current_investment NUMERIC;
-  v_current_value NUMERIC;
   v_new_investment NUMERIC;
-  v_new_value NUMERIC;
   v_frequency TEXT;
   v_next_date DATE;
 BEGIN
   -- 获取当前持仓信息
   SELECT 
     investment_amount,
-    current_value,
     auto_invest_amount,
     auto_invest_frequency
   INTO 
     v_current_investment,
-    v_current_value,
     v_auto_invest_amount,
     v_frequency
   FROM positions
@@ -83,9 +79,8 @@ BEGIN
     RETURN;
   END IF;
 
-  -- 计算新的金额
+  -- 计算新的持仓金额
   v_new_investment := v_current_investment + v_auto_invest_amount;
-  v_new_value := COALESCE(v_current_value, v_current_investment) + v_auto_invest_amount;
 
   -- 计算下次执行日期
   CASE v_frequency
@@ -105,7 +100,6 @@ BEGIN
   UPDATE positions
   SET 
     investment_amount = v_new_investment,
-    current_value = v_new_value,
     auto_invest_last_executed_date = CURRENT_DATE,
     auto_invest_next_date = v_next_date,
     updated_at = NOW()
@@ -127,7 +121,6 @@ DO $$
 DECLARE
   v_record RECORD;
   v_new_investment NUMERIC;
-  v_new_value NUMERIC;
   v_next_date DATE;
   v_count INTEGER := 0;
 BEGIN
@@ -137,16 +130,15 @@ BEGIN
       id,
       fund_name,
       investment_amount,
-      current_value,
+      profit_loss,
       auto_invest_amount,
       auto_invest_frequency
     FROM positions
     WHERE auto_invest_enabled = true
       AND auto_invest_next_date <= CURRENT_DATE
   LOOP
-    -- 计算新的金额
+    -- 计算新的持仓金额（只更新持仓金额，不改变收益）
     v_new_investment := v_record.investment_amount + v_record.auto_invest_amount;
-    v_new_value := COALESCE(v_record.current_value, v_record.investment_amount) + v_record.auto_invest_amount;
 
     -- 计算下次执行日期
     CASE v_record.auto_invest_frequency
@@ -162,11 +154,10 @@ BEGIN
         v_next_date := CURRENT_DATE + INTERVAL '1 month';
     END CASE;
 
-    -- 更新持仓
+    -- 更新持仓（只更新持仓金额，保持收益不变）
     UPDATE positions
     SET 
       investment_amount = v_new_investment,
-      current_value = v_new_value,
       auto_invest_last_executed_date = CURRENT_DATE,
       auto_invest_next_date = v_next_date,
       updated_at = NOW()

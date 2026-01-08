@@ -69,23 +69,20 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     const results = [];
     for (const position of positions) {
       try {
-        // 计算新的金额
+        // 计算新的持仓金额（只更新持仓金额，不改变收益）
         const currentInvestment = parseFloat(position.investment_amount);
         const autoInvestAmount = parseFloat(position.auto_invest_amount);
-        const currentValue = parseFloat(position.current_value || position.investment_amount);
         
         const newInvestment = currentInvestment + autoInvestAmount;
-        const newValue = currentValue + autoInvestAmount;
 
         // 计算下次执行日期
         const nextDate = calculateNextDate(position.auto_invest_frequency);
 
-        // 更新持仓
+        // 更新持仓（只更新持仓金额，保持收益不变）
         const { error: updateError } = await supabase
           .from('positions')
           .update({
             investment_amount: newInvestment,
-            current_value: newValue,
             auto_invest_last_executed_date: today,
             auto_invest_next_date: nextDate,
             updated_at: new Date().toISOString()

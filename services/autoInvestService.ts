@@ -296,16 +296,14 @@ export class AutoInvestService {
       if (fetchError) throw fetchError;
 
       if (positions && positions.length > 0) {
-        // 更新现有持仓
+        // 更新现有持仓（只更新持仓金额，保持收益不变）
         const position = positions[0];
         const newInvestmentAmount = parseFloat(position.investment_amount) + plan.invest_amount;
-        const newCurrentValue = parseFloat(position.current_value || position.investment_amount) + plan.invest_amount;
 
         const { error: updateError } = await supabase
           .from('positions')
           .update({
             investment_amount: newInvestmentAmount,
-            current_value: newCurrentValue, // 同时更新当前市值
             updated_at: new Date().toISOString()
           })
           .eq('id', position.id);
@@ -315,9 +313,7 @@ export class AutoInvestService {
         logInfo('定投执行成功：更新持仓', { 
           fundName: plan.fund_name, 
           oldInvestmentAmount: position.investment_amount,
-          newInvestmentAmount,
-          oldCurrentValue: position.current_value,
-          newCurrentValue
+          newInvestmentAmount
         });
       } else {
         // 创建新持仓
@@ -328,7 +324,6 @@ export class AutoInvestService {
             asset_type: plan.asset_type,
             fund_name: plan.fund_name,
             investment_amount: plan.invest_amount,
-            current_value: plan.invest_amount, // 新持仓的当前市值等于投资金额
             profit_loss: 0
           });
 
