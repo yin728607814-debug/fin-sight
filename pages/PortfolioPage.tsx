@@ -1052,7 +1052,7 @@ export const PortfolioPage: React.FC = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-gray-600 dark:text-gray-400">总克数</span>
                             <span className="font-semibold text-gray-900 dark:text-gray-100">
-                              {goldStats.totalGrams.toFixed(2)}g
+                              {goldStats.totalGrams.toFixed(4)}g
                             </span>
                           </div>
                           <div className="flex justify-between items-center">

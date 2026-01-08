@@ -169,7 +169,7 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">持仓克数</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {position.quantity.toFixed(2)} 克
+                {position.quantity.toFixed(4)} 克
               </p>
             </div>
             <div>

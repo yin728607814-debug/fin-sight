@@ -61,7 +61,7 @@ export const GoldSummary: React.FC<GoldSummaryProps> = ({ goldStats }) => {
         <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3">
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">持仓总克数</p>
           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {goldStats.totalGrams.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+            {goldStats.totalGrams.toLocaleString('zh-CN', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
             <span className="text-sm font-normal text-gray-500 ml-1">克</span>
           </p>
         </div>
