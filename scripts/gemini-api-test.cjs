@@ -86,8 +86,44 @@ async function testGeminiAPI() {
 
 // 调用 Gemini API
 function callGeminiAPI(apiKey, prompt, maxTokens = 1000) {
+  return new Promise(async (resolve, reject) => {
+    // 尝试多个模型，按优先级排序
+    const models = [
+      'gemini-2.5-flash',      // 首选
+      'gemini-2.0-flash-exp',  // 备选1（实验版，通常负载较低）
+      'gemini-1.5-flash',      // 备选2
+      'gemini-1.5-pro'         // 备选3
+    ];
+
+    let lastError = null;
+
+    for (const model of models) {
+      try {
+        const result = await tryCallAPI(apiKey, model, prompt, maxTokens);
+        console.log(`  ℹ️  使用模型: ${model}`);
+        resolve(result);
+        return;
+      } catch (error) {
+        lastError = error;
+        // 如果是 503 错误，尝试下一个模型
+        if (error.message.includes('503') || error.message.includes('overloaded')) {
+          console.log(`  ⚠️  ${model} 负载过高，尝试下一个模型...`);
+          continue;
+        }
+        // 其他错误直接抛出
+        reject(error);
+        return;
+      }
+    }
+
+    // 所有模型都失败
+    reject(lastError || new Error('所有模型都不可用'));
+  });
+}
+
+// 尝试调用单个模型
+function tryCallAPI(apiKey, model, prompt, maxTokens) {
   return new Promise((resolve, reject) => {
-    const model = 'gemini-2.5-flash';
     const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
     const requestBody = JSON.stringify({
@@ -112,7 +148,8 @@ function callGeminiAPI(apiKey, prompt, maxTokens = 1000) {
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(requestBody)
-      }
+      },
+      timeout: 30000 // 30秒超时
     };
 
     const req = https.request(options, (res) => {
@@ -143,6 +180,11 @@ function callGeminiAPI(apiKey, prompt, maxTokens = 1000) {
 
     req.on('error', (error) => {
       reject(new Error(`请求失败：${error.message}`));
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('请求超时'));
     });
 
     req.write(requestBody);
