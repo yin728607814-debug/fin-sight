@@ -269,34 +269,116 @@ export class AnalysisService implements IAnalysisService {
 
   /**
    * AI批量分析方法 - 使用 Gemini API，为每条新闻返回单独分析
+   * 如果新闻数量超过 20 条，自动分批处理以避免超时
    */
   private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
+    const BATCH_SIZE = 20; // 每批最多 20 条新闻
+    
+    // 如果新闻数量较少，直接处理
+    if (newsList.length <= BATCH_SIZE) {
+      return await this.aiBatchAnalysisSingle(newsList, assetType);
+    }
+    
+    // 分批处理
+    console.log(`📊 新闻数量较多 (${newsList.length}条)，分批处理以避免超时...`);
+    const batches: Array<{ title: string; content: string }[]> = [];
+    for (let i = 0; i < newsList.length; i += BATCH_SIZE) {
+      batches.push(newsList.slice(i, i + BATCH_SIZE));
+    }
+    
+    console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条`);
+    
+    // 并发处理所有批次
+    const batchResults = await Promise.all(
+      batches.map((batch, index) => {
+        console.log(`🚀 处理第 ${index + 1}/${batches.length} 批 (${batch.length}条新闻)...`);
+        return this.aiBatchAnalysisSingle(batch, assetType);
+      })
+    );
+    
+    // 合并结果
+    const allAnalyses = batchResults.flatMap((result, batchIndex) => 
+      result.analyses.map(analysis => ({
+        ...analysis,
+        newsIndex: batchIndex * BATCH_SIZE + analysis.newsIndex
+      }))
+    );
+    
+    // 计算整体影响
+    const positiveCount = allAnalyses.filter(a => a.impact === 'positive').length;
+    const negativeCount = allAnalyses.filter(a => a.impact === 'negative').length;
+    const overallImpact = positiveCount > negativeCount ? 'positive' as const : 
+                         negativeCount > positiveCount ? 'negative' as const : 
+                         'neutral' as const;
+    
+    const avgConfidence = allAnalyses.reduce((sum, a) => sum + a.confidence, 0) / allAnalyses.length;
+    
+    console.log(`✅ 所有批次处理完成！共 ${allAnalyses.length} 条分析`);
+    
+    return {
+      analyses: allAnalyses,
+      overallImpact,
+      overallConfidence: avgConfidence,
+      overallSummary: `综合分析了 ${newsList.length} 条新闻：${positiveCount} 条利好，${negativeCount} 条利空，${newsList.length - positiveCount - negativeCount} 条中性。整体市场情绪偏${overallImpact === 'positive' ? '乐观' : overallImpact === 'negative' ? '悲观' : '中性'}。`
+    };
+  }
+
+  /**
+   * 单批次AI分析（不超过20条新闻）
+   */
+  private async aiBatchAnalysisSingle(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
     const prompt = this.buildBatchAnalysisPrompt(newsList, assetType);
     
     logInfo('批量分析配置', { 
       newsCount: newsList.length, 
-      model: this.config.model,
-      maxOutputTokens: 32768 // 尝试请求最大值，实际输出取决于API限制
+      model: this.config.model
     });
     
-    const response = await this.makeGeminiRequest({
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 32768, // 请求最大值，让API尽可能多输出
-        candidateCount: 1
-      }
-    });
+    // 使用 callGeminiWithFallback 替代 makeGeminiRequest
+    const responseText = await callGeminiWithFallback(
+      this.config.apiKey,
+      prompt,
+      0.3,
+      8192,
+      60000  // 60秒超时（20条新闻应该足够）
+    );
 
-    return this.parseBatchGeminiResponse(response.data, newsList.length);
+    return this.parseBatchGeminiResponseText(responseText, newsList.length);
+  }
+
+  /**
+   * 解析批量分析响应文本
+   */
+  private parseBatchGeminiResponseText(responseText: string, expectedCount: number): BatchAnalysisResult {
+    try {
+      // 移除可能的 markdown 代码块标记
+      const cleanedText = responseText
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+      
+      // 提取 JSON
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('无法从响应中提取JSON');
+      }
+      
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
+        throw new Error('响应格式错误：缺少 analyses 数组');
+      }
+      
+      return {
+        analyses: parsed.analyses,
+        overallImpact: parsed.overallImpact || 'neutral',
+        overallConfidence: parsed.overallConfidence || 0.5,
+        overallSummary: parsed.overallSummary || '分析完成'
+      };
+    } catch (error) {
+      console.error('解析批量分析响应失败:', error);
+      throw error;
+    }
   }
 
   /**
