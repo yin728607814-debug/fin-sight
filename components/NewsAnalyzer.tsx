@@ -159,6 +159,8 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       console.log(`✅ 批量分析完成！`);
       console.log(`   整体影响: ${batchResult.overallImpact}, 整体置信度: ${batchResult.overallConfidence.toFixed(2)}`);
       console.log(`   ${analysisResults.filter(a => a.impact === 'positive').length} 条利好, ${analysisResults.filter(a => a.impact === 'negative').length} 条利空, ${analysisResults.filter(a => a.impact === 'neutral').length} 条中性`);
+      console.log(`   分析结果示例:`, analysisResults.slice(0, 2));
+      console.log(`   新闻ID示例:`, newsItems.slice(0, 2).map(n => n.id));
 
       setAnalysis(analysisResults);
       
