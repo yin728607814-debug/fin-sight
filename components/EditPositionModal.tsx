@@ -56,14 +56,14 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
       
       if (position.assetType === 'nasdaq' || position.assetType === 'astock') {
         setFundInvestment(position.investmentAmount.toString());
-        setFundProfit(position.profitLoss.toString());
+        setFundProfit(position.profitLoss.toFixed(2));
         setFundCode(position.fundCode || ''); // 设置基金代码
         setManualDailyReturn(position.manualDailyReturn?.toString() || '');
         setAutoInvest(position.autoInvest);
       } else if (position.assetType === 'gold') {
-        setGoldGrams(position.quantity?.toString() || '');
-        setGoldInvestment(position.investmentAmount.toString());
-        setGoldProfit(position.profitLoss?.toString() || '0');
+        setGoldGrams(position.quantity?.toFixed(4) || '');
+        setGoldInvestment(position.investmentAmount.toFixed(2));
+        setGoldProfit(position.profitLoss?.toFixed(2) || '0');
         // 黄金不支持定投，清空定投状态
         setAutoInvest(undefined);
       }
