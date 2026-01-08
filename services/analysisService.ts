@@ -20,12 +20,14 @@ import { config } from '../config/env';
 
 /**
  * Gemini 模型列表（按优先级排序）
+ * 注意：Gemini 3 系列需要使用 v1beta API
  */
 const GEMINI_MODELS = [
-  'gemini-2.5-pro',        // 首选：最强大的模型
-  'gemini-2.5-flash',      // 备选1：快速版本
-  'gemini-2.0-flash',      // 备选2：2.0 版本
-  'gemini-2.0-flash-lite'  // 备选3：轻量版
+  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大）
+  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
+  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
+  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
+  { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
 ];
 
 /**
@@ -40,10 +42,10 @@ async function callGeminiWithFallback(
 ): Promise<string> {
   let lastError: Error | null = null;
 
-  for (const model of GEMINI_MODELS) {
+  for (const { model, version } of GEMINI_MODELS) {
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`,
         {
           contents: [{
             parts: [{ text: prompt }]
@@ -58,8 +60,8 @@ async function callGeminiWithFallback(
 
       const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (responseText) {
-        if (model !== GEMINI_MODELS[0]) {
-          console.log(`ℹ️ 使用备用模型: ${model}`);
+        if (model !== GEMINI_MODELS[0].model) {
+          console.log(`ℹ️ 使用备用模型: ${model} (${version})`);
         }
         return responseText;
       }
