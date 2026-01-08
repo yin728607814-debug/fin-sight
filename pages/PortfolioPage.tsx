@@ -71,17 +71,16 @@ export const PortfolioPage: React.FC = () => {
       .map(p => p.fundName!);
   }, [supabasePositions]);
   
-  // 使用A股基金数据Hook（启用智能刷新）
-  // 禁用 A股和纳斯达克数据的自动获取，完全依赖数据库
-  const { fundDataMap: aStockData } = useAStockFundData(
-    [], // 传空数组，不获取任何数据
+  // 使用A股基金数据Hook（手动刷新模式）
+  const { fundDataMap: aStockData, refetch: refetchAStockData } = useAStockFundData(
+    aStockFundNames, // 传入实际的基金名称
     false, // 禁用自动刷新
     undefined
   );
   
-  // 禁用纳斯达克数据的自动获取，完全依赖数据库
-  const { fundDataMap: nasdaqData } = useNasdaqFundData(
-    [], // 传空数组，不获取任何数据
+  // 使用纳斯达克数据Hook（手动刷新模式）
+  const { fundDataMap: nasdaqData, refetch: refetchNasdaqData } = useNasdaqFundData(
+    nasdaqFundNames, // 传入实际的基金名称
     false, // 禁用自动刷新
     undefined
   );
@@ -297,7 +296,21 @@ export const PortfolioPage: React.FC = () => {
   const handleRefreshFundProfit = async () => {
     setIsRefreshing(true);
     try {
+      // 先刷新基金数据
+      console.log('开始刷新基金数据...');
+      await Promise.all([
+        refetchAStockData(),
+        refetchNasdaqData()
+      ]);
+      console.log('基金数据刷新完成');
+      
+      // 等待一小段时间确保数据更新
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 然后同步到数据库
+      console.log('开始同步到数据库...');
       await updateFundProfitToDb();
+      console.log('同步完成');
     } catch (error) {
       console.error('刷新基金收益失败:', error);
     } finally {
@@ -316,6 +329,40 @@ export const PortfolioPage: React.FC = () => {
       window.location.reload();
     } catch (error) {
       console.error('刷新失败:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  /**
+   * 刷新纳斯达克价格
+   */
+  const handleRefreshNasdaqPrice = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log('刷新纳斯达克价格...');
+      // 清除价格缓存并重新加载
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.location.reload();
+    } catch (error) {
+      console.error('刷新纳斯达克价格失败:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  /**
+   * 刷新黄金价格
+   */
+  const handleRefreshGoldPrice = async () => {
+    setIsRefreshing(true);
+    try {
+      console.log('刷新黄金价格...');
+      // 清除价格缓存并重新加载
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.location.reload();
+    } catch (error) {
+      console.error('刷新黄金价格失败:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -720,6 +767,37 @@ export const PortfolioPage: React.FC = () => {
               )}
             </div>
             <div className="flex items-center space-x-2">
+              {/* 黄金价格刷新按钮 */}
+              {portfolio.positions.some(p => p.assetType === 'gold') && (
+                <button
+                  onClick={handleRefreshGoldPrice}
+                  disabled={isRefreshing}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/40 transition-colors disabled:opacity-50"
+                  title="刷新黄金价格"
+                >
+                  <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>{isRefreshing ? '刷新中' : '刷新黄金价格'}</span>
+                </button>
+              )}
+              
+              {/* 纳斯达克价格刷新按钮 */}
+              {portfolio.positions.some(p => p.assetType === 'nasdaq') && (
+                <button
+                  onClick={handleRefreshNasdaqPrice}
+                  disabled={isRefreshing}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-50"
+                  title="刷新纳斯达克价格"
+                >
+                  <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>{isRefreshing ? '刷新中' : '刷新纳斯达克价格'}</span>
+                </button>
+              )}
+              
+              {/* 同步黄金收益按钮 */}
               {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'gold') && (
                 <button
                   onClick={handleRefreshGoldProfit}
@@ -733,12 +811,14 @@ export const PortfolioPage: React.FC = () => {
                   <span>{isRefreshing ? '同步中' : '同步黄金'}</span>
                 </button>
               )}
+              
+              {/* 同步A股和纳斯达克收益按钮 */}
               {isSupabaseEnabled && portfolio.positions.some(p => p.assetType === 'astock' || p.assetType === 'nasdaq') && (
                 <button
                   onClick={handleRefreshFundProfit}
                   disabled={isRefreshing}
                   className="flex items-center space-x-1 px-3 py-1.5 text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
-                  title="更新A股和纳斯达克收益到数据库"
+                  title="刷新并更新A股和纳斯达克收益到数据库"
                 >
                   <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -746,6 +826,8 @@ export const PortfolioPage: React.FC = () => {
                   <span>{isRefreshing ? '同步中' : '同步A股和纳斯达克'}</span>
                 </button>
               )}
+              
+              {/* 刷新所有价格按钮 */}
               <button
                 onClick={handleRefreshPrices}
                 disabled={isRefreshing}
@@ -754,7 +836,7 @@ export const PortfolioPage: React.FC = () => {
                 <svg className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>{isRefreshing ? '刷新中' : '刷新价格'}</span>
+                <span>{isRefreshing ? '刷新中' : '刷新所有价格'}</span>
               </button>
             </div>
           </div>
