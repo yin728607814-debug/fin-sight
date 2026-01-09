@@ -149,6 +149,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - A股基金格式规范：
   * 保持原始名称，只需将全角括号转换为半角括号
   * 如：国投瑞银白银期货(LOF)C
+  * 注意：汇添富中证科创业50指数增强C（是"科创业"不是"科创创业"）
 
 请以JSON格式返回结果，不要包含markdown代码块标记，直接返回纯JSON：
 
