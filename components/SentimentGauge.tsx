@@ -16,7 +16,7 @@ export const SentimentGauge: React.FC<SentimentGaugeProps> = ({
   size = 'md' 
 }) => {
   // 安全检查：确保data和data.level存在
-  if (!data || !data.level) {
+  if (!data || !data.level || !data.distribution) {
     return (
       <div className="flex items-center justify-center h-32 text-gray-500 dark:text-gray-400">
         <p className="text-sm">数据加载中...</p>

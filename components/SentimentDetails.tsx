@@ -16,6 +16,11 @@ export const SentimentDetails: React.FC<SentimentDetailsProps> = ({
   data,
   onClose,
 }) => {
+  // 安全检查：确保数据完整
+  if (!data || !data.distribution) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* 背景遮罩 */}
@@ -127,7 +132,7 @@ export const SentimentDetails: React.FC<SentimentDetailsProps> = ({
           </div>
 
           {/* 关键影响因素 */}
-          {data.keyFactors && data.keyFactors.length > 0 && (
+          {data.keyFactors && Array.isArray(data.keyFactors) && data.keyFactors.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
                 关键影响因素
