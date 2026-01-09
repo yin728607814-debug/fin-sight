@@ -1,92 +1,49 @@
--- 更新纳斯达克基金名称以匹配招商银行截图格式
+-- 更新纳斯达克基金名称，使其与招商银行截图格式一致
+-- 执行前请备份数据！
 -- 执行时间：2026-01-09
 
--- 1. 摩根纳斯达克100指数人民币A
+-- 重要说明：
+-- 1. 摩根基金：括号前后无空格，如 摩根纳斯达克100指数(QDII)人民币A
+-- 2. 建信基金：QDII和A之间有空格，如 建信纳斯达克100指数QDII A
+-- 3. 南方基金：(QDII)前后有空格，A/C/I前面有空格，如 南方纳斯达克100指数发起 (QDII) A
+
+-- 1. 摩根纳斯达克100指数(QDII)人民币A（括号前后无空格）
 UPDATE positions 
 SET fund_name = '摩根纳斯达克100指数(QDII)人民币A',
     fund_code = 'QDII'
-WHERE fund_name = '摩根纳斯达克100指数人民币A' 
-   OR fund_name LIKE '%摩根纳斯达克100%人民币A%';
+WHERE fund_name LIKE '%摩根%纳斯达克%' AND fund_name LIKE '%人民币A%';
 
--- 2. 建信纳斯达克100指数QDIIA（名称已经正确，只需确保代码）
+-- 2. 建信纳斯达克100指数QDII A（QDII和A之间有空格）
 UPDATE positions 
-SET fund_code = 'QDIIA'
-WHERE fund_name = '建信纳斯达克100指数QDIIA';
-
--- 3. 南方纳斯达克100指数发起A
-UPDATE positions 
-SET fund_name = '南方纳斯达克100指数发起（QDII）A',
+SET fund_name = '建信纳斯达克100指数QDII A',
     fund_code = 'QDII'
-WHERE fund_name = '南方纳斯达克100指数发起A'
-   OR fund_name LIKE '%南方纳斯达克100%发起%A'
-   AND fund_name NOT LIKE '%C';
+WHERE fund_name LIKE '%建信%纳斯达克%';
 
--- 4. 嘉实纳斯达克100联接C人民币
+-- 3. 南方纳斯达克100指数发起 (QDII) A（(QDII)前后有空格，A前面有空格）
 UPDATE positions 
-SET fund_name = '嘉实纳斯达克100联接(QDII)C人民币',
+SET fund_name = '南方纳斯达克100指数发起 (QDII) A',
     fund_code = 'QDII'
-WHERE fund_name = '嘉实纳斯达克100联接C人民币'
-   OR fund_name LIKE '%嘉实纳斯达克100%联接%C%';
+WHERE fund_name LIKE '%南方%纳斯达克%' 
+  AND (fund_name LIKE '%A' OR fund_name LIKE '% A')
+  AND fund_name NOT LIKE '%C%' 
+  AND fund_name NOT LIKE '%I%';
 
--- 5. 南方纳斯达克100指数发起C
+-- 4. 南方纳斯达克100指数发起 (QDII) C（(QDII)前后有空格，C前面有空格）
 UPDATE positions 
-SET fund_name = '南方纳斯达克100指数发起（QDII）C',
+SET fund_name = '南方纳斯达克100指数发起 (QDII) C',
     fund_code = 'QDII'
-WHERE fund_name = '南方纳斯达克100指数发起C'
-   OR fund_name LIKE '%南方纳斯达克100%发起%C';
+WHERE fund_name LIKE '%南方%纳斯达克%' 
+  AND (fund_name LIKE '%C' OR fund_name LIKE '% C');
 
--- 6. 广发纳斯达克100ETF联接A
+-- 5. 南方纳斯达克100指数发起 (QDII) I（(QDII)前后有空格，I前面有空格）
 UPDATE positions 
-SET fund_name = '广发纳斯达克100ETF联接(QDII)A',
+SET fund_name = '南方纳斯达克100指数发起 (QDII) I',
     fund_code = 'QDII'
-WHERE fund_name = '广发纳斯达克100ETF联接A'
-   OR fund_name LIKE '%广发纳斯达克100%ETF%联接%A';
+WHERE fund_name LIKE '%南方%纳斯达克%' 
+  AND (fund_name LIKE '%I' OR fund_name LIKE '% I');
 
--- 7. 大成纳斯达克100ETF联接A（如果存在）
-UPDATE positions 
-SET fund_name = '大成纳斯达克100ETF联接(QDII)A',
-    fund_code = 'QDII'
-WHERE fund_name LIKE '%大成纳斯达克100%ETF%联接%A';
-
--- 8. 景顺长城纳斯达克科技ETF联接A（如果存在）
-UPDATE positions 
-SET fund_name = '景顺长城纳斯达克科技ETF联接A',
-    fund_code = 'ETF'
-WHERE fund_name LIKE '%景顺长城纳斯达克%科技%ETF%联接%A';
-
--- 9. 景顺长城纳斯达克科技ETF联接E（如果存在）
-UPDATE positions 
-SET fund_name = '景顺长城纳斯达克科技ETF联接E',
-    fund_code = 'ETF'
-WHERE fund_name LIKE '%景顺长城纳斯达克%科技%ETF%联接%E';
-
--- 10. 景顺长城纳斯达克科技ETF联接C（如果存在）
-UPDATE positions 
-SET fund_name = '景顺长城纳斯达克科技ETF联接C',
-    fund_code = 'ETF'
-WHERE fund_name LIKE '%景顺长城纳斯达克%科技%ETF%联接%C';
-
--- 11. 华宝纳斯达克精选股票发起式A（如果存在）
-UPDATE positions 
-SET fund_name = '华宝纳斯达克精选股票发起式（QDII）A',
-    fund_code = 'QDII'
-WHERE fund_name LIKE '%华宝纳斯达克%精选%股票%发起%A';
-
--- 12. 博时标普500ETF联接A（如果存在）
-UPDATE positions 
-SET fund_name = '博时标普500ETF联接(QDII)A',
-    fund_code = 'QDII'
-WHERE fund_name LIKE '%博时标普500%ETF%联接%A';
-
--- 13. 博时纳斯达克100A人民币（如果存在）
-UPDATE positions 
-SET fund_name = '博时纳斯达克100A人民币',
-    fund_code = 'A'
-WHERE fund_name LIKE '%博时纳斯达克100%A%'
-   AND (fund_name LIKE '%人民币%' OR fund_name LIKE '%人名币%');
-
--- 查询更新后的结果
-SELECT id, fund_name, fund_code, asset_type, investment_amount, profit_loss, daily_profit_loss
-FROM positions
+-- 验证更新结果
+SELECT id, fund_name, fund_code, investment_amount, profit_loss, daily_profit_loss
+FROM positions 
 WHERE asset_type = 'nasdaq'
 ORDER BY fund_name;

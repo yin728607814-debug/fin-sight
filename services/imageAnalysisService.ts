@@ -133,13 +133,19 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 4. 持仓收益金额（累计总收益，红色为正，绿色为负）
 5. 持仓金额
 
+⚠️ 【关键】基金名称格式规范：
+- 使用半角括号 () 而不是全角括号（）
+- 南方基金格式：南方纳斯达克100指数发起 (QDII) A （注意空格位置）
+- 建信基金格式：建信纳斯达克100指数QDII A （注意QDII和A之间有空格）
+- 摩根基金格式：摩根纳斯达克100指数(QDII)人民币A （括号前后无空格）
+
 请以JSON格式返回结果，不要包含markdown代码块标记，直接返回纯JSON：
 
 {
   "source": "cmb",
   "funds": [
     {
-      "fundName": "基金名称（保留括号，如：摩根纳斯达克100指数(QDII)人民币A）",
+      "fundName": "基金名称（使用半角括号，注意空格）",
       "fundCode": "基金代码",
       "assetType": "nasdaq",
       "dailyProfitLoss": 昨日收益金额（数字，正数或负数）,
@@ -167,7 +173,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "confidence": 0.95
 }
 
-【示例2 - 列表视图】：
+【示例2 - 列表视图（建信）】：
 如果看到：
 建信纳斯达克100指数QDIIA
 昨日收益  65.10          35,875.87
@@ -175,16 +181,17 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 
 应该返回：
 {
-  "fundName": "建信纳斯达克100指数QDIIA",
-  "fundCode": "QDIIA",
+  "fundName": "建信纳斯达克100指数QDII A",
+  "fundCode": "QDII",
   "assetType": "nasdaq",
   "dailyProfitLoss": 65.10,
   "profitLoss": -424.13,
   "totalValue": 35875.87,
   "confidence": 0.95
 }
+注意：建信基金的QDII和A之间要加空格！
 
-【示例3 - 详情视图】：
+【示例3 - 详情视图（南方）】：
 如果看到：
 南方纳斯达克100指数发起（QDII）A
 持仓金额              当前市值
@@ -196,7 +203,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 
 应该返回：
 {
-  "fundName": "南方纳斯达克100指数发起（QDII）A",
+  "fundName": "南方纳斯达克100指数发起 (QDII) A",
   "fundCode": "QDII",
   "assetType": "nasdaq",
   "dailyProfitLoss": 15.70,
@@ -204,6 +211,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "totalValue": 31400.00,
   "confidence": 0.95
 }
+注意：南方基金要把全角括号（）改成半角括号 ()，并且(QDII)前后、A前面都要有空格！
 
 ⚠️ 重要提醒：
 - 招商银行有两种视图格式，请根据实际截图判断
@@ -211,6 +219,9 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - 详情视图：持仓金额在第二行左侧，昨日收益在第三行左侧
 - 基金名称中包含"纳斯达克"、"QDII"的，assetType 设为 "nasdaq"
 - 其他基金 assetType 设为 "astock"
+- 必须使用半角括号 () 而不是全角括号（）
+- 南方基金：(QDII) 前后要有空格，A/C/I 前面要有空格
+- 建信基金：QDII 和 A 之间要有空格
 
 请现在开始识别截图中的所有基金信息。`;
 
@@ -250,17 +261,60 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
         return true;
       })
       .map((fund: any) => {
+        // 标准化基金名称格式
+        let normalizedName = fund.fundName.trim();
+        
+        console.log(`【标准化前】原始名称: "${normalizedName}"`);
+        
+        // 1. 将全角括号转换为半角括号
+        normalizedName = normalizedName.replace(/（/g, '(').replace(/）/g, ')');
+        console.log(`【步骤1】转换括号后: "${normalizedName}"`);
+        
+        // 2. 处理南方基金：确保 (QDII) 前后有空格，A/C/I 前面有空格
+        if (normalizedName.includes('南方纳斯达克')) {
+          console.log(`【检测到】南方基金`);
+          // 先移除所有空格
+          normalizedName = normalizedName.replace(/\s+/g, '');
+          console.log(`【步骤2.1】移除空格: "${normalizedName}"`);
+          
+          // 在 (QDII) 前后添加空格
+          normalizedName = normalizedName.replace(/\(QDII\)/g, ' (QDII) ');
+          console.log(`【步骤2.2】添加(QDII)空格: "${normalizedName}"`);
+          
+          // 在 A/C/I 前添加空格
+          normalizedName = normalizedName.replace(/\(QDII\)\s*([ACI])$/g, '(QDII) $1');
+          console.log(`【步骤2.3】添加字母前空格: "${normalizedName}"`);
+          
+          // 清理多余空格
+          normalizedName = normalizedName.replace(/\s+/g, ' ').trim();
+          console.log(`【步骤2.4】清理空格: "${normalizedName}"`);
+        }
+        
+        // 3. 处理建信基金：确保 QDII 和 A 之间有空格
+        if (normalizedName.includes('建信纳斯达克')) {
+          console.log(`【检测到】建信基金`);
+          // 先移除 QDII 后面的所有空格
+          normalizedName = normalizedName.replace(/QDII\s*/g, 'QDII');
+          console.log(`【步骤3.1】移除QDII后空格: "${normalizedName}"`);
+          
+          // QDIIA -> QDII A, QDIIC -> QDII C
+          normalizedName = normalizedName.replace(/QDII([ACI])$/g, 'QDII $1');
+          console.log(`【步骤3.2】添加字母前空格: "${normalizedName}"`);
+        }
+        
+        console.log(`【标准化后】最终名称: "${normalizedName}"`);
+        
         // 计算涨跌幅（基于昨日收益和持仓金额）
         let dailyChange = 0;
         if (fund.totalValue && fund.dailyProfitLoss) {
           dailyChange = (fund.dailyProfitLoss / fund.totalValue) * 100;
-          console.log(`计算涨跌幅: ${fund.fundName} = ${dailyChange.toFixed(4)}% (${fund.dailyProfitLoss} / ${fund.totalValue})`);
+          console.log(`计算涨跌幅: ${normalizedName} = ${dailyChange.toFixed(4)}% (${fund.dailyProfitLoss} / ${fund.totalValue})`);
         } else {
-          console.warn(`无法计算涨跌幅（缺少持仓金额）: ${fund.fundName}`);
+          console.warn(`无法计算涨跌幅（缺少持仓金额）: ${normalizedName}`);
         }
         
         return {
-          fundName: fund.fundName.trim(),
+          fundName: normalizedName,
           fundCode: fund.fundCode || undefined,
           assetType: fund.assetType === 'nasdaq' ? 'nasdaq' : 'astock',
           dailyChange: dailyChange,
