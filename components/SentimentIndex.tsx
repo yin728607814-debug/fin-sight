@@ -87,7 +87,7 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
       </div>
 
       {/* 趋势图表 */}
-      {history && history.data.length > 0 && (
+      {history && history.data && Array.isArray(history.data) && history.data.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
             7天情绪趋势
