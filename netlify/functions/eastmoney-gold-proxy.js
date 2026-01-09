@@ -50,14 +50,29 @@ exports.handler = async function(event, context) {
     const articles = [];
     
     // 查找所有新闻链接（黄金频道的新闻链接格式）
-    $('a[href*="gold.eastmoney.com/a/"], a[href*="finance.eastmoney.com/a/"]').each((_idx, element) => {
+    // 扩大选择器范围，包含所有可能的新闻链接
+    $('a[href*="/a/"]').each((_idx, element) => {
       try {
         const $link = $(element);
         const linkText = $link.text().trim();
         const titleAttr = $link.attr('title');
         // 优先使用title属性（完整标题），如果没有则使用链接文本
         const title = titleAttr || linkText || '';
-        const href = $link.attr('href') || '';
+        let href = $link.attr('href') || '';
+        
+        // 确保URL是完整的
+        if (href && !href.startsWith('http')) {
+          if (href.startsWith('//')) {
+            href = 'https:' + href;
+          } else if (href.startsWith('/')) {
+            href = 'https://gold.eastmoney.com' + href;
+          }
+        }
+        
+        // 只处理东方财富的链接
+        if (!href.includes('eastmoney.com')) {
+          return;
+        }
         
         // 调试：打印前3条的详细信息
         if (articles.length < 3) {
@@ -162,13 +177,27 @@ exports.handler = async function(event, context) {
         
         const $finance = cheerio.load(financeResponse.data);
         
-        $finance('a[href*="finance.eastmoney.com/a/"]').each((_idx, element) => {
+        $finance('a[href*="/a/"]').each((_idx, element) => {
           try {
             const $link = $finance(element);
             const linkText = $link.text().trim();
             const titleAttr = $link.attr('title');
             const title = titleAttr || linkText || '';
-            const href = $link.attr('href') || '';
+            let href = $link.attr('href') || '';
+            
+            // 确保URL是完整的
+            if (href && !href.startsWith('http')) {
+              if (href.startsWith('//')) {
+                href = 'https:' + href;
+              } else if (href.startsWith('/')) {
+                href = 'https://finance.eastmoney.com' + href;
+              }
+            }
+            
+            // 只处理东方财富的链接
+            if (!href.includes('eastmoney.com')) {
+              return;
+            }
             
             // 黄金相关关键词过滤
             const goldKeywords = ['黄金', '金价', '贵金属', '白银', '现货金', 'XAUUSD', '伦敦金', '美元金'];

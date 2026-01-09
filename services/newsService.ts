@@ -253,7 +253,7 @@ export class NewsService implements INewsService {
     console.log('📡 开始混合策略获取纳斯达克新闻');
     console.log('📋 优先级: 东方财富 → 新浪财经 → Finnhub');
     
-    let allNews: NewsItem[] = [];
+    const allNews: NewsItem[] = [];
     
     // 第一优先级：东方财富美股专页
     try {
@@ -332,7 +332,7 @@ export class NewsService implements INewsService {
     console.log('📡 开始混合策略获取黄金新闻');
     console.log('📋 优先级: 东方财富黄金频道 → 新浪财经 → Finnhub');
     
-    let allNews: NewsItem[] = [];
+    const allNews: NewsItem[] = [];
     
     // 第一优先级：东方财富黄金频道
     try {
@@ -717,11 +717,11 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 使用Finnhub获取纳斯达克新闻
+   * 使用Finnhub获取纳斯达克新闻（通过代理）
    */
   private async fetchFinnhubNews(limit: number = 50): Promise<NewsItem[]> {
     try {
-      console.log('📡 调用Finnhub News API');
+      console.log('📡 调用Finnhub News Proxy');
       
       // 纳斯达克100主要成分股
       const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'NFLX', 'AMD', 'INTC'];
@@ -734,31 +734,30 @@ export class NewsService implements INewsService {
       const formatDate = (date: Date) => date.toISOString().split('T')[0];
       
       // 并发获取多个股票的新闻
-      const allNews: unknown[] = [];
+      const allNews: any[] = [];
       
       // 每次获取2个股票的新闻，避免超过速率限制
       for (let i = 0; i < Math.min(tickers.length, 4); i += 2) {
         const batch = tickers.slice(i, i + 2);
         
         const batchPromises = batch.map(ticker =>
-          axios.get('https://finnhub.io/api/v1/company-news', {
+          axios.get('/.netlify/functions/finnhub-news-proxy', {
             params: {
               symbol: ticker,
               from: formatDate(fromDate),
-              to: formatDate(toDate),
-              token: config.apiKeys.finnhub
+              to: formatDate(toDate)
             },
             timeout: this.config.timeout
           }).catch(err => {
             console.warn(`⚠️ 获取${ticker}新闻失败`, err.message);
-            return { data: [] };
+            return { data: { articles: [] } };
           })
         );
         
         const batchResults = await Promise.all(batchPromises);
         batchResults.forEach(response => {
-          if (Array.isArray(response.data)) {
-            allNews.push(...response.data);
+          if (response.data?.articles && Array.isArray(response.data.articles)) {
+            allNews.push(...response.data.articles);
           }
         });
         
@@ -784,7 +783,7 @@ export class NewsService implements INewsService {
         .sort((a, b) => b.datetime - a.datetime)
         .slice(0, limit);
 
-      const newsItems = sortedNews.map((article: unknown, index: number) => {
+      const newsItems = sortedNews.map((article: any, index: number) => {
         // 使用 URL 生成稳定的 ID（不使用时间戳）
         const stableId = article.url 
           ? `finnhub_news_${this.hashString(article.url)}`
@@ -807,82 +806,44 @@ export class NewsService implements INewsService {
       return newsItems;
       
     } catch (error) {
-      console.error('❌ Finnhub API调用失败', error);
+      console.error('❌ Finnhub Proxy调用失败', error);
       throw error;
     }
   }
 
   /**
-   * 使用Finnhub获取黄金新闻
+   * 使用Finnhub获取黄金新闻（通过代理）
    */
   private async fetchFinnhubGoldNews(limit: number = 50): Promise<NewsItem[]> {
     try {
-      console.log('📡 调用Finnhub获取黄金新闻');
+      console.log('📡 调用Finnhub Gold Proxy');
       
-      // 黄金相关的搜索词
-      const categories = ['forex', 'general'];
-      
-      // 获取最近7天的新闻
-      const toDate = new Date();
-      const fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() - 7);
-      
-      const formatDate = (date: Date) => date.toISOString().split('T')[0];
-      
-      // 获取通用新闻，然后过滤黄金相关的
-      const allNews: unknown[] = [];
-      
-      for (const category of categories) {
-        try {
-          const response = await axios.get('https://finnhub.io/api/v1/news', {
-            params: {
-              category: category,
-              token: config.apiKeys.finnhub
-            },
-            timeout: this.config.timeout
-          });
-          
-          if (Array.isArray(response.data)) {
-            allNews.push(...response.data);
-          }
-          
-          // 避免速率限制
-          await this.sleep(1000);
-        } catch (err) {
-          console.warn(`⚠️ 获取${category}新闻失败`, err.message);
-        }
-      }
-
-      console.log('📡 Finnhub黄金新闻响应', { totalNews: allNews.length });
-
-      if (allNews.length === 0) {
-        throw new Error('Finnhub API未返回黄金新闻数据');
-      }
-
-      // 过滤黄金相关新闻
-      const goldRelatedNews = allNews.filter((article: unknown) => {
-        const headline = (article.headline || '').toLowerCase();
-        const summary = (article.summary || '').toLowerCase();
-        const goldKeywords = ['gold', 'xauusd', 'precious metal', 'bullion', 'gold price', 'gold market'];
-        return goldKeywords.some(kw => headline.includes(kw) || summary.includes(kw));
+      const response = await axios.get('/.netlify/functions/finnhub-gold-proxy', {
+        timeout: this.config.timeout
       });
 
-      console.log('✂️ 黄金相关新闻过滤', { 
-        原始: allNews.length, 
-        过滤后: goldRelatedNews.length 
+      console.log('📡 Finnhub Gold Proxy响应', { 
+        status: response.data?.status,
+        totalNews: response.data?.total || 0
       });
+
+      if (!response.data?.articles || response.data.articles.length === 0) {
+        throw new Error('Finnhub Gold Proxy未返回黄金新闻数据');
+      }
+
+      const allNews = response.data.articles;
 
       // 去重（按URL）
       const uniqueNews = Array.from(
-        new Map(goldRelatedNews.map(item => [item.url, item])).values()
+        new Map(allNews.map((item: any) => [item.url, item])).values()
       );
 
       // 按时间排序，取最新的
       const sortedNews = uniqueNews
-        .sort((a, b) => b.datetime - a.datetime)
+        .sort((a: any, b: any) => b.datetime - a.datetime)
         .slice(0, limit);
 
-      const newsItems = sortedNews.map((article: unknown, index: number) => {
+      const newsItems = sortedNews.map((article: any, index: number) => {
         // 使用 URL 生成稳定的 ID（不使用时间戳）
         const stableId = article.url 
           ? `finnhub_gold_${this.hashString(article.url)}`
@@ -905,7 +866,7 @@ export class NewsService implements INewsService {
       return newsItems;
       
     } catch (error) {
-      console.error('❌ Finnhub黄金API调用失败', error);
+      console.error('❌ Finnhub Gold Proxy调用失败', error);
       throw error;
     }
   }
