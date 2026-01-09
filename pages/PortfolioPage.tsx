@@ -13,6 +13,7 @@ import { AddPositionModal } from '../components/AddPositionModal';
 import { EditPositionModal } from '../components/EditPositionModal';
 import { GoldSummary } from '../components/GoldSummary';
 import { MigrationPrompt } from '../components/MigrationPrompt';
+import { ImageUploadAnalyzer, AnalysisResult } from '../components/ImageUploadAnalyzer';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
 import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion';
 import { usePortfolioWithSupabase } from '../hooks/usePortfolioWithSupabase';
@@ -558,6 +559,98 @@ export const PortfolioPage: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * 处理图片分析完成
+   */
+  const handleImageAnalysisComplete = async (results: AnalysisResult[]) => {
+    console.log('📸 收到图片分析结果:', results);
+    
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const result of results) {
+      try {
+        // 查找匹配的持仓
+        const matchingPosition = supabasePositions.find(p => {
+          // 精确匹配基金名称
+          if (p.fundName === result.fundName) return true;
+          
+          // 如果有基金代码，也尝试匹配
+          if (result.fundCode && p.fundCode === result.fundCode) return true;
+          
+          // 模糊匹配（去除空格后比较）
+          const normalizedFundName = result.fundName.replace(/\s+/g, '');
+          const normalizedPositionName = p.fundName?.replace(/\s+/g, '') || '';
+          if (normalizedFundName === normalizedPositionName) return true;
+          
+          return false;
+        });
+
+        if (!matchingPosition) {
+          failedCount++;
+          errors.push(`${result.fundName}: 未找到匹配的持仓`);
+          console.warn(`⚠️ 未找到匹配的持仓: ${result.fundName}`);
+          continue;
+        }
+
+        console.log(`✅ 找到匹配持仓: ${matchingPosition.fundName} (${matchingPosition.id})`);
+
+        // 获取当前日期
+        const today = new Date().toISOString().split('T')[0];
+        
+        // 检测是否跨日
+        const lastUpdateDate = lastUpdateDateRef.current;
+        const isCrossDay = lastUpdateDate && lastUpdateDate !== today;
+        
+        // 计算新的持仓收益
+        let newProfitLoss = matchingPosition.profitLoss;
+        
+        if (isCrossDay) {
+          // 跨日：累加昨天的当日收益到持仓收益
+          console.log(`📅 检测到跨日更新 (${lastUpdateDate} → ${today})`);
+          newProfitLoss = matchingPosition.profitLoss + (matchingPosition.dailyProfitLoss || 0);
+          console.log(`  昨日当日收益: ¥${matchingPosition.dailyProfitLoss?.toFixed(2)}`);
+          console.log(`  新持仓收益: ¥${newProfitLoss.toFixed(2)}`);
+        }
+
+        // 更新持仓数据
+        const updatedPosition: Position = {
+          ...matchingPosition,
+          dailyChange: result.dailyChange,
+          dailyProfitLoss: result.dailyProfitLoss,
+          profitLoss: newProfitLoss
+        };
+
+        // 更新到数据库（使用 Supabase）
+        await updateSupabasePosition(matchingPosition.id, updatedPosition);
+        
+        successCount++;
+        console.log(`✅ 更新成功: ${result.fundName}`);
+        
+      } catch (error) {
+        failedCount++;
+        const errorMsg = `${result.fundName}: ${error instanceof Error ? error.message : '未知错误'}`;
+        errors.push(errorMsg);
+        console.error(`❌ 更新失败: ${errorMsg}`);
+      }
+    }
+
+    // 更新最后更新日期
+    lastUpdateDateRef.current = new Date().toISOString().split('T')[0];
+
+    // 刷新页面数据
+    await refetchSupabase();
+    await loadPortfolio();
+
+    // 显示结果提示
+    if (successCount > 0) {
+      alert(`✅ 成功更新 ${successCount} 个基金的收益数据！${failedCount > 0 ? `\n\n⚠️ ${failedCount} 个基金更新失败:\n${errors.join('\n')}` : ''}`);
+    } else {
+      alert(`❌ 所有基金更新失败:\n${errors.join('\n')}`);
+    }
+  };
+
   const history = portfolioService.getPortfolioHistory(30);
 
   // 根据Tab过滤持仓
@@ -979,6 +1072,9 @@ export const PortfolioPage: React.FC = () => {
               </div>
               
               <div className="p-6">
+                {/* AI 智能识图更新收益 */}
+                <ImageUploadAnalyzer onAnalysisComplete={handleImageAnalysisComplete} />
+                
                 {portfolio && (
                   <PositionList
                     positions={filteredPositions}
