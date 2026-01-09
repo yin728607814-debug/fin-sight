@@ -221,7 +221,7 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
           {/* 右侧：价格趋势和情绪指数 */}
           <div className="xl:col-span-2 space-y-6">
             {/* 情绪指数 */}
-            {analysis && analysis.length > 0 && (
+            {analysis && Array.isArray(analysis) && analysis.length > 0 && (
               <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
                 <div className="px-6 py-4 border-b border-white/20">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
