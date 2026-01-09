@@ -107,15 +107,24 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
     const mimeType = file.type;
 
     // 构建提示词
-    const prompt = `请仔细分析这张基金收益截图，提取以下信息：
+    const prompt = `请仔细分析这张基金收益截图，这是一张招商银行或支付宝APP的基金持仓列表。
 
-1. 识别这是招商银行APP还是支付宝APP的截图
-2. 提取所有可见基金的以下信息：
-   - 基金名称（完整名称）
-   - 基金代码（如果有）
-   - 当日涨跌幅（百分比）
-   - 当日收益金额（人民币）
-   - 持仓市值（如果有）
+【重要】截图格式说明：
+- 招商银行格式：每个基金显示"基金名称"、"昨日收益"（红色或绿色数字）、"持仓收益"、"持仓金额"
+- 支付宝格式：每个基金显示"基金名称"、"日收益"、"持仓收益"、"持仓金额"
+
+请提取所有可见基金的以下信息：
+1. 基金名称（完整名称，包括括号内的代码）
+2. 基金代码（如果基金名称中有括号，提取括号内的代码）
+3. 昨日收益或日收益的金额（红色表示正收益，绿色表示负收益）
+4. 根据昨日收益金额和持仓金额计算涨跌幅
+
+【识别规则】：
+- 招商银行截图中，"昨日收益"就是我们需要的"当日收益"
+- 支付宝截图中，"日收益"就是我们需要的"当日收益"
+- 红色数字表示正收益（盈利），绿色数字表示负收益（亏损）
+- 基金名称中如果包含"纳斯达克"、"QDII"、"美股"等关键词，assetType 设为 "nasdaq"
+- 其他基金 assetType 设为 "astock"
 
 请以JSON格式返回结果，不要包含markdown代码块标记，直接返回纯JSON：
 
@@ -123,24 +132,35 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "source": "cmb" 或 "alipay",
   "funds": [
     {
-      "fundName": "基金完整名称",
-      "fundCode": "基金代码（可选）",
+      "fundName": "基金完整名称（不含括号和代码）",
+      "fundCode": "基金代码（从括号中提取，如QDII、QDIIA等）",
       "assetType": "nasdaq" 或 "astock",
-      "dailyChange": 当日涨跌幅（数字，如 1.23 表示 1.23%）,
-      "dailyProfitLoss": 当日收益金额（数字，如 123.45）,
-      "totalValue": 持仓市值（可选，数字）,
+      "dailyChange": 涨跌幅百分比（数字，根据昨日收益/持仓金额计算，如果昨日收益是35.52，持仓金额是51399.52，则涨跌幅约为0.069%）,
+      "dailyProfitLoss": 昨日收益金额（数字，红色为正数，绿色为负数，如 35.52 或 -90.48）,
+      "totalValue": 持仓金额（数字，如 51399.52）,
       "confidence": 识别置信度（0-1之间的数字）
     }
   ]
 }
 
-注意：
-- 如果是招商银行的截图，通常是纳斯达克相关基金，assetType 设为 "nasdaq"
-- 如果是支付宝的截图，通常是A股基金，assetType 设为 "astock"
-- 涨跌幅请转换为数字（如 +1.23% 转为 1.23，-0.56% 转为 -0.56）
-- 收益金额请转换为数字（如 +¥123.45 转为 123.45，-¥56.78 转为 -56.78）
-- 如果无法识别某个字段，请设置为 null
-- confidence 表示识别的置信度，范围 0-1`;
+【示例】：
+如果看到：
+- 基金名称：摩根纳斯达克100指数(QDII)人民币A
+- 昨日收益：35.52（红色）
+- 持仓金额：51,399.52
+
+应该返回：
+{
+  "fundName": "摩根纳斯达克100指数人民币A",
+  "fundCode": "QDII",
+  "assetType": "nasdaq",
+  "dailyChange": 0.069,
+  "dailyProfitLoss": 35.52,
+  "totalValue": 51399.52,
+  "confidence": 0.95
+}
+
+请现在开始识别截图中的所有基金信息。`;
 
     // 调用 Gemini Vision API
     console.log('🤖 调用 Gemini Vision API...');
@@ -163,20 +183,44 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
     // 验证和清理数据
     const results: AnalysisResult[] = parsed.funds
       .filter((fund: any) => {
-        // 必须有基金名称和收益数据
-        return fund.fundName && 
-               typeof fund.dailyChange === 'number' && 
-               typeof fund.dailyProfitLoss === 'number';
+        // 至少要有基金名称
+        if (!fund.fundName) {
+          console.warn('跳过：缺少基金名称', fund);
+          return false;
+        }
+        
+        // 至少要有收益金额
+        if (typeof fund.dailyProfitLoss !== 'number') {
+          console.warn('跳过：缺少收益金额', fund);
+          return false;
+        }
+        
+        return true;
       })
-      .map((fund: any) => ({
-        fundName: fund.fundName,
-        fundCode: fund.fundCode || undefined,
-        assetType: fund.assetType === 'nasdaq' ? 'nasdaq' : 'astock',
-        dailyChange: fund.dailyChange,
-        dailyProfitLoss: fund.dailyProfitLoss,
-        totalValue: fund.totalValue || undefined,
-        confidence: fund.confidence || 0.8
-      }));
+      .map((fund: any) => {
+        // 如果没有涨跌幅，尝试从收益金额和持仓金额计算
+        let dailyChange = fund.dailyChange;
+        if (typeof dailyChange !== 'number' && fund.totalValue && fund.dailyProfitLoss) {
+          dailyChange = (fund.dailyProfitLoss / fund.totalValue) * 100;
+          console.log(`计算涨跌幅: ${fund.fundName} = ${dailyChange.toFixed(4)}%`);
+        }
+        
+        // 如果还是没有涨跌幅，设为0
+        if (typeof dailyChange !== 'number') {
+          dailyChange = 0;
+          console.warn(`无法计算涨跌幅，设为0: ${fund.fundName}`);
+        }
+        
+        return {
+          fundName: fund.fundName.trim(),
+          fundCode: fund.fundCode || undefined,
+          assetType: fund.assetType === 'nasdaq' ? 'nasdaq' : 'astock',
+          dailyChange: dailyChange,
+          dailyProfitLoss: fund.dailyProfitLoss,
+          totalValue: fund.totalValue || undefined,
+          confidence: fund.confidence || 0.8
+        };
+      });
 
     console.log('✅ 识别完成，共识别', results.length, '个基金');
     
