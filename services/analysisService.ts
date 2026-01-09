@@ -1334,7 +1334,9 @@ ${newsText}
     console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
     // 详细的prompt，要求深入分析
-    const prompt = `你是专业的金融分析师。请深入分析以下${newsList.length}条${assetName}新闻，提供详细的市场洞察。
+    const prompt = `你是专业的金融分析师。请深入分析以下${newsList.length}条关于${assetName}的新闻，提供详细的市场洞察。
+
+**重要提示：你正在分析的是${assetName}，请确保所有分析、建议和预测都是针对${assetName}的，不要提及其他市场或指数。**
 
 新闻内容：
 ${finalNewsText}
@@ -1343,21 +1345,22 @@ ${finalNewsText}
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "综合市场分析（250-350字）：深入分析当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对市场的综合影响",
-  "investmentAdvice": "投资建议（200-300字）：基于当前分析，提供具体的投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
-  "keyFactors": ["关键因素1：具体说明影响机制", "关键因素2：具体说明影响机制", "关键因素3：具体说明影响机制", "关键因素4：具体说明影响机制"],
+  "summary": "综合市场分析（250-350字）：深入分析${assetName}当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对${assetName}的综合影响",
+  "investmentAdvice": "投资建议（200-300字）：基于当前分析，提供针对${assetName}的具体投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
+  "keyFactors": ["关键因素1：具体说明对${assetName}的影响机制", "关键因素2：具体说明对${assetName}的影响机制", "关键因素3：具体说明对${assetName}的影响机制", "关键因素4：具体说明对${assetName}的影响机制"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "趋势预测（150-250字）：预测未来价格走势，说明支撑位和阻力位，以及可能的突破方向和时间点"
+  "predictedTrend": "趋势预测（150-250字）：预测${assetName}未来价格走势，说明支撑位和阻力位，以及可能的突破方向和时间点"
 }
 
 分析要求：
 1. 只返回一个完整的JSON对象
 2. 确保JSON格式完整，所有字段都有值
-3. 分析要深入、具体、详细，避免泛泛而谈
-4. keyFactors要具体说明每个因素的影响机制和传导路径
-5. 投资建议要实用、可操作、有针对性
-6. 趋势预测要有具体的价格区间和时间预期`;
+3. 所有分析必须针对${assetName}，不要提及其他市场或指数
+4. 分析要深入、具体、详细，避免泛泛而谈
+5. keyFactors要具体说明每个因素对${assetName}的影响机制和传导路径
+6. 投资建议要针对${assetName}，实用、可操作、有针对性
+7. 趋势预测要有${assetName}的具体价格区间和时间预期`;
 
     try {
       // 添加请求前的日志
