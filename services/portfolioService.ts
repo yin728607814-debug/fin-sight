@@ -204,7 +204,10 @@ export class PortfolioService {
       if (position.assetType === 'nasdaq') {
         // 纳斯达克：持仓金额 + 持仓收益 = 当前市值
         const positionValue = investment + position.profitLoss;
-        const profitLossPercent = investment > 0 ? (position.profitLoss / investment) * 100 : 0;
+        // 优先使用数据库中的收益率，如果没有则自动计算
+        const profitLossPercent = position.profitLossPercent !== undefined 
+          ? position.profitLossPercent 
+          : (investment > 0 ? (position.profitLoss / investment) * 100 : 0);
 
         // 保留数据库中的当日收益数据，不自动计算
         // 只有当数据库中没有数据时，才尝试从价格计算
@@ -255,11 +258,16 @@ export class PortfolioService {
         // 如果没有当前价格，使用用户输入的持仓收益
         const positionValue = investment + (position.profitLoss || 0);
         currentValue += positionValue;
+        // 优先使用数据库中的收益率，如果没有则自动计算
+        const profitLossPercent = position.profitLossPercent !== undefined
+          ? position.profitLossPercent
+          : (investment > 0 ? ((position.profitLoss || 0) / investment) * 100 : 0);
+        
         return {
           ...position,  // 保留所有原始字段，包括 dailyProfitLoss 和 dailyChange
           currentValue: positionValue,
           profitLoss: position.profitLoss || 0,
-          profitLossPercent: investment > 0 ? ((position.profitLoss || 0) / investment) * 100 : 0
+          profitLossPercent
         };
       }
     });
