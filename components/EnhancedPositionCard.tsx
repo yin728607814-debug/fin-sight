@@ -128,32 +128,46 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
 
       {/* 基本信息 */}
       <div className="grid grid-cols-2 gap-4 mb-4">
-        {/* 持仓金额 */}
-        <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">持仓金额</p>
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {formatCurrency(position.investmentAmount)}
-          </p>
-        </div>
+        {/* 纳斯达克基金：只显示持仓金额和昨日收益 */}
+        {position.assetType === 'nasdaq' ? (
+          <>
+            {/* 持仓金额 */}
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">持仓金额</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {formatCurrency(position.investmentAmount)}
+              </p>
+            </div>
 
-        {/* 当前市值 */}
-        <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当前市值</p>
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {position.currentValue ? formatCurrency(position.currentValue) : '-'}
-          </p>
-        </div>
+            {/* 昨日收益 */}
+            {position.dailyProfitLoss !== undefined && (
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">昨日收益</p>
+                <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {position.dailyProfitLoss >= 0 ? '+' : ''}
+                  {formatCurrency(Math.abs(position.dailyProfitLoss))}
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* 其他资产：显示持仓金额和当前市值 */}
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">持仓金额</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {formatCurrency(position.investmentAmount)}
+              </p>
+            </div>
 
-        {/* 纳斯达克基金：只显示昨日收益，不显示收益率 */}
-        {position.assetType === 'nasdaq' && position.dailyProfitLoss !== undefined ? (
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">昨日收益</p>
-            <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-              {position.dailyProfitLoss >= 0 ? '+' : ''}
-              {formatCurrency(Math.abs(position.dailyProfitLoss))}
-            </p>
-          </div>
-        ) : null}
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当前市值</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {position.currentValue ? formatCurrency(position.currentValue) : '-'}
+              </p>
+            </div>
+          </>
+        )}
 
         {/* A股基金：显示当日收益和当天收益率 */}
         {position.assetType === 'astock' && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
