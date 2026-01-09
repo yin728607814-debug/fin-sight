@@ -280,3 +280,5 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
     </div>
   );
 };
+
+export default AStockAnalysisPage;
