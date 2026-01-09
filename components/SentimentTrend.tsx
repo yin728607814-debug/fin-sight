@@ -47,7 +47,7 @@ export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
   };
 
   // 准备图表数据 - 过滤无效数据
-  const chartData = history.data
+  const chartData = (history?.data || [])
     .filter((item) => {
       if (!item || typeof item !== 'object') {
         return false;
