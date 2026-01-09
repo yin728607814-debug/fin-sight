@@ -28,21 +28,34 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
 
   // 计算情绪指数
   useEffect(() => {
-    if (analyses && Array.isArray(analyses) && analyses.length > 0) {
-      const data = sentimentService.calculateSentiment(analyses);
-      setSentimentData(data);
+    try {
+      if (analyses && Array.isArray(analyses) && analyses.length > 0) {
+        const data = sentimentService.calculateSentiment(analyses);
+        setSentimentData(data);
 
-      // 自动保存到历史记录
-      if (autoSave) {
-        sentimentService.saveSentimentSnapshot(assetType, data);
+        // 自动保存到历史记录
+        if (autoSave) {
+          sentimentService.saveSentimentSnapshot(assetType, data);
+        }
+      } else {
+        // 如果没有分析数据，设置为null
+        setSentimentData(null);
       }
+    } catch (error) {
+      console.error('计算情绪指数失败:', error);
+      setSentimentData(null);
     }
   }, [analyses, assetType, autoSave]);
 
   // 加载历史记录
   useEffect(() => {
-    const historyData = sentimentService.getSentimentHistory(assetType, 7);
-    setHistory(historyData);
+    try {
+      const historyData = sentimentService.getSentimentHistory(assetType, 7);
+      setHistory(historyData);
+    } catch (error) {
+      console.error('加载情绪历史失败:', error);
+      setHistory(null);
+    }
   }, [assetType, sentimentData]); // 当情绪数据更新时，重新加载历史
 
   if (!sentimentData) {
