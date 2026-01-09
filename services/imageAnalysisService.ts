@@ -115,17 +115,15 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - 第一行：基金名称（如：摩根纳斯达克100指数(QDII)人民币A）
 - 第二行左侧：昨日收益（红色表示盈利，绿色表示亏损，如：35.52 或 -90.48）
 - 第二行右侧：持仓金额（如：51,399.52）
-- 第三行左侧：持仓收益（这是累计总收益，不要提取这个）
-
-⚠️ 注意区分：
-- "昨日收益"：这是我们需要的，表示昨天一天的收益
-- "持仓收益"：这是累计总收益，不要提取
+- 第三行左侧：持仓收益（累计总收益，如：-90.48）
+- 第三行右侧：持仓金额标签
 
 请提取所有可见基金的以下信息：
 1. 基金名称（完整名称，去掉括号和代码部分）
 2. 基金代码（从括号中提取，如 QDII、QDIIA 等）
 3. 昨日收益金额（第二行左侧的数字，红色为正，绿色为负）
-4. 持仓金额（第二行右侧的数字）
+4. 持仓收益金额（第三行左侧的数字，红色为正，绿色为负）
+5. 持仓金额（第二行右侧的数字）
 
 请以JSON格式返回结果，不要包含markdown代码块标记，直接返回纯JSON：
 
@@ -137,6 +135,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
       "fundCode": "基金代码",
       "assetType": "nasdaq",
       "dailyProfitLoss": 昨日收益金额（数字，正数或负数）,
+      "profitLoss": 持仓收益金额（数字，正数或负数）,
       "totalValue": 持仓金额（数字）,
       "confidence": 0.95
     }
@@ -155,6 +154,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "fundCode": "QDII",
   "assetType": "nasdaq",
   "dailyProfitLoss": 35.52,
+  "profitLoss": -90.48,
   "totalValue": 51399.52,
   "confidence": 0.95
 }
@@ -171,14 +171,15 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "fundCode": "QDIIA",
   "assetType": "nasdaq",
   "dailyProfitLoss": 65.10,
+  "profitLoss": -424.13,
   "totalValue": 35875.87,
   "confidence": 0.95
 }
 
 ⚠️ 重要提醒：
-- 只提取"昨日收益"，不要提取"持仓收益"
-- 昨日收益在第二行左侧
-- 持仓金额在第二行右侧
+- 提取"昨日收益"（第二行左侧）
+- 提取"持仓收益"（第三行左侧）
+- 提取"持仓金额"（第二行右侧）
 - 基金名称中包含"纳斯达克"、"QDII"的，assetType 设为 "nasdaq"
 - 其他基金 assetType 设为 "astock"
 
@@ -211,9 +212,9 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
           return false;
         }
         
-        // 至少要有收益金额
+        // 至少要有昨日收益金额
         if (typeof fund.dailyProfitLoss !== 'number') {
-          console.warn('跳过：缺少收益金额', fund);
+          console.warn('跳过：缺少昨日收益金额', fund);
           return false;
         }
         
@@ -235,6 +236,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
           assetType: fund.assetType === 'nasdaq' ? 'nasdaq' : 'astock',
           dailyChange: dailyChange,
           dailyProfitLoss: fund.dailyProfitLoss,
+          profitLoss: typeof fund.profitLoss === 'number' ? fund.profitLoss : undefined,
           totalValue: fund.totalValue || undefined,
           confidence: fund.confidence || 0.8
         };

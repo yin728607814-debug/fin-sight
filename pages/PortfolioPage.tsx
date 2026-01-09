@@ -596,49 +596,23 @@ export const PortfolioPage: React.FC = () => {
 
         console.log(`✅ 找到匹配持仓: ${matchingPosition.fundName} (${matchingPosition.id})`);
         console.log(`  当前持仓收益: ¥${matchingPosition.profitLoss.toFixed(2)}`);
-        console.log(`  当前当日收益: ¥${(matchingPosition.dailyProfitLoss || 0).toFixed(2)}`);
+        console.log(`  当前持仓市值: ¥${matchingPosition.investmentAmount.toFixed(2)}`);
         console.log(`  AI识别昨日收益: ¥${result.dailyProfitLoss.toFixed(2)}`);
+        console.log(`  AI识别持仓收益: ¥${(result.profitLoss || 0).toFixed(2)}`);
+        console.log(`  AI识别持仓金额: ¥${(result.totalValue || 0).toFixed(2)}`);
 
-        // 获取当前日期
-        const today = new Date().toISOString().split('T')[0];
-        
-        // 检测是否跨日
-        const lastUpdateDate = lastUpdateDateRef.current;
-        const isCrossDay = lastUpdateDate && lastUpdateDate !== today;
-        
-        // 计算新的持仓收益
-        let newProfitLoss = matchingPosition.profitLoss;
-        
-        if (isCrossDay) {
-          // 跨日：累加昨天的当日收益到持仓收益
-          console.log(`📅 检测到跨日更新 (${lastUpdateDate} → ${today})`);
-          const yesterdayDailyProfit = matchingPosition.dailyProfitLoss || 0;
-          newProfitLoss = matchingPosition.profitLoss + yesterdayDailyProfit;
-          console.log(`  昨日当日收益: ¥${yesterdayDailyProfit.toFixed(2)}`);
-          console.log(`  新持仓收益: ¥${newProfitLoss.toFixed(2)}`);
-        } else {
-          // 同一天：持仓收益不变
-          console.log(`📅 同一天更新，持仓收益保持不变: ¥${newProfitLoss.toFixed(2)}`);
-        }
-
-        // 计算当日收益率（基于AI识别的昨日收益和持仓金额）
-        let dailyChangePercent = result.dailyChange;
-        if (typeof dailyChangePercent !== 'number' && result.totalValue) {
-          dailyChangePercent = (result.dailyProfitLoss / result.totalValue) * 100;
-          console.log(`  计算当日收益率: ${dailyChangePercent.toFixed(4)}%`);
-        }
-
-        // 更新持仓数据
+        // 更新持仓数据（直接使用AI识别的数据）
         const updatedPosition: Position = {
           ...matchingPosition,
-          dailyChange: dailyChangePercent || 0,
-          dailyProfitLoss: result.dailyProfitLoss,
-          profitLoss: newProfitLoss  // 只在跨日时更新，否则保持不变
+          dailyChange: 0,  // 不显示当日收益率
+          dailyProfitLoss: result.dailyProfitLoss,  // 昨日收益显示在当日收益位置
+          profitLoss: result.profitLoss !== undefined ? result.profitLoss : matchingPosition.profitLoss,  // 更新持仓收益
+          investmentAmount: result.totalValue !== undefined ? result.totalValue : matchingPosition.investmentAmount  // 更新持仓金额
         };
 
-        console.log(`  更新后当日收益: ¥${updatedPosition.dailyProfitLoss.toFixed(2)}`);
-        console.log(`  更新后当日收益率: ${updatedPosition.dailyChange.toFixed(4)}%`);
+        console.log(`  更新后昨日收益（显示为当日收益）: ¥${updatedPosition.dailyProfitLoss.toFixed(2)}`);
         console.log(`  更新后持仓收益: ¥${updatedPosition.profitLoss.toFixed(2)}`);
+        console.log(`  更新后持仓金额: ¥${updatedPosition.investmentAmount.toFixed(2)}`);
 
         // 更新到数据库（使用 Supabase）
         await updateSupabasePosition(matchingPosition.id, updatedPosition);
@@ -653,9 +627,6 @@ export const PortfolioPage: React.FC = () => {
         console.error(`❌ 更新失败: ${errorMsg}`);
       }
     }
-
-    // 更新最后更新日期
-    lastUpdateDateRef.current = new Date().toISOString().split('T')[0];
 
     // 刷新页面数据
     await refetchSupabase();

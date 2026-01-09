@@ -17,6 +17,7 @@ export interface AnalysisResult {
   assetType: 'nasdaq' | 'astock';
   dailyChange: number;
   dailyProfitLoss: number;
+  profitLoss?: number;  // 持仓收益（累计）
   totalValue?: number;
   confidence: number;
 }
