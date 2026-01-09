@@ -209,6 +209,10 @@ export class NewsService implements INewsService {
             // 黄金：使用混合策略（中文源优先）
             console.log('🚀 使用混合策略获取黄金新闻');
             newsItems = await this.fetchGoldNewsHybrid(limit);
+          } else if (assetType === 'astock') {
+            // A股：使用新浪财经A股新闻
+            console.log('🚀 使用新浪财经获取A股新闻');
+            newsItems = await this.fetchSinaAStockNews(limit);
           } else {
             // 其他资产：使用新浪财经
             console.log('🚀 使用新浪财经获取新闻');
@@ -402,6 +406,81 @@ export class NewsService implements INewsService {
     console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经补充`);
     
     return finalNews;
+  }
+
+  /**
+   * 获取新浪财经A股新闻
+   */
+  private async fetchSinaAStockNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/.netlify/functions/sina-news-proxy', {
+        params: { 
+          category: 'finance',
+          num: limit
+        },
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      // 只保留A股相关的新闻
+      const astockNews = response.data.articles
+        .filter((article: any) => {
+          const url = article.url || '';
+          const title = article.title || '';
+          const content = (article.description || article.content || '').toLowerCase();
+          
+          // A股相关关键词
+          const keywords = ['A股', 'a股', '沪指', '深指', '上证', '深证',
+                           '上证指数', '深证成指', '创业板', '科创板',
+                           '股市', '股票', '股价', '大盘', '指数',
+                           '涨跌', '行情', '交易', '成交',
+                           '证监会', '交易所', '上交所', '深交所',
+                           '白酒', '新能源', '半导体', '医药', '地产',
+                           '银行', '保险', '券商', '基金',
+                           '北向资金', '外资', '机构', '散户'];
+          
+          // URL过滤：A股路径（排除美股和港股）
+          const hasAStockURL = url.includes('/stock/') && 
+                              !url.includes('/usstock/') && 
+                              !url.includes('/hkstock/');
+          
+          // 如果URL匹配，直接保留
+          if (hasAStockURL) return true;
+          
+          // 否则检查关键词
+          const hasKeyword = keywords.some(kw => 
+            title.includes(kw) || content.includes(kw.toLowerCase())
+          );
+          
+          return hasKeyword;
+        })
+        .slice(0, limit)
+        .map((article: any, index: number) => {
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `sina_astock_${this.hashString(article.url)}`
+            : `sina_astock_${this.hashString(article.title)}_${index}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '新浪财经',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.5,
+            image: article.image
+          };
+        });
+
+      return astockNews;
+    } catch (error) {
+      console.error('新浪财经A股新闻获取失败:', error);
+      return [];
+    }
   }
 
   /**

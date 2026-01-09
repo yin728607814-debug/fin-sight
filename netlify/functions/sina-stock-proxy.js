@@ -1,6 +1,6 @@
 /**
  * Netlify函数 - 新浪财经股票/指数API代理
- * 获取A股指数（上证指数）价格数据
+ * 获取A股指数（上证指数）真实历史价格数据
  */
 
 const https = require('https');
@@ -23,16 +23,18 @@ exports.handler = async (event, _context) => {
     // 获取查询参数
     const { symbol = 'sh000001', range = '5d' } = event.queryStringParameters || {};
     
-    console.log('📊 获取新浪财经股票数据:', { symbol, range });
+    console.log('📊 获取新浪财经股票历史数据:', { symbol, range });
     
-    // 新浪财经股票API
-    // sh000001 = 上证指数
-    // sz399001 = 深证成指
-    // sz399006 = 创业板指
-    const apiUrl = `https://hq.sinajs.cn/list=${symbol}`;
+    // 使用新浪财经历史数据API
+    // 格式: https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=sh000001&scale=240&ma=no&datalen=5
+    // scale: 5=5分钟, 15=15分钟, 30=30分钟, 60=60分钟, 240=日线
+    // datalen: 返回数据条数
+    const historyUrl = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${symbol}&scale=240&ma=no&datalen=10`;
+    
+    console.log('🌐 请求历史数据API:', historyUrl);
     
     return new Promise((resolve, reject) => {
-      https.get(apiUrl, {
+      https.get(historyUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Referer': 'https://finance.sina.com.cn/'
@@ -46,106 +48,52 @@ exports.handler = async (event, _context) => {
         
         res.on('end', () => {
           try {
-            console.log('✅ 新浪财经API响应:', data.substring(0, 200));
+            console.log('✅ 新浪财经历史数据API响应:', data.substring(0, 300));
             
-            // 解析新浪财经返回的数据
-            // 格式: var hq_str_sh000001="上证指数,3104.82,3109.55,3091.41,3112.56,3088.21,0,0,..."
-            const match = data.match(/="([^"]+)"/);
-            if (!match) {
-              throw new Error('无法解析新浪财经数据');
+            // 解析JSON数据
+            const historyData = JSON.parse(data);
+            
+            if (!Array.isArray(historyData) || historyData.length === 0) {
+              throw new Error('历史数据格式错误或为空');
             }
             
-            const parts = match[1].split(',');
+            console.log('📊 解析到历史数据:', historyData.length, '条');
             
-            // 上证指数数据格式:
-            // 0: 指数名称
-            // 1: 今日开盘
-            // 2: 昨日收盘
-            // 3: 当前价格
-            // 4: 最高价
-            // 5: 最低价
-            // 6-29: 其他数据
-            // 30: 日期 (YYYY-MM-DD)
-            // 31: 时间 (HH:MM:SS)
-            
-            const indexName = parts[0];
-            const open = parseFloat(parts[1]);
-            const prevClose = parseFloat(parts[2]);
-            const current = parseFloat(parts[3]);
-            const high = parseFloat(parts[4]);
-            const low = parseFloat(parts[5]);
-            const date = parts[30];
-            const time = parts[31];
-            
-            const change = current - prevClose;
-            const changePercent = (change / prevClose) * 100;
-            
-            console.log('📈 解析后的数据:', {
-              name: indexName,
-              current,
-              open,
-              high,
-              low,
-              prevClose,
-              change,
-              changePercent,
-              date,
-              time
-            });
-            
-            // 由于新浪API只返回当日数据，我们需要生成近5天的历史数据
-            // 使用当前价格作为基准，生成合理的历史数据
-            const priceData = [];
-            const today = new Date();
-            
-            // 生成5个交易日的数据
-            for (let i = 4; i >= 0; i--) {
-              const targetDate = new Date(today);
-              targetDate.setDate(today.getDate() - i);
-              
-              // 跳过周末
-              const dayOfWeek = targetDate.getDay();
-              if (dayOfWeek === 0 || dayOfWeek === 6) {
-                continue;
-              }
-              
-              // 最后一天使用实时数据
-              if (i === 0) {
-                priceData.push({
-                  date: date || targetDate.toISOString().split('T')[0],
+            // 转换为标准格式
+            const priceData = historyData
+              .filter(item => item && item.day) // 过滤无效数据
+              .map(item => {
+                const open = parseFloat(item.open);
+                const high = parseFloat(item.high);
+                const low = parseFloat(item.low);
+                const close = parseFloat(item.close);
+                const volume = parseFloat(item.volume) || 0;
+                
+                return {
+                  date: item.day, // 格式: 2026-01-09
                   open: open.toFixed(2),
                   high: high.toFixed(2),
                   low: low.toFixed(2),
-                  close: current.toFixed(2),
-                  volume: '0',
-                  change: change.toFixed(2),
-                  changePercent: changePercent.toFixed(2)
-                });
-              } else {
-                // 历史数据：基于当前价格生成合理的波动
-                const dayFactor = 0.98 + Math.random() * 0.04; // ±2%波动
-                const dayClose = current * dayFactor;
-                const dayOpen = dayClose * (0.995 + Math.random() * 0.01);
-                const dayHigh = Math.max(dayOpen, dayClose) * (1 + Math.random() * 0.01);
-                const dayLow = Math.min(dayOpen, dayClose) * (1 - Math.random() * 0.01);
-                const dayChange = dayClose - dayOpen;
-                const dayChangePercent = (dayChange / dayOpen) * 100;
-                
-                priceData.push({
-                  date: targetDate.toISOString().split('T')[0],
-                  open: dayOpen.toFixed(2),
-                  high: dayHigh.toFixed(2),
-                  low: dayLow.toFixed(2),
-                  close: dayClose.toFixed(2),
-                  volume: '0',
-                  change: dayChange.toFixed(2),
-                  changePercent: dayChangePercent.toFixed(2)
-                });
-              }
+                  close: close.toFixed(2),
+                  volume: volume.toString(),
+                  change: (close - open).toFixed(2),
+                  changePercent: ((close - open) / open * 100).toFixed(2)
+                };
+              })
+              .slice(-5); // 只取最近5天
+            
+            if (priceData.length === 0) {
+              throw new Error('没有有效的历史数据');
             }
             
-            // 只保留最近5个交易日
-            const finalPriceData = priceData.slice(-5);
+            // 获取最新数据
+            const latestData = priceData[priceData.length - 1];
+            
+            console.log('✅ 历史数据转换完成:', {
+              总条数: priceData.length,
+              最新日期: latestData.date,
+              最新价格: latestData.close
+            });
             
             resolve({
               statusCode: 200,
@@ -155,21 +103,22 @@ exports.handler = async (event, _context) => {
               },
               body: JSON.stringify({
                 symbol: symbol,
-                name: indexName,
-                current: current.toFixed(2),
-                open: open.toFixed(2),
-                high: high.toFixed(2),
-                low: low.toFixed(2),
-                prevClose: prevClose.toFixed(2),
-                change: change.toFixed(2),
-                changePercent: changePercent.toFixed(2),
-                date: date,
-                time: time,
-                priceData: finalPriceData
+                name: '上证指数',
+                current: latestData.close,
+                open: latestData.open,
+                high: latestData.high,
+                low: latestData.low,
+                prevClose: priceData.length > 1 ? priceData[priceData.length - 2].close : latestData.open,
+                change: latestData.change,
+                changePercent: latestData.changePercent,
+                date: latestData.date,
+                time: '15:00:00',
+                priceData: priceData
               })
             });
           } catch (parseError) {
-            console.error('❌ 解析新浪财经数据失败:', parseError);
+            console.error('❌ 解析新浪财经历史数据失败:', parseError);
+            console.error('原始数据:', data.substring(0, 500));
             reject({
               statusCode: 500,
               headers: {
@@ -177,14 +126,15 @@ exports.handler = async (event, _context) => {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                error: '解析数据失败',
-                message: parseError.message
+                error: '解析历史数据失败',
+                message: parseError.message,
+                rawData: data.substring(0, 200)
               })
             });
           }
         });
       }).on('error', (error) => {
-        console.error('❌ 新浪财经API请求失败:', error);
+        console.error('❌ 新浪财经历史数据API请求失败:', error);
         reject({
           statusCode: 500,
           headers: {
@@ -192,7 +142,7 @@ exports.handler = async (event, _context) => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            error: '请求失败',
+            error: '请求历史数据失败',
             message: error.message
           })
         });

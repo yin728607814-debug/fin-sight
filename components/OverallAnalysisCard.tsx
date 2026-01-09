@@ -37,7 +37,11 @@ export const OverallAnalysisCard: React.FC<OverallAnalysisCardProps> = ({
     return null;
   }
 
-  const assetName = analysis.assetType === 'gold' ? '现货黄金' : '纳斯达克100';
+  const assetName = analysis.assetType === 'gold' 
+    ? '现货黄金' 
+    : analysis.assetType === 'astock' 
+      ? '上证指数' 
+      : '纳斯达克100';
 
   // 影响类型的样式映射
   const impactStyles: Record<ImpactType, { bg: string; text: string; icon: JSX.Element }> = {

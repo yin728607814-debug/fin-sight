@@ -28,7 +28,11 @@ export class AIPromptBuilder {
     context: ChatContext,
     conversationHistory: ChatMessage[] = []
   ): string {
-    const assetName = context.assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    const assetName = context.assetType === 'gold' 
+      ? '现货黄金(XAUUSD)' 
+      : context.assetType === 'astock' 
+        ? '上证指数(SSE)' 
+        : '纳斯达克100指数';
     
     // 构建对话历史部分
     const historyText = this.buildConversationHistory(conversationHistory);

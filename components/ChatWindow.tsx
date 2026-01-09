@@ -165,7 +165,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
               AI 投资顾问
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {context.assetType === 'gold' ? '现货黄金' : '纳斯达克100'} 专业分析
+              {context.assetType === 'gold' ? '现货黄金' : context.assetType === 'astock' ? '上证指数' : '纳斯达克100'} 专业分析
             </p>
           </div>
           <button

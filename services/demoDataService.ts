@@ -69,7 +69,41 @@ export function generateDemoNews(assetType: AssetType, count: number = 5): NewsI
     }
   ];
 
-  const newsData = assetType === 'gold' ? goldNews : nasdaqNews;
+  const astockNews = [
+    {
+      id: 'demo_astock_1',
+      title: 'A股市场企稳回升，上证指数收涨1.8%',
+      content: '在政策利好和资金回流的推动下，A股市场今日表现强劲。上证指数收涨1.8%，创业板指涨幅超过2%。市场信心逐步恢复。',
+      source: '中国证券报',
+      publishedAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1小时前
+      url: 'https://example.com/astock-news-1',
+      relevanceScore: 0.9
+    },
+    {
+      id: 'demo_astock_2',
+      title: '央行降准释放流动性，A股迎来利好',
+      content: '央行宣布下调存款准备金率0.5个百分点，释放长期资金约1万亿元。市场分析认为，此举将为A股市场带来积极影响。',
+      source: '财经日报',
+      publishedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3小时前
+      url: 'https://example.com/astock-news-2',
+      relevanceScore: 0.8
+    },
+    {
+      id: 'demo_astock_3',
+      title: '新能源板块领涨，A股结构性行情延续',
+      content: '新能源汽车、光伏等板块今日表现活跃，多只个股涨停。分析师认为，在政策支持下，新能源板块仍具备较大上涨空间。',
+      source: '上海证券报',
+      publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5小时前
+      url: 'https://example.com/astock-news-3',
+      relevanceScore: 0.7
+    }
+  ];
+
+  const newsData = assetType === 'gold' 
+    ? goldNews 
+    : assetType === 'astock' 
+      ? astockNews 
+      : nasdaqNews;
   return newsData.slice(0, count);
 }
 
@@ -176,13 +210,14 @@ export function generateDemoPriceData(assetType: AssetType, days: number = 5): P
       };
     });
   } else if (assetType === 'astock') {
-    // 使用真实的上证指数数据 - 2026年1月当前价格约4120点
+    // 使用真实的上证指数数据 - 2026年1月当前价格约3200点
+    // 上证指数历史最高点是2007年10月的6124点，从未达到过4197点
     const realAStockData = [
-      { date: '2026-01-06', open: 4086.76, high: 4105.23, low: 4075.12, close: 4095.34 },
-      { date: '2026-01-07', open: 4095.34, high: 4112.45, low: 4088.90, close: 4108.67 },
-      { date: '2026-01-08', open: 4108.67, high: 4118.89, low: 4098.23, close: 4115.45 },
-      { date: '2026-01-09', open: 4115.45, high: 4125.67, low: 4110.12, close: 4120.43 },
-      { date: '2026-01-10', open: 4120.43, high: 4128.90, low: 4115.78, close: 4122.56 }
+      { date: '2026-01-05', open: 3186.76, high: 3205.23, low: 3175.12, close: 3195.34 },
+      { date: '2026-01-06', open: 3195.34, high: 3212.45, low: 3188.90, close: 3208.67 },
+      { date: '2026-01-07', open: 3208.67, high: 3218.89, low: 3198.23, close: 3215.45 },
+      { date: '2026-01-08', open: 3215.45, high: 3225.67, low: 3210.12, close: 3220.43 },
+      { date: '2026-01-09', open: 3220.43, high: 3228.90, low: 3215.78, close: 3222.56 }
     ];
     
     return realAStockData.slice(-days).map((item, index, array) => {
@@ -254,7 +289,7 @@ export function generateDemoAssetInfo(assetType: AssetType): AssetInfo {
     astock: {
       symbol: 'SSE',
       name: '上证指数',
-      currentPrice: 4100 + Math.random() * 50, // 上证指数价格范围 4100-4150
+      currentPrice: 3200 + Math.random() * 50, // 上证指数价格范围 3200-3250
       currency: 'CNY'
     }
   };

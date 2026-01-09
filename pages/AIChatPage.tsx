@@ -154,7 +154,7 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">资产</span>
                   <span className="font-semibold text-gray-900 dark:text-gray-100">
-                    {assetType === 'gold' ? '现货黄金' : '纳斯达克100'}
+                    {assetType === 'gold' ? '现货黄金' : assetType === 'astock' ? '上证指数' : '纳斯达克100'}
                   </span>
                 </div>
                 {chatContext.currentPrice && (
@@ -204,7 +204,7 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
                   to={`/${assetType}`}
                   className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-xl hover:bg-white/70 dark:hover:bg-gray-700/70 transition-all"
                 >
-                  查看{assetType === 'gold' ? '黄金' : '纳斯达克'}分析
+                  查看{assetType === 'gold' ? '黄金' : assetType === 'astock' ? 'A股' : '纳斯达克'}分析
                 </Link>
                 <Link
                   to="/"

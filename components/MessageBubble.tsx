@@ -130,7 +130,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               <>
                 <span className="mx-1">·</span>
                 <span>
-                  {message.context.assetType === 'gold' ? '黄金' : '纳斯达克'}
+                  {message.context.assetType === 'gold' ? '黄金' : message.context.assetType === 'astock' ? 'A股' : '纳斯达克'}
                 </span>
               </>
             )}
