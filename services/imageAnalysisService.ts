@@ -100,8 +100,6 @@ async function callGeminiVision(
  */
 export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResult[]> {
   try {
-    console.log('📸 开始分析收益截图:', file.name);
-
     // 转换图片为 Base64
     const imageBase64 = await fileToBase64(file);
     const mimeType = file.type;
@@ -241,11 +239,8 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 请现在开始识别截图中的所有基金信息。`;
 
     // 调用 Gemini Vision API
-    console.log('🤖 调用 Gemini Vision API...');
     const responseText = await callGeminiVision(imageBase64, mimeType, prompt);
     
-    console.log('📝 API 响应:', responseText);
-
     // 解析 JSON 响应
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -279,65 +274,46 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
         // 标准化基金名称格式
         let normalizedName = fund.fundName.trim();
         
-        console.log(`【标准化前】原始名称: "${normalizedName}"`);
-        
         // 1. 将全角括号转换为半角括号
         normalizedName = normalizedName.replace(/（/g, '(').replace(/）/g, ')');
-        console.log(`【步骤1】转换括号后: "${normalizedName}"`);
         
         // 2. 处理南方基金：确保 (QDII) 前后有空格，A/C/I 前面有空格
         if (normalizedName.includes('南方纳斯达克')) {
-          console.log(`【检测到】南方基金`);
           // 先移除所有空格
           normalizedName = normalizedName.replace(/\s+/g, '');
-          console.log(`【步骤2.1】移除空格: "${normalizedName}"`);
           
           // 在 (QDII) 前后添加空格
           normalizedName = normalizedName.replace(/\(QDII\)/g, ' (QDII) ');
-          console.log(`【步骤2.2】添加(QDII)空格: "${normalizedName}"`);
           
           // 在 A/C/I 前添加空格
           normalizedName = normalizedName.replace(/\(QDII\)\s*([ACI])$/g, '(QDII) $1');
-          console.log(`【步骤2.3】添加字母前空格: "${normalizedName}"`);
           
           // 清理多余空格
           normalizedName = normalizedName.replace(/\s+/g, ' ').trim();
-          console.log(`【步骤2.4】清理空格: "${normalizedName}"`);
         }
         
         // 3. 处理建信基金：确保 QDII 和 A 之间有空格
         if (normalizedName.includes('建信纳斯达克')) {
-          console.log(`【检测到】建信基金`);
           // 先移除 QDII 后面的所有空格
           normalizedName = normalizedName.replace(/QDII\s*/g, 'QDII');
-          console.log(`【步骤3.1】移除QDII后空格: "${normalizedName}"`);
           
           // QDIIA -> QDII A, QDIIC -> QDII C
           normalizedName = normalizedName.replace(/QDII([ACI])$/g, 'QDII $1');
-          console.log(`【步骤3.2】添加字母前空格: "${normalizedName}"`);
         }
         
         // 4. 处理华宝基金：确保括号前后无空格
         if (normalizedName.includes('华宝纳斯达克')) {
-          console.log(`【检测到】华宝基金`);
           // 移除括号前后的所有空格
           normalizedName = normalizedName.replace(/\s*\(QDII\)\s*/g, '(QDII)');
-          console.log(`【步骤4.1】移除括号空格: "${normalizedName}"`);
           
           // 移除 A/C/I 前的空格
           normalizedName = normalizedName.replace(/\s+([ACI])$/g, '$1');
-          console.log(`【步骤4.2】移除字母前空格: "${normalizedName}"`);
         }
-        
-        console.log(`【标准化后】最终名称: "${normalizedName}"`);
         
         // 计算涨跌幅（基于昨日收益和持仓金额）
         let dailyChange = 0;
         if (fund.totalValue && fund.dailyProfitLoss) {
           dailyChange = (fund.dailyProfitLoss / fund.totalValue) * 100;
-          console.log(`计算涨跌幅: ${normalizedName} = ${dailyChange.toFixed(4)}% (${fund.dailyProfitLoss} / ${fund.totalValue})`);
-        } else {
-          console.warn(`无法计算涨跌幅（缺少持仓金额）: ${normalizedName}`);
         }
         
         return {
@@ -353,8 +329,6 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
         };
       });
 
-    console.log('✅ 识别完成，共识别', results.length, '个基金');
-    
     if (results.length === 0) {
       throw new Error('未能识别到任何基金信息，请确保截图清晰且包含收益数据');
     }
@@ -387,7 +361,6 @@ export async function batchUpdateFundProfits(
     try {
       await updateCallback(result.fundName, result.dailyChange, result.dailyProfitLoss);
       success++;
-      console.log(`✅ 更新成功: ${result.fundName}`);
     } catch (error) {
       failed++;
       const errorMsg = `${result.fundName}: ${error instanceof Error ? error.message : '未知错误'}`;

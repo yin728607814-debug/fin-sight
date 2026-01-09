@@ -255,7 +255,6 @@ export const PortfolioPage: React.FC = () => {
                 dailyChange: fundData.dailyReturn
               });
               hasUpdates = true;
-              console.log(`A股持仓 ${position.fundName} 跨日更新: 累加昨日收益 ${oldDailyProfit.toFixed(2)}, 新当日收益 ${newDailyProfit.toFixed(2)}`);
             } catch (error) {
               console.error('A股持仓跨日更新失败:', error);
             }
@@ -267,7 +266,6 @@ export const PortfolioPage: React.FC = () => {
                 dailyChange: fundData.dailyReturn
               });
               hasUpdates = true;
-              console.log(`A股持仓 ${position.fundName} 当日收益更新: ${newDailyProfit.toFixed(2)}`);
             } catch (error) {
               console.error('更新A股持仓收益失败:', error);
             }
@@ -305,7 +303,6 @@ export const PortfolioPage: React.FC = () => {
                 dailyChange: fundData.dailyReturn
               });
               hasUpdates = true;
-              console.log(`纳斯达克持仓 ${position.fundName} 跨日更新: 累加昨日收益 ${oldDailyProfit.toFixed(2)}, 新当日收益 ${newDailyProfit.toFixed(2)}`);
             } catch (error) {
               console.error('纳斯达克持仓跨日更新失败:', error);
             }
@@ -317,7 +314,6 @@ export const PortfolioPage: React.FC = () => {
                 dailyChange: fundData.dailyReturn
               });
               hasUpdates = true;
-              console.log(`纳斯达克持仓 ${position.fundName} 当日收益更新: ${newDailyProfit.toFixed(2)}`);
             } catch (error) {
               console.error('更新纳斯达克持仓收益失败:', error);
             }
@@ -338,20 +334,16 @@ export const PortfolioPage: React.FC = () => {
     setIsRefreshing(true);
     try {
       // 先刷新基金数据
-      console.log('开始刷新基金数据...');
       await Promise.all([
         refetchAStockData(),
         refetchNasdaqData()
       ]);
-      console.log('基金数据刷新完成');
       
       // 等待一小段时间确保数据更新
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // 然后同步到数据库
-      console.log('开始同步到数据库...');
       await updateFundProfitToDb();
-      console.log('同步完成');
     } catch (error) {
       console.error('刷新基金收益失败:', error);
     } finally {
@@ -563,32 +555,22 @@ export const PortfolioPage: React.FC = () => {
    * 处理图片分析完成
    */
   const handleImageAnalysisComplete = async (results: AnalysisResult[]) => {
-    console.log('📸 收到图片分析结果:', results);
-    
     let successCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
 
     for (const result of results) {
       try {
-        console.log(`\n🔍 开始匹配基金: "${result.fundName}"`);
-        console.log(`   基金代码: ${result.fundCode || '无'}`);
-        
         // 查找匹配的持仓（只使用精确匹配）
         const matchingPosition = supabasePositions.find(p => {
-          console.log(`   对比数据库持仓: "${p.fundName}" (代码: ${p.fundCode || '无'})`);
-          
           // 精确匹配基金名称
           if (p.fundName === result.fundName) {
-            console.log(`   ✅ 精确匹配成功！`);
             return true;
           }
           
           // 如果有基金代码，也尝试通过代码+部分名称匹配
           // 但必须确保名称的主要部分也匹配
           if (result.fundCode && p.fundCode === result.fundCode) {
-            console.log(`   📋 基金代码匹配，检查主要名称...`);
-            
             // 提取基金名称的主要部分（去掉括号和代码）
             const extractMainName = (name: string) => {
               return name.replace(/\([^)]*\)/g, '').replace(/\s+/g, '').toLowerCase();
@@ -597,11 +579,8 @@ export const PortfolioPage: React.FC = () => {
             const resultMainName = extractMainName(result.fundName);
             const positionMainName = extractMainName(p.fundName || '');
             
-            console.log(`   主要名称对比: "${resultMainName}" vs "${positionMainName}"`);
-            
             // 主要名称必须匹配
             if (resultMainName === positionMainName) {
-              console.log(`   ✅ 主要名称匹配成功！`);
               return true;
             }
           }
@@ -612,20 +591,8 @@ export const PortfolioPage: React.FC = () => {
         if (!matchingPosition) {
           failedCount++;
           errors.push(`${result.fundName}: 未找到匹配的持仓`);
-          console.warn(`⚠️ 未找到匹配的持仓: ${result.fundName}`);
           continue;
         }
-
-        console.log(`✅ 找到匹配持仓: ${matchingPosition.fundName} (${matchingPosition.id})`);
-        console.log(`  【更新前】数据库中的数据:`);
-        console.log(`    持仓金额: ¥${matchingPosition.investmentAmount.toFixed(2)}`);
-        console.log(`    昨日收益: ¥${(matchingPosition.dailyProfitLoss || 0).toFixed(2)}`);
-        console.log(`    持仓收益: ¥${matchingPosition.profitLoss.toFixed(2)}`);
-        console.log(`  【AI识别】的数据:`);
-        console.log(`    持仓金额: ¥${(result.totalValue || 0).toFixed(2)}`);
-        console.log(`    昨日收益: ¥${result.dailyProfitLoss.toFixed(2)}`);
-        console.log(`    持仓收益: ¥${(result.profitLoss || 0).toFixed(2)}`);
-        console.log(`    收益率: ${result.profitLossPercent !== undefined ? result.profitLossPercent.toFixed(2) + '%' : '未提取'}`);
 
         // 更新持仓数据（直接使用AI识别的数据）
         // 计算 profitLossPercent：如果AI提取了收益率，使用AI的；否则自动计算
@@ -650,19 +617,15 @@ export const PortfolioPage: React.FC = () => {
           updatesToApply.profitLossPercent = profitLossPercent;
         }
 
-        console.log(`  【准备更新】的数据:`, updatesToApply);
-
         // 更新到数据库（使用 Supabase）
         await updateSupabasePosition(matchingPosition.id, updatesToApply);
         
         successCount++;
-        console.log(`  【更新完成】基金: ${result.fundName}`);
         
       } catch (error) {
         failedCount++;
         const errorMsg = `${result.fundName}: ${error instanceof Error ? error.message : '未知错误'}`;
         errors.push(errorMsg);
-        console.error(`❌ 更新失败: ${errorMsg}`);
       }
     }
 
