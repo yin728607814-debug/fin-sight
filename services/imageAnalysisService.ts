@@ -119,7 +119,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - 第三行右侧：持仓金额标签
 
 请提取所有可见基金的以下信息：
-1. 基金名称（完整名称，去掉括号和代码部分）
+1. 基金名称（完整名称，保留括号，如：摩根纳斯达克100指数(QDII)人民币A）
 2. 基金代码（从括号中提取，如 QDII、QDIIA 等）
 3. 昨日收益金额（第二行左侧的数字，红色为正，绿色为负）
 4. 持仓收益金额（第三行左侧的数字，红色为正，绿色为负）
@@ -131,7 +131,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "source": "cmb",
   "funds": [
     {
-      "fundName": "基金名称（不含括号和代码）",
+      "fundName": "基金名称（保留括号，如：摩根纳斯达克100指数(QDII)人民币A）",
       "fundCode": "基金代码",
       "assetType": "nasdaq",
       "dailyProfitLoss": 昨日收益金额（数字，正数或负数）,
@@ -150,7 +150,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 
 应该返回：
 {
-  "fundName": "摩根纳斯达克100指数人民币A",
+  "fundName": "摩根纳斯达克100指数(QDII)人民币A",
   "fundCode": "QDII",
   "assetType": "nasdaq",
   "dailyProfitLoss": 35.52,
