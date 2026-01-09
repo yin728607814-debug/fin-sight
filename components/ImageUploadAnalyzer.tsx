@@ -18,6 +18,7 @@ export interface AnalysisResult {
   dailyChange: number;
   dailyProfitLoss: number;
   profitLoss?: number;  // 持仓收益（累计）
+  profitLossPercent?: number;  // 持仓收益率（从支付宝截图中提取）
   totalValue?: number;
   confidence: number;
 }

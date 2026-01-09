@@ -130,7 +130,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - 第一行：基金名称（如：长城久嘉创新成长灵活配置混合C）
 - 第二行：基金类型标签（基金、进阶理财、定投等）
 - 第三行：持仓金额（左侧）、日收益（中间，红色为正/绿色为负）、持仓收益（右侧，红色为正/绿色为负）
-- 第四行：占比百分比（左侧）、空白、持仓收益百分比（右侧）
+- 第四行：占比百分比（左侧）、空白、持仓收益百分比（右侧，如：+10.01%）
 
 请提取所有可见基金的以下信息：
 1. 基金名称（完整名称，保留括号）
@@ -138,6 +138,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 3. 日收益金额（红色为正，绿色为负）
 4. 持仓收益金额（累计总收益，红色为正，绿色为负）
 5. 持仓金额（当前市值）
+6. 持仓收益率（支付宝第四行右侧的百分比，如：+10.01%）
 
 ⚠️ 【关键】基金名称格式规范：
 - 使用半角括号 () 而不是全角括号（）
@@ -162,6 +163,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
       "assetType": "astock",
       "dailyProfitLoss": 日收益金额（数字，正数或负数）,
       "profitLoss": 持仓收益金额（数字，正数或负数）,
+      "profitLossPercent": 持仓收益率（数字，如10.01表示+10.01%）,
       "totalValue": 持仓金额（数字）,
       "confidence": 0.95
     }
@@ -199,9 +201,11 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "assetType": "astock",
   "dailyProfitLoss": 241.05,
   "profitLoss": 781.89,
+  "profitLossPercent": 9.77,
   "totalValue": 8881.89,
   "confidence": 0.95
 }
+注意：profitLossPercent 是第四行右侧的百分比数值（去掉%号和+/-号）
 
 【示例3 - 支付宝格式（带括号的A股）】：
 如果看到：
@@ -217,10 +221,11 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
   "assetType": "astock",
   "dailyProfitLoss": -24.08,
   "profitLoss": 51.25,
+  "profitLossPercent": 8.54,
   "totalValue": 651.25,
   "confidence": 0.95
 }
-注意：将全角括号（）改成半角括号 ()
+注意：将全角括号（）改成半角括号 ()，profitLossPercent 是第四行右侧的百分比数值
 
 ⚠️ 重要提醒：
 - 招商银行有两种视图格式，支付宝有自己的格式，请根据实际截图判断
@@ -342,6 +347,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
           dailyChange: dailyChange,
           dailyProfitLoss: fund.dailyProfitLoss,
           profitLoss: typeof fund.profitLoss === 'number' ? fund.profitLoss : undefined,
+          profitLossPercent: typeof fund.profitLossPercent === 'number' ? fund.profitLossPercent : undefined,
           totalValue: fund.totalValue || undefined,
           confidence: fund.confidence || 0.8
         };

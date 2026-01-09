@@ -625,14 +625,30 @@ export const PortfolioPage: React.FC = () => {
         console.log(`    持仓金额: ¥${(result.totalValue || 0).toFixed(2)}`);
         console.log(`    昨日收益: ¥${result.dailyProfitLoss.toFixed(2)}`);
         console.log(`    持仓收益: ¥${(result.profitLoss || 0).toFixed(2)}`);
+        console.log(`    收益率: ${result.profitLossPercent !== undefined ? result.profitLossPercent.toFixed(2) + '%' : '未提取'}`);
 
         // 更新持仓数据（直接使用AI识别的数据）
-        const updatesToApply = {
+        // 计算 profitLossPercent：如果AI提取了收益率，使用AI的；否则自动计算
+        let profitLossPercent = matchingPosition.profitLossPercent || 0;
+        if (result.profitLossPercent !== undefined) {
+          // 使用AI提取的收益率
+          profitLossPercent = result.profitLossPercent;
+        } else if (result.profitLoss !== undefined && result.totalValue !== undefined && result.totalValue > 0) {
+          // 自动计算：持仓收益 / 持仓金额 * 100
+          profitLossPercent = (result.profitLoss / result.totalValue) * 100;
+        }
+
+        const updatesToApply: any = {
           dailyChange: 0,  // 不显示当日收益率
           dailyProfitLoss: result.dailyProfitLoss,  // 昨日收益
           profitLoss: result.profitLoss !== undefined ? result.profitLoss : matchingPosition.profitLoss,  // 更新持仓收益
           investmentAmount: result.totalValue !== undefined ? result.totalValue : matchingPosition.investmentAmount  // 更新持仓金额
         };
+
+        // 只有当收益率有效时才更新
+        if (profitLossPercent !== 0 || result.profitLossPercent !== undefined) {
+          updatesToApply.profitLossPercent = profitLossPercent;
+        }
 
         console.log(`  【准备更新】的数据:`, updatesToApply);
 
