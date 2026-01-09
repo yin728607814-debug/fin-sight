@@ -231,7 +231,7 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
                 </p>
               </div>
               <div className="p-6">
-                <SentimentIndex assetType="astock" analyses={analysis} />
+                <SentimentIndex assetType="astock" analyses={analysis || []} />
               </div>
             </div>
 

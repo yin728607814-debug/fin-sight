@@ -12,7 +12,7 @@ import { NewsAnalysis, AssetType } from '../types';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
 interface SentimentIndexProps {
-  analyses: NewsAnalysis[];
+  analyses?: NewsAnalysis[];
   assetType: AssetType;
   autoSave?: boolean; // 是否自动保存到历史记录
 }
@@ -28,7 +28,7 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
 
   // 计算情绪指数
   useEffect(() => {
-    if (analyses && analyses.length > 0) {
+    if (analyses && Array.isArray(analyses) && analyses.length > 0) {
       const data = sentimentService.calculateSentiment(analyses);
       setSentimentData(data);
 
