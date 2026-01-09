@@ -35,7 +35,7 @@ const priceCache: PriceCache = {};
  * @param assetType - 资产类型
  * @returns 价格数据和转换后的价格
  */
-export function usePriceDataWithConversion(assetType: 'nasdaq' | 'gold') {
+export function usePriceDataWithConversion(assetType: 'nasdaq' | 'gold' | 'astock') {
   const { priceData, loading, error } = usePriceData(assetType);
   const [conversionError, setConversionError] = useState<string | null>(null);
   const [rateUpdated, setRateUpdated] = useState(false);
@@ -141,7 +141,7 @@ export function usePriceDataWithConversion(assetType: 'nasdaq' | 'gold') {
   /**
    * 获取价格单位
    */
-  const priceUnit = assetType === 'gold' ? '人民币/克' : '美元';
+  const priceUnit = assetType === 'gold' ? '人民币/克' : assetType === 'astock' ? '点' : '美元';
 
   /**
    * 清理过期缓存

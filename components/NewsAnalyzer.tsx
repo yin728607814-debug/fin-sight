@@ -91,7 +91,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       setLoading({ prices: true });
       
       // 根据资产类型确定符号
-      const symbol = assetType === 'nasdaq' ? 'nasdaq' : 'gold';
+      const symbol = assetType === 'nasdaq' ? 'nasdaq' : assetType === 'astock' ? 'astock' : 'gold';
       
       // 获取5天价格历史数据（API 会自动过滤周末并返回5个工作日）
       const priceHistory = await priceService.fetchFiveDayPriceHistory(symbol);

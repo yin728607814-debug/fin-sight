@@ -117,7 +117,7 @@ export class PriceService implements IPriceService {
       
       let priceData: PriceData[];
       
-      // 对于纳斯达克指数，使用Yahoo Finance；对于黄金，使用Investing.com
+      // 对于纳斯达克指数，使用Yahoo Finance；对于黄金，使用Investing.com；对于A股，使用Sina Finance
       if (symbol === 'nasdaq' || symbol === 'NDX') {
         const response = await this.makeRequest({
           symbol: 'nasdaq'
@@ -151,6 +151,36 @@ export class PriceService implements IPriceService {
           
           if (latestPrice < 3500) {
             logError('⚠️ 黄金价格异常偏低', { latestPrice, expected: '4000+' });
+          }
+        }
+      } else if (symbol === 'astock' || symbol === 'SSE') {
+        // 对于A股，使用Sina Finance API获取上证指数数据
+        console.log('🌐 使用Sina Finance API获取上证指数数据');
+        logInfo('🔍 A股价格API调用开始', { symbol, endpoint: 'sina-stock-proxy' });
+        
+        const response = await this.makeRequest({
+          symbol: 'astock'
+        });
+        
+        logInfo('📊 A股价格API响应', { 
+          hasData: !!response.data, 
+          hasPriceData: !!(response.data as any)?.priceData,
+          dataLength: (response.data as any)?.priceData?.length || 0
+        });
+        
+        priceData = this.transformSinaResponse(response.data as any, days);
+        
+        // 验证价格数据是否正确
+        if (priceData.length > 0) {
+          const latestPrice = priceData[priceData.length - 1].close;
+          logInfo('💰 上证指数价格验证', { 
+            latestPrice, 
+            isCorrectRange: latestPrice >= 3000 && latestPrice <= 5000,
+            dataPoints: priceData.length 
+          });
+          
+          if (latestPrice < 2500 || latestPrice > 6000) {
+            logError('⚠️ 上证指数价格异常', { latestPrice, expected: '3000-5000' });
           }
         }
       } else {
@@ -253,7 +283,9 @@ export class PriceService implements IPriceService {
       'XAUUSD': 'gold', // 现货黄金使用Investing.com
       'NDX': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
       'nasdaq': 'nasdaq', // 纳斯达克100指数 - 使用Yahoo Finance
-      'gold': 'gold' // 黄金使用Investing.com
+      'gold': 'gold', // 黄金使用Investing.com
+      'SSE': 'astock', // 上证指数使用Sina Finance
+      'astock': 'astock' // 上证指数使用Sina Finance
     };
     
     return symbolMap[symbol] || symbol.toUpperCase();
@@ -289,6 +321,16 @@ export class PriceService implements IPriceService {
             response = await axios.get('/.netlify/functions/investing-proxy', {
               params: { 
                 symbol: 'gold',
+                range: '5d'
+              },
+              timeout: this.config.timeout
+            });
+          } else if (params.symbol === 'astock' || params.symbol === 'SSE') {
+            // 对于A股，使用Sina Finance API
+            console.log('🌐 使用Sina Finance API获取上证指数数据');
+            response = await axios.get('/.netlify/functions/sina-stock-proxy', {
+              params: { 
+                symbol: 'sh000001', // 上证指数代码
                 range: '5d'
               },
               timeout: this.config.timeout
@@ -377,6 +419,39 @@ export class PriceService implements IPriceService {
     }
 
     // 先转换所有数据
+    const allPriceData = apiResponse.priceData
+      .map((item: any) => ({
+        date: new Date(item.date),
+        open: parseFloat(item.open) || 0,
+        high: parseFloat(item.high) || 0,
+        low: parseFloat(item.low) || 0,
+        close: parseFloat(item.close) || 0,
+        volume: parseInt(item.volume) || 0,
+        change: parseFloat(item.change) || 0,
+        changePercent: parseFloat(item.changePercent) || 0
+      }))
+      .filter((item: any) => item.close > 0); // 过滤无效数据
+
+    // 过滤掉周末数据（周六=6，周日=0）
+    const weekdayData = allPriceData.filter((item: any) => {
+      const dayOfWeek = item.date.getDay();
+      return dayOfWeek !== 0 && dayOfWeek !== 6;
+    });
+
+    // 返回最近的N个工作日数据
+    return weekdayData.slice(-days);
+  }
+
+  /**
+   * 转换Sina Finance API响应
+   */
+  private transformSinaResponse(apiResponse: any, days: number): PriceData[] {
+    if (!apiResponse || !apiResponse.priceData || !Array.isArray(apiResponse.priceData)) {
+      logError('Sina Finance API响应格式错误', apiResponse);
+      return [];
+    }
+
+    // 转换数据格式
     const allPriceData = apiResponse.priceData
       .map((item: any) => ({
         date: new Date(item.date),
@@ -663,10 +738,13 @@ export class PriceService implements IPriceService {
   /**
    * 将符号转换为资产类型
    */
-  private symbolToAssetType(symbol: string): 'gold' | 'nasdaq' {
+  private symbolToAssetType(symbol: string): 'gold' | 'nasdaq' | 'astock' {
     const lowerSymbol = symbol.toLowerCase();
     if (lowerSymbol.includes('gold') || lowerSymbol.includes('xau') || lowerSymbol.includes('gld')) {
       return 'gold';
+    }
+    if (lowerSymbol.includes('astock') || lowerSymbol.includes('sse') || lowerSymbol.includes('sh000001')) {
+      return 'astock';
     }
     return 'nasdaq';
   }

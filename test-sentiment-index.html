@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test SentimentIndex</title>
+    <script>
+        // 模拟问题场景
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Testing analysis scenarios:');
+            
+            // 场景 1: undefined
+            const analysis1 = undefined;
+            console.log('Scenario 1 - undefined:');
+            console.log('  analysis:', analysis1);
+            console.log('  analysis && analysis.length:', analysis1 && analysis1.length);
+            console.log('  Array.isArray(analysis):', Array.isArray(analysis1));
+            
+            // 场景 2: null
+            const analysis2 = null;
+            console.log('\nScenario 2 - null:');
+            console.log('  analysis:', analysis2);
+            console.log('  analysis && analysis.length:', analysis2 && analysis2.length);
+            console.log('  Array.isArray(analysis):', Array.isArray(analysis2));
+            
+            // 场景 3: 空数组
+            const analysis3 = [];
+            console.log('\nScenario 3 - empty array:');
+            console.log('  analysis:', analysis3);
+            console.log('  analysis && analysis.length:', analysis3 && analysis3.length);
+            console.log('  Array.isArray(analysis):', Array.isArray(analysis3));
+            
+            // 场景 4: 有数据的数组
+            const analysis4 = [{id: 1}, {id: 2}];
+            console.log('\nScenario 4 - array with data:');
+            console.log('  analysis:', analysis4);
+            console.log('  analysis && analysis.length:', analysis4 && analysis4.length);
+            console.log('  Array.isArray(analysis):', Array.isArray(analysis4));
+            
+            // 测试 state.analysis['astock']
+            const state = {
+                analysis: {
+                    gold: [],
+                    nasdaq: []
+                    // 注意：没有 astock
+                }
+            };
+            
+            console.log('\nTesting state.analysis[\'astock\']:');
+            console.log('  state.analysis[\'astock\']:', state.analysis['astock']);
+            console.log('  typeof:', typeof state.analysis['astock']);
+            console.log('  Array.isArray:', Array.isArray(state.analysis['astock']));
+            
+            // 尝试访问 length
+            try {
+                const len = state.analysis['astock'].length;
+                console.log('  .length:', len);
+            } catch (e) {
+                console.error('  ERROR accessing .length:', e.message);
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Check Console for Test Results</h1>
+    <p>Open browser console (F12) to see the test output</p>
+</body>
+</html>

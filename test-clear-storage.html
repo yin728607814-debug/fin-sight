@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+</head>
+<body>
+    <h1>Clear LocalStorage</h1>
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <div id="result"></div>
+    
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('result').innerHTML = '<p>Storage cleared! Keys that were cleared:</p><pre>' + 
+                JSON.stringify(Object.keys(localStorage), null, 2) + '</pre>';
+        }
+        
+        // Show current storage
+        document.getElementById('result').innerHTML = '<p>Current localStorage keys:</p><pre>' + 
+            JSON.stringify(Object.keys(localStorage), null, 2) + '</pre>';
+    </script>
+</body>
+</html>
