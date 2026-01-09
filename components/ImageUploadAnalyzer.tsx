@@ -243,6 +243,37 @@ export const ImageUploadAnalyzer: React.FC<ImageUploadAnalyzerProps> = ({ onAnal
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
+                              <span className="text-gray-600 dark:text-gray-400">昨日收益: </span>
+                              <span
+                                className={
+                                  result.dailyProfitLoss >= 0
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                }
+                              >
+                                {result.dailyProfitLoss >= 0 ? '+' : ''}
+                                ¥{result.dailyProfitLoss.toFixed(2)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">持仓金额: </span>
+                              <span className="text-gray-900 dark:text-white">
+                                {result.totalValue ? `¥${result.totalValue.toFixed(2)}` : '-'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400">持仓收益: </span>
+                              <span
+                                className={
+                                  (result.profitLoss || 0) >= 0
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                }
+                              >
+                                {result.profitLoss !== undefined ? `¥${result.profitLoss.toFixed(2)}` : '-'}
+                              </span>
+                            </div>
+                            <div>
                               <span className="text-gray-600 dark:text-gray-400">当日涨跌: </span>
                               <span
                                 className={
@@ -253,19 +284,6 @@ export const ImageUploadAnalyzer: React.FC<ImageUploadAnalyzerProps> = ({ onAnal
                               >
                                 {result.dailyChange >= 0 ? '+' : ''}
                                 {result.dailyChange.toFixed(2)}%
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600 dark:text-gray-400">当日收益: </span>
-                              <span
-                                className={
-                                  result.dailyProfitLoss >= 0
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : 'text-red-600 dark:text-red-400'
-                                }
-                              >
-                                {result.dailyProfitLoss >= 0 ? '+' : ''}
-                                ¥{result.dailyProfitLoss.toFixed(2)}
                               </span>
                             </div>
                           </div>
