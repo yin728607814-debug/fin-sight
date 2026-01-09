@@ -595,30 +595,30 @@ export const PortfolioPage: React.FC = () => {
         }
 
         console.log(`✅ 找到匹配持仓: ${matchingPosition.fundName} (${matchingPosition.id})`);
-        console.log(`  当前持仓收益: ¥${matchingPosition.profitLoss.toFixed(2)}`);
-        console.log(`  当前持仓市值: ¥${matchingPosition.investmentAmount.toFixed(2)}`);
-        console.log(`  AI识别昨日收益: ¥${result.dailyProfitLoss.toFixed(2)}`);
-        console.log(`  AI识别持仓收益: ¥${(result.profitLoss || 0).toFixed(2)}`);
-        console.log(`  AI识别持仓金额: ¥${(result.totalValue || 0).toFixed(2)}`);
+        console.log(`  【更新前】数据库中的数据:`);
+        console.log(`    持仓金额: ¥${matchingPosition.investmentAmount.toFixed(2)}`);
+        console.log(`    昨日收益: ¥${(matchingPosition.dailyProfitLoss || 0).toFixed(2)}`);
+        console.log(`    持仓收益: ¥${matchingPosition.profitLoss.toFixed(2)}`);
+        console.log(`  【AI识别】的数据:`);
+        console.log(`    持仓金额: ¥${(result.totalValue || 0).toFixed(2)}`);
+        console.log(`    昨日收益: ¥${result.dailyProfitLoss.toFixed(2)}`);
+        console.log(`    持仓收益: ¥${(result.profitLoss || 0).toFixed(2)}`);
 
         // 更新持仓数据（直接使用AI识别的数据）
-        const updatedPosition: Position = {
-          ...matchingPosition,
+        const updatesToApply = {
           dailyChange: 0,  // 不显示当日收益率
-          dailyProfitLoss: result.dailyProfitLoss,  // 昨日收益显示在当日收益位置
+          dailyProfitLoss: result.dailyProfitLoss,  // 昨日收益
           profitLoss: result.profitLoss !== undefined ? result.profitLoss : matchingPosition.profitLoss,  // 更新持仓收益
           investmentAmount: result.totalValue !== undefined ? result.totalValue : matchingPosition.investmentAmount  // 更新持仓金额
         };
 
-        console.log(`  更新后昨日收益（显示为当日收益）: ¥${updatedPosition.dailyProfitLoss.toFixed(2)}`);
-        console.log(`  更新后持仓收益: ¥${updatedPosition.profitLoss.toFixed(2)}`);
-        console.log(`  更新后持仓金额: ¥${updatedPosition.investmentAmount.toFixed(2)}`);
+        console.log(`  【准备更新】的数据:`, updatesToApply);
 
         // 更新到数据库（使用 Supabase）
-        await updateSupabasePosition(matchingPosition.id, updatedPosition);
+        await updateSupabasePosition(matchingPosition.id, updatesToApply);
         
         successCount++;
-        console.log(`✅ 更新成功: ${result.fundName}`);
+        console.log(`  【更新完成】基金: ${result.fundName}`);
         
       } catch (error) {
         failedCount++;
