@@ -79,12 +79,14 @@ export class PriceService implements IPriceService {
    * 获取价格历史数据
    */
   async fetchPriceHistory(symbol: string, days: number): Promise<PriceData[]> {
-    // 使用新的缓存键，避免与旧数据冲突 - 强制刷新黄金价格缓存
+    // 使用新的缓存键，避免与旧数据冲突
     const cacheKey = symbol === 'gold' 
       ? `price_gold_investing_v2_${days}` 
       : symbol === 'nasdaq' 
         ? `price_nasdaq_yahoo_${days}` 
-        : `price_${symbol}_v2_${days}`;
+        : symbol === 'astock' || symbol === 'SSE'
+          ? `price_astock_sina_${days}`
+          : `price_${symbol}_v2_${days}`;
     
     // 检查缓存
     const cached = this.getFromPriceCache(cacheKey);
@@ -101,6 +103,20 @@ export class PriceService implements IPriceService {
 
     try {
       logInfo('🔍 开始获取价格历史数据', { symbol, days, cacheKey });
+      
+      // 对于A股，强制清除可能的旧缓存
+      if (symbol === 'astock' || symbol === 'SSE') {
+        const oldCacheKeys = [
+          `price_astock_${days}`,
+          `price_SSE_${days}`,
+          `price_astock_v2_${days}`,
+          `price_SSE_v2_${days}`,
+          `price_gold_${days}`, // 可能错误地使用了gold的缓存
+          `price_gold_v2_${days}`
+        ];
+        oldCacheKeys.forEach(key => this.priceCache.delete(key));
+        logInfo('🗑️ 已清除A股价格旧缓存', { clearedKeys: oldCacheKeys });
+      }
       
       // 对于黄金，强制清除旧缓存并使用新API
       if (symbol === 'gold') {
