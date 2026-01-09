@@ -1068,7 +1068,8 @@ ${newsTexts}
     // 使用更精准的纳斯达克相关查询
     const queries = {
       gold: 'gold price OR gold market OR precious metals',
-      nasdaq: 'NASDAQ OR "tech stocks" OR "technology stocks" OR AAPL OR MSFT OR GOOGL OR AMZN OR TSLA OR NVDA'
+      nasdaq: 'NASDAQ OR "tech stocks" OR "technology stocks" OR AAPL OR MSFT OR GOOGL OR AMZN OR TSLA OR NVDA',
+      astock: 'A股 OR 上证指数 OR 深证成指 OR 沪指 OR 深指 OR 创业板 OR 科创板'
     };
     
     return queries[assetType] || assetType;
@@ -1415,6 +1416,40 @@ ${newsTexts}
       console.log(`   最终结果: ${result.length}条`);
       
       return result;
+      
+    } else if (assetType === 'astock') {
+      // A股：URL过滤 (/stock/ 且排除 /usstock 和 /hkstock)
+      const stockNews = newsItems.filter(item => 
+        item.url && 
+        item.url.startsWith('https://finance.sina.com.cn/stock/') &&
+        !item.url.includes('/usstock') &&
+        !item.url.includes('/hkstock')
+      );
+      
+      console.log(`   URL过滤(/stock/排除美股港股): ${stockNews.length}条`);
+      
+      // 如果URL过滤结果足够，直接返回
+      if (stockNews.length >= 50) {
+        console.log(`   ✅ URL过滤已足够，返回前50条`);
+        return stockNews.slice(0, 50);
+      }
+      
+      // 否则补充关键词过滤
+      const keywords = this.getAssetKeywords(assetType);
+      const keywordFiltered = newsItems.filter(item => {
+        // 已经在URL过滤中的，跳过
+        if (stockNews.find(u => u.url === item.url)) return false;
+        
+        const content = (item.title + ' ' + item.content).toLowerCase();
+        return keywords.some(keyword => content.includes(keyword.toLowerCase()));
+      });
+      
+      console.log(`   关键词补充: ${keywordFiltered.length}条`);
+      
+      const result = [...stockNews, ...keywordFiltered].slice(0, 50);
+      console.log(`   最终结果: ${result.length}条`);
+      
+      return result;
     }
     
     // 其他类型，使用关键词过滤
@@ -1453,6 +1488,23 @@ ${newsTexts}
         '华尔街', '交易', '投资',
         // 英文
         'stock', 'nasdaq', 'tech', 'market'
+      ],
+      astock: [
+        // 核心关键词
+        'A股', 'a股', '沪指', '深指', '上证', '深证',
+        '上证指数', '深证成指', '创业板', '科创板',
+        // 市场相关
+        '股市', '股票', '股价', '大盘', '指数',
+        '涨跌', '行情', '交易', '成交',
+        // 监管和政策
+        '证监会', '交易所', '上交所', '深交所',
+        '政策', '监管', '改革', '开放',
+        // 行业板块
+        '白酒', '新能源', '半导体', '医药', '地产',
+        '银行', '保险', '券商', '基金',
+        // 投资相关
+        '北向资金', '外资', '机构', '散户',
+        '涨停', '跌停', '停牌', '复牌'
       ]
     };
     

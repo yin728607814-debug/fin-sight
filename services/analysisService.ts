@@ -1121,7 +1121,13 @@ ${newsText}
    * 构建 AI 分析提示词 - 简化版（减少思考token消耗）
    */
   private buildAnalysisPrompt(newsContent: string, assetType: string): string {
-    const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    const assetNames = {
+      'gold': '现货黄金(XAUUSD)',
+      'nasdaq': '纳斯达克100指数',
+      'astock': 'A股市场(上证指数)'
+    };
+    
+    const assetName = assetNames[assetType as keyof typeof assetNames] || assetType;
     
     return `分析以下新闻对${assetName}的影响，直接返回JSON格式（不要markdown代码块）：
 
