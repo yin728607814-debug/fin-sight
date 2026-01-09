@@ -82,7 +82,8 @@ WHERE fund_name LIKE '%博时标普500%ETF%联接%A';
 UPDATE positions 
 SET fund_name = '博时纳斯达克100A人民币',
     fund_code = 'A'
-WHERE fund_name LIKE '%博时纳斯达克100%A%人民币%';
+WHERE fund_name LIKE '%博时纳斯达克100%A%'
+   AND (fund_name LIKE '%人民币%' OR fund_name LIKE '%人名币%');
 
 -- 查询更新后的结果
 SELECT id, fund_name, fund_code, asset_type, investment_amount, profit_loss, daily_profit_loss

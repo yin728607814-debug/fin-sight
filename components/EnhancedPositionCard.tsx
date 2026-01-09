@@ -144,8 +144,19 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
           </p>
         </div>
 
-        {/* 纳斯达克和A股基金：当日收益和当天收益率 */}
-        {(position.assetType === 'nasdaq' || position.assetType === 'astock') && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
+        {/* 纳斯达克基金：只显示昨日收益，不显示收益率 */}
+        {position.assetType === 'nasdaq' && position.dailyProfitLoss !== undefined ? (
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">昨日收益</p>
+            <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+              {position.dailyProfitLoss >= 0 ? '+' : ''}
+              {formatCurrency(Math.abs(position.dailyProfitLoss))}
+            </p>
+          </div>
+        ) : null}
+
+        {/* A股基金：显示当日收益和当天收益率 */}
+        {position.assetType === 'astock' && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
           <>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
@@ -203,8 +214,8 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
               <span className={`text-lg font-bold ${profitColor}`}>
                 {formatCurrency(Math.abs(position.profitLoss))}
               </span>
-              {/* 显示收益分解：昨日收益 + 今日收益 */}
-              {position.dailyProfitLoss !== undefined && (
+              {/* A股基金显示收益分解：昨日收益 + 今日收益，纳斯达克不显示 */}
+              {position.assetType === 'astock' && position.dailyProfitLoss !== undefined && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   (昨日收益：{formatCurrency(Math.abs(position.profitLoss - position.dailyProfitLoss))}{position.dailyProfitLoss >= 0 ? '+' : '-'}{formatCurrency(Math.abs(position.dailyProfitLoss))})
                 </span>
