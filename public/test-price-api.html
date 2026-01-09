@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试价格API</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #4f46e5;
+      font-size: 18px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      border-left: 4px solid #10b981;
+      background: #d1fae5;
+    }
+    .error {
+      border-left: 4px solid #ef4444;
+      background: #fee2e2;
+    }
+    .loading {
+      border-left: 4px solid #3b82f6;
+      background: #dbeafe;
+    }
+    .info {
+      background: #f0f9ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 价格API测试工具</h1>
+    
+    <div class="info">
+      <strong>📋 说明：</strong><br>
+      此工具用于测试各个价格API是否正常工作。点击下方按钮测试对应的API。
+    </div>
+
+    <!-- 黄金价格测试 -->
+    <div class="test-section">
+      <h2>💰 黄金价格 (Investing.com)</h2>
+      <button onclick="testGoldPrice()">测试黄金价格API</button>
+      <div id="goldResult" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- 纳斯达克测试 -->
+    <div class="test-section">
+      <h2>📈 纳斯达克100 (Yahoo Finance)</h2>
+      <button onclick="testNasdaqPrice()">测试纳斯达克API</button>
+      <div id="nasdaqResult" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- A股测试 -->
+    <div class="test-section">
+      <h2>🇨🇳 上证指数 (Sina Finance)</h2>
+      <button onclick="testAStockPrice()">测试A股API</button>
+      <div id="astockResult" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- 全部测试 -->
+    <div class="test-section">
+      <h2>🚀 全部测试</h2>
+      <button onclick="testAllAPIs()">测试所有API</button>
+    </div>
+  </div>
+
+  <script>
+    async function testGoldPrice() {
+      const resultDiv = document.getElementById('goldResult');
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'result loading';
+      resultDiv.textContent = '⏳ 正在测试黄金价格API...';
+
+      try {
+        const response = await fetch('/.netlify/functions/investing-proxy?symbol=gold&range=5d');
+        const data = await response.json();
+
+        if (response.ok && data.priceData && data.priceData.length > 0) {
+          resultDiv.className = 'result success';
+          resultDiv.textContent = `✅ 黄金价格API正常！\n\n` +
+            `数据点数: ${data.priceData.length}\n` +
+            `最新日期: ${data.priceData[data.priceData.length - 1].date}\n` +
+            `最新价格: $${data.priceData[data.priceData.length - 1].close}\n` +
+            `数据来源: ${data.meta.source}\n\n` +
+            `完整响应:\n${JSON.stringify(data, null, 2)}`;
+        } else {
+          throw new Error('API返回数据格式错误');
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = `❌ 黄金价格API失败！\n\n错误: ${error.message}`;
+      }
+    }
+
+    async function testNasdaqPrice() {
+      const resultDiv = document.getElementById('nasdaqResult');
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'result loading';
+      resultDiv.textContent = '⏳ 正在测试纳斯达克API...';
+
+      try {
+        const response = await fetch('/.netlify/functions/yahoo-finance-proxy?symbol=nasdaq&range=5d&interval=1d');
+        const data = await response.json();
+
+        if (response.ok && data.priceData && data.priceData.length > 0) {
+          resultDiv.className = 'result success';
+          resultDiv.textContent = `✅ 纳斯达克API正常！\n\n` +
+            `数据点数: ${data.priceData.length}\n` +
+            `最新日期: ${data.priceData[data.priceData.length - 1].date}\n` +
+            `最新价格: ${data.priceData[data.priceData.length - 1].close}\n` +
+            `交易所: ${data.meta.exchangeName}\n\n` +
+            `完整响应:\n${JSON.stringify(data, null, 2)}`;
+        } else {
+          throw new Error('API返回数据格式错误');
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = `❌ 纳斯达克API失败！\n\n错误: ${error.message}`;
+      }
+    }
+
+    async function testAStockPrice() {
+      const resultDiv = document.getElementById('astockResult');
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'result loading';
+      resultDiv.textContent = '⏳ 正在测试A股API...';
+
+      try {
+        const response = await fetch('/.netlify/functions/sina-stock-proxy?symbol=sh000001&range=5d');
+        const data = await response.json();
+
+        if (response.ok && data.priceData && data.priceData.length > 0) {
+          resultDiv.className = 'result success';
+          resultDiv.textContent = `✅ A股API正常！\n\n` +
+            `数据点数: ${data.priceData.length}\n` +
+            `最新日期: ${data.priceData[data.priceData.length - 1].date}\n` +
+            `最新价格: ${data.priceData[data.priceData.length - 1].close}\n` +
+            `指数名称: ${data.name}\n\n` +
+            `完整响应:\n${JSON.stringify(data, null, 2)}`;
+        } else {
+          throw new Error('API返回数据格式错误');
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = `❌ A股API失败！\n\n错误: ${error.message}`;
+      }
+    }
+
+    async function testAllAPIs() {
+      await testGoldPrice();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await testNasdaqPrice();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await testAStockPrice();
+    }
+  </script>
+</body>
+</html>

@@ -191,12 +191,15 @@ export class PriceService implements IPriceService {
           const latestPrice = priceData[priceData.length - 1].close;
           logInfo('💰 上证指数价格验证', { 
             latestPrice, 
-            isCorrectRange: latestPrice >= 3000 && latestPrice <= 5000,
+            isCorrectRange: latestPrice >= 2500 && latestPrice <= 4000,
             dataPoints: priceData.length 
           });
           
-          if (latestPrice < 2500 || latestPrice > 6000) {
-            logError('⚠️ 上证指数价格异常', { latestPrice, expected: '3000-5000' });
+          // 上证指数历史最高点是2007年10月的6124点
+          // 2015年6月达到5178点
+          // 通常在2500-3500之间波动
+          if (latestPrice < 2500 || latestPrice > 4000) {
+            logError('⚠️ 上证指数价格异常', { latestPrice, expected: '2500-4000', note: '历史最高6124(2007)' });
           }
         }
       } else {
@@ -224,15 +227,16 @@ export class PriceService implements IPriceService {
       return validatedData;
       
     } catch (error) {
-      // 如果API调用失败，使用真实的历史数据作为备用
-      logError('⚠️ 价格API调用失败，使用备用数据', error);
-      console.warn('价格API暂时不可用，使用最近的真实历史数据');
+      // 如果API调用失败，记录详细错误信息并抛出异常，不再使用演示数据
+      logError('❌ 价格API调用失败', error);
+      console.error('❌ 无法获取真实价格数据:', error);
+      console.error('请检查：');
+      console.error('1. 网络连接是否正常');
+      console.error('2. Netlify Functions是否正常运行');
+      console.error('3. API代理服务是否可用');
       
-      const { generateDemoPriceData } = await import('./demoDataService');
-      const assetType = this.symbolToAssetType(symbol);
-      const fallbackData = generateDemoPriceData(assetType, days);
-      this.setPriceCache(cacheKey, fallbackData);
-      return fallbackData;
+      // 抛出错误，让上层处理，不再回退到演示数据
+      throw error;
     }
   }
 
@@ -274,19 +278,17 @@ export class PriceService implements IPriceService {
       return validatedInfo;
       
     } catch (error) {
-      // 如果API调用失败，提供详细错误信息并回退到演示数据
-      logError('⚠️ 资产信息API调用失败，请检查API密钥配置', error);
-      console.error('Alpha Vantage API错误 - 请检查以下配置：');
+      // 如果API调用失败，记录详细错误信息并抛出异常，不再使用演示数据
+      logError('❌ 资产信息API调用失败', error);
+      console.error('❌ 无法获取真实资产信息:', error);
+      console.error('请检查：');
       console.error('1. API密钥是否正确: ', this.config.apiKey?.substring(0, 8) + '...');
       console.error('2. 是否超出API限制 (免费版每分钟5次请求)');
       console.error('3. 网络连接是否正常');
       console.error('获取真实API密钥: https://www.alphavantage.co/');
       
-      const { generateDemoAssetInfo } = await import('./demoDataService');
-      const assetType = this.symbolToAssetType(symbol);
-      const demoInfo = generateDemoAssetInfo(assetType);
-      this.setAssetCache(cacheKey, demoInfo);
-      return demoInfo;
+      // 抛出错误，让上层处理，不再回退到演示数据
+      throw error;
     }
   }
 
