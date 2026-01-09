@@ -104,6 +104,54 @@ export const NASDAQ_FUNDS: FundProduct[] = [
     type: 'nasdaq',
     company: '国泰基金',
     trackingIndex: '纳斯达克100指数'
+  },
+  {
+    code: '160139',
+    name: '南方纳斯达克100指数发起 (QDII) A',
+    shortName: '南方纳指A',
+    type: 'nasdaq',
+    company: '南方基金',
+    trackingIndex: '纳斯达克100指数'
+  },
+  {
+    code: '017092',
+    name: '南方纳斯达克100指数发起 (QDII) C',
+    shortName: '南方纳指C',
+    type: 'nasdaq',
+    company: '南方基金',
+    trackingIndex: '纳斯达克100指数'
+  },
+  {
+    code: '017093',
+    name: '南方纳斯达克100指数发起 (QDII) I',
+    shortName: '南方纳指I',
+    type: 'nasdaq',
+    company: '南方基金',
+    trackingIndex: '纳斯达克100指数'
+  },
+  {
+    code: '050025',
+    name: '博时纳斯达克100A人民币',
+    shortName: '博时纳指A',
+    type: 'nasdaq',
+    company: '博时基金',
+    trackingIndex: '纳斯达克100指数'
+  },
+  {
+    code: '270042',
+    name: '广发纳斯达克100ETF联接(QDII)A',
+    shortName: '广发纳指联接A',
+    type: 'nasdaq',
+    company: '广发基金',
+    trackingIndex: '纳斯达克100指数'
+  },
+  {
+    code: '015093',
+    name: '华宝纳斯达克精选股票发起式(QDII)A',
+    shortName: '华宝纳指精选A',
+    type: 'nasdaq',
+    company: '华宝基金',
+    trackingIndex: '纳斯达克精选股票'
   }
 ];
 

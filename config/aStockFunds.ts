@@ -29,6 +29,11 @@ export const ASTOCK_FUNDS: Record<string, AStockFundInfo> = {
     name: '永赢高端设备智选混合C',
     category: '混合型'
   },
+  '永赢高端装备智选混合C': {
+    code: '015790',
+    name: '永赢高端装备智选混合C',
+    category: '混合型'
+  },
   '永赢科技智选混合C': {
     code: '022365',
     name: '永赢科技智选混合C',
@@ -38,6 +43,13 @@ export const ASTOCK_FUNDS: Record<string, AStockFundInfo> = {
     code: '015968',
     name: '永赢半导体产业智选混合C',
     category: '混合型'
+  },
+  
+  // 股票型基金
+  '富国新兴产业股票C': {
+    code: '006751',
+    name: '富国新兴产业股票C',
+    category: '股票型'
   },
   
   // ETF联接基金
@@ -56,11 +68,31 @@ export const ASTOCK_FUNDS: Record<string, AStockFundInfo> = {
     name: '华安黄金ETF联接C',
     category: 'ETF联接'
   },
+  '华夏上证科创板半导体材料设备主题ETF联接C': {
+    code: '021012',
+    name: '华夏上证科创板半导体材料设备主题ETF联接C',
+    category: 'ETF联接'
+  },
+  '富国中证细分化工产业主题ETF联接C': {
+    code: '013314',
+    name: '富国中证细分化工产业主题ETF联接C',
+    category: 'ETF联接'
+  },
   
   // 指数型基金
   '天弘中证光伏产业指数C': {
     code: '011103',
     name: '天弘中证光伏产业指数C',
+    category: '指数型'
+  },
+  '天弘工业有色金属指数C': {
+    code: '011606',
+    name: '天弘工业有色金属指数C',
+    category: '指数型'
+  },
+  '汇添富中证科创业50指数增强C': {
+    code: '015555',
+    name: '汇添富中证科创业50指数增强C',
     category: '指数型'
   },
   
