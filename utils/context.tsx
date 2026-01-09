@@ -202,7 +202,7 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 // ============================================================================
 
 const STORAGE_KEY = 'investment-news-analyzer-state';
-const STORAGE_VERSION = '2.2'; // 升级版本号，匹配迁移版本
+const STORAGE_VERSION = '2.3'; // 升级版本号，添加 astock 支持
 
 /**
  * 可持久化的状态字段
@@ -253,10 +253,10 @@ function validatePersistedData(stored: any): boolean {
   if (!stored.analysis || typeof stored.analysis !== 'object') return false;
   if (!stored.priceData || typeof stored.priceData !== 'object') return false;
   
-  // 检查数组类型
-  if (!Array.isArray(stored.news.gold) || !Array.isArray(stored.news.nasdaq)) return false;
-  if (!Array.isArray(stored.analysis.gold) || !Array.isArray(stored.analysis.nasdaq)) return false;
-  if (!Array.isArray(stored.priceData.gold) || !Array.isArray(stored.priceData.nasdaq)) return false;
+  // 检查数组类型 - 包括 astock
+  if (!Array.isArray(stored.news.gold) || !Array.isArray(stored.news.nasdaq) || !Array.isArray(stored.news.astock)) return false;
+  if (!Array.isArray(stored.analysis.gold) || !Array.isArray(stored.analysis.nasdaq) || !Array.isArray(stored.analysis.astock)) return false;
+  if (!Array.isArray(stored.priceData.gold) || !Array.isArray(stored.priceData.nasdaq) || !Array.isArray(stored.priceData.astock)) return false;
   
   return true;
 }
