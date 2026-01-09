@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: !isProduction,
+      sourcemap: true, // 始终生成 source map 以便调试
       minify: isProduction ? 'esbuild' : false,
       target: 'es2015',
       rollupOptions: {
