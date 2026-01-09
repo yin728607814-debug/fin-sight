@@ -47,19 +47,23 @@ export const initialAppState: AppState = {
   currentAsset: 'gold',
   news: {
     gold: [],
-    nasdaq: []
+    nasdaq: [],
+    astock: []
   },
   analysis: {
     gold: [],
-    nasdaq: []
+    nasdaq: [],
+    astock: []
   },
   overallAnalysis: {
     gold: null,
-    nasdaq: null
+    nasdaq: null,
+    astock: null
   },
   priceData: {
     gold: [],
-    nasdaq: []
+    nasdaq: [],
+    astock: []
   },
   loading: initialLoadingState,
   errors: initialErrorState
@@ -149,19 +153,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         currentAsset: 'gold',
         news: {
           gold: [],
-          nasdaq: []
+          nasdaq: [],
+          astock: []
         },
         analysis: {
           gold: [],
-          nasdaq: []
+          nasdaq: [],
+          astock: []
         },
         overallAnalysis: {
           gold: null,
-          nasdaq: null
+          nasdaq: null,
+          astock: null
         },
         priceData: {
           gold: [],
-          nasdaq: []
+          nasdaq: [],
+          astock: []
         },
         loading: {
           news: false,
@@ -204,18 +212,22 @@ interface PersistableState {
   news: {
     gold: NewsItem[];
     nasdaq: NewsItem[];
+    astock: NewsItem[];
   };
   analysis: {
     gold: NewsAnalysis[];
     nasdaq: NewsAnalysis[];
+    astock: NewsAnalysis[];
   };
   overallAnalysis: {
     gold: import('../types').OverallMarketAnalysis | null;
     nasdaq: import('../types').OverallMarketAnalysis | null;
+    astock: import('../types').OverallMarketAnalysis | null;
   };
   priceData: {
     gold: PriceData[];
     nasdaq: PriceData[];
+    astock: PriceData[];
   };
   timestamp: number; // 添加时间戳，用于判断数据是否过期
   version: string;
