@@ -251,9 +251,9 @@ export interface TrendChartProps {
  * 新闻列表组件Props
  */
 export interface NewsListProps {
-  news: NewsItem[];
-  analysis: NewsAnalysis[];
-  loading: boolean;
+  news?: NewsItem[];
+  analysis?: NewsAnalysis[];
+  loading?: boolean;
 }
 
 /**

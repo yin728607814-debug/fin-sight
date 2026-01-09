@@ -12,9 +12,9 @@ import { LoadingSpinner } from './LoadingSpinner';
  * 新闻列表组件
  */
 export const NewsList: React.FC<NewsListProps> = ({ 
-  news, 
-  analysis, 
-  loading 
+  news = [], 
+  analysis = [], 
+  loading = false
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<'time' | 'impact' | 'relevance'>('time');
@@ -38,6 +38,9 @@ export const NewsList: React.FC<NewsListProps> = ({
    * 获取新闻对应的分析结果
    */
   const getAnalysisForNews = (newsId: string): NewsAnalysis | undefined => {
+    if (!analysis || !Array.isArray(analysis)) {
+      return undefined;
+    }
     return analysis.find(a => a.newsId === newsId);
   };
 
@@ -45,6 +48,11 @@ export const NewsList: React.FC<NewsListProps> = ({
    * 排序后的新闻列表
    */
   const sortedNews = useMemo(() => {
+    // 确保 news 是数组
+    if (!news || !Array.isArray(news)) {
+      return [];
+    }
+
     const newsWithAnalysis = news.map(newsItem => ({
       news: newsItem,
       analysis: getAnalysisForNews(newsItem.id)
@@ -67,7 +75,7 @@ export const NewsList: React.FC<NewsListProps> = ({
           return 0;
       }
     });
-  }, [news, getAnalysisForNews, sortBy]);
+  }, [news, analysis, sortBy]);
 
   /**
    * 分页后的新闻列表

@@ -213,7 +213,11 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
                 </p>
               </div>
               <div className="p-6">
-                <NewsList assetType="astock" />
+                <NewsList 
+                  news={news}
+                  analysis={analysis}
+                  loading={newsLoading || loading.news}
+                />
               </div>
             </div>
           </div>
