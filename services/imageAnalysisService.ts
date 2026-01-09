@@ -138,6 +138,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - 南方基金格式：南方纳斯达克100指数发起 (QDII) A （注意空格位置）
 - 建信基金格式：建信纳斯达克100指数QDII A （注意QDII和A之间有空格）
 - 摩根基金格式：摩根纳斯达克100指数(QDII)人民币A （括号前后无空格）
+- 华宝基金格式：华宝纳斯达克精选股票发起式(QDII)A （括号前后无空格）
 
 请以JSON格式返回结果，不要包含markdown代码块标记，直接返回纯JSON：
 
@@ -222,6 +223,7 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
 - 必须使用半角括号 () 而不是全角括号（）
 - 南方基金：(QDII) 前后要有空格，A/C/I 前面要有空格
 - 建信基金：QDII 和 A 之间要有空格
+- 摩根基金和华宝基金：括号前后无空格
 
 请现在开始识别截图中的所有基金信息。`;
 
@@ -300,6 +302,18 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
           // QDIIA -> QDII A, QDIIC -> QDII C
           normalizedName = normalizedName.replace(/QDII([ACI])$/g, 'QDII $1');
           console.log(`【步骤3.2】添加字母前空格: "${normalizedName}"`);
+        }
+        
+        // 4. 处理华宝基金：确保括号前后无空格
+        if (normalizedName.includes('华宝纳斯达克')) {
+          console.log(`【检测到】华宝基金`);
+          // 移除括号前后的所有空格
+          normalizedName = normalizedName.replace(/\s*\(QDII\)\s*/g, '(QDII)');
+          console.log(`【步骤4.1】移除括号空格: "${normalizedName}"`);
+          
+          // 移除 A/C/I 前的空格
+          normalizedName = normalizedName.replace(/\s+([ACI])$/g, '$1');
+          console.log(`【步骤4.2】移除字母前空格: "${normalizedName}"`);
         }
         
         console.log(`【标准化后】最终名称: "${normalizedName}"`);

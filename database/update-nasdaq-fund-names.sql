@@ -6,6 +6,7 @@
 -- 1. 摩根基金：括号前后无空格，如 摩根纳斯达克100指数(QDII)人民币A
 -- 2. 建信基金：QDII和A之间有空格，如 建信纳斯达克100指数QDII A
 -- 3. 南方基金：(QDII)前后有空格，A/C/I前面有空格，如 南方纳斯达克100指数发起 (QDII) A
+-- 4. 华宝基金：括号前后无空格，如 华宝纳斯达克精选股票发起式(QDII)A
 
 -- 1. 摩根纳斯达克100指数(QDII)人民币A（括号前后无空格）
 UPDATE positions 
@@ -41,6 +42,12 @@ SET fund_name = '南方纳斯达克100指数发起 (QDII) I',
     fund_code = 'QDII'
 WHERE fund_name LIKE '%南方%纳斯达克%' 
   AND (fund_name LIKE '%I' OR fund_name LIKE '% I');
+
+-- 6. 华宝纳斯达克精选股票发起式(QDII)A（括号前后无空格）
+UPDATE positions 
+SET fund_name = '华宝纳斯达克精选股票发起式(QDII)A',
+    fund_code = 'QDII'
+WHERE fund_name LIKE '%华宝%纳斯达克%';
 
 -- 验证更新结果
 SELECT id, fund_name, fund_code, investment_amount, profit_loss, daily_profit_loss
