@@ -21,11 +21,11 @@ exports.handler = async (event, _context) => {
 
   try {
     // 获取查询参数
-    const { category = 'finance', num = '500' } = event.queryStringParameters || {};
+    const { category = 'finance', num = '50' } = event.queryStringParameters || {};
     
     // 新浪财经分类配置
     // 经过测试，财经要闻(lid=2509)是最可靠的分类
-    // 获取大量新闻（500条），前端通过URL过滤+关键词过滤实现精准分类
+    // 获取适量新闻（50条），前端通过URL过滤+关键词过滤实现精准分类
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
       'stock': { pageid: '153', lid: '2509', name: '财经要闻' },
@@ -44,7 +44,7 @@ exports.handler = async (event, _context) => {
       num 
     });
     
-    // 获取多页数据（500条 = 10页 × 50条）
+    // 获取多页数据（50条 = 1页 × 50条）
     const allArticles = [];
     const requestedNum = parseInt(num);
     const perPage = 50;

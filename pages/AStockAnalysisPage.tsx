@@ -279,8 +279,16 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
                     message={pricesError}
                     onRetry={handleRefreshPrice}
                   />
+                ) : priceData.length > 0 ? (
+                  <TrendChart 
+                    data={priceData}
+                    assetType="astock"
+                    timeRange={5}
+                  />
                 ) : (
-                  <TrendChart assetType="astock" />
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    暂无价格数据
+                  </div>
                 )}
               </div>
             </div>
