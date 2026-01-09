@@ -110,55 +110,77 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
     const prompt = `请仔细分析这张基金收益截图，这是一张招商银行或支付宝APP的基金持仓列表。
 
 【重要】截图格式说明：
-- 招商银行格式：每个基金显示"基金名称"、"昨日收益"（红色或绿色数字）、"持仓收益"、"持仓金额"
-- 支付宝格式：每个基金显示"基金名称"、"日收益"、"持仓收益"、"持仓金额"
+招商银行格式（列表视图）：
+- 每行显示一个基金
+- 第一行：基金名称（如：摩根纳斯达克100指数(QDII)人民币A）
+- 第二行左侧：昨日收益（红色表示盈利，绿色表示亏损，如：35.52 或 -90.48）
+- 第二行右侧：持仓金额（如：51,399.52）
+- 第三行左侧：持仓收益（这是累计总收益，不要提取这个）
+
+⚠️ 注意区分：
+- "昨日收益"：这是我们需要的，表示昨天一天的收益
+- "持仓收益"：这是累计总收益，不要提取
 
 请提取所有可见基金的以下信息：
-1. 基金名称（完整名称，包括括号内的代码）
-2. 基金代码（如果基金名称中有括号，提取括号内的代码）
-3. 昨日收益或日收益的金额（红色表示正收益，绿色表示负收益）
-4. 根据昨日收益金额和持仓金额计算涨跌幅
-
-【识别规则】：
-- 招商银行截图中，"昨日收益"就是我们需要的"当日收益"
-- 支付宝截图中，"日收益"就是我们需要的"当日收益"
-- 红色数字表示正收益（盈利），绿色数字表示负收益（亏损）
-- 基金名称中如果包含"纳斯达克"、"QDII"、"美股"等关键词，assetType 设为 "nasdaq"
-- 其他基金 assetType 设为 "astock"
+1. 基金名称（完整名称，去掉括号和代码部分）
+2. 基金代码（从括号中提取，如 QDII、QDIIA 等）
+3. 昨日收益金额（第二行左侧的数字，红色为正，绿色为负）
+4. 持仓金额（第二行右侧的数字）
 
 请以JSON格式返回结果，不要包含markdown代码块标记，直接返回纯JSON：
 
 {
-  "source": "cmb" 或 "alipay",
+  "source": "cmb",
   "funds": [
     {
-      "fundName": "基金完整名称（不含括号和代码）",
-      "fundCode": "基金代码（从括号中提取，如QDII、QDIIA等）",
-      "assetType": "nasdaq" 或 "astock",
-      "dailyChange": 涨跌幅百分比（数字，根据昨日收益/持仓金额计算，如果昨日收益是35.52，持仓金额是51399.52，则涨跌幅约为0.069%）,
-      "dailyProfitLoss": 昨日收益金额（数字，红色为正数，绿色为负数，如 35.52 或 -90.48）,
-      "totalValue": 持仓金额（数字，如 51399.52）,
-      "confidence": 识别置信度（0-1之间的数字）
+      "fundName": "基金名称（不含括号和代码）",
+      "fundCode": "基金代码",
+      "assetType": "nasdaq",
+      "dailyProfitLoss": 昨日收益金额（数字，正数或负数）,
+      "totalValue": 持仓金额（数字）,
+      "confidence": 0.95
     }
   ]
 }
 
-【示例】：
+【示例1】：
 如果看到：
-- 基金名称：摩根纳斯达克100指数(QDII)人民币A
-- 昨日收益：35.52（红色）
-- 持仓金额：51,399.52
+摩根纳斯达克100指数(QDII)人民币A
+昨日收益  35.52          51,399.52
+持仓收益  -90.48         持仓金额
 
 应该返回：
 {
   "fundName": "摩根纳斯达克100指数人民币A",
   "fundCode": "QDII",
   "assetType": "nasdaq",
-  "dailyChange": 0.069,
   "dailyProfitLoss": 35.52,
   "totalValue": 51399.52,
   "confidence": 0.95
 }
+
+【示例2】：
+如果看到：
+建信纳斯达克100指数QDIIA
+昨日收益  65.10          35,875.87
+持仓收益  -424.13        持仓金额
+
+应该返回：
+{
+  "fundName": "建信纳斯达克100指数QDIIA",
+  "fundCode": "QDIIA",
+  "assetType": "nasdaq",
+  "dailyProfitLoss": 65.10,
+  "totalValue": 35875.87,
+  "confidence": 0.95
+}
+
+⚠️ 重要提醒：
+- 只提取"昨日收益"，不要提取"持仓收益"
+- 昨日收益在第二行左侧
+- 持仓金额在第二行右侧
+- 基金名称中包含"纳斯达克"、"QDII"的，assetType 设为 "nasdaq"
+- 其他基金 assetType 设为 "astock"
 
 请现在开始识别截图中的所有基金信息。`;
 
@@ -198,17 +220,13 @@ export async function analyzeIncomeScreenshot(file: File): Promise<AnalysisResul
         return true;
       })
       .map((fund: any) => {
-        // 如果没有涨跌幅，尝试从收益金额和持仓金额计算
-        let dailyChange = fund.dailyChange;
-        if (typeof dailyChange !== 'number' && fund.totalValue && fund.dailyProfitLoss) {
+        // 计算涨跌幅（基于昨日收益和持仓金额）
+        let dailyChange = 0;
+        if (fund.totalValue && fund.dailyProfitLoss) {
           dailyChange = (fund.dailyProfitLoss / fund.totalValue) * 100;
-          console.log(`计算涨跌幅: ${fund.fundName} = ${dailyChange.toFixed(4)}%`);
-        }
-        
-        // 如果还是没有涨跌幅，设为0
-        if (typeof dailyChange !== 'number') {
-          dailyChange = 0;
-          console.warn(`无法计算涨跌幅，设为0: ${fund.fundName}`);
+          console.log(`计算涨跌幅: ${fund.fundName} = ${dailyChange.toFixed(4)}% (${fund.dailyProfitLoss} / ${fund.totalValue})`);
+        } else {
+          console.warn(`无法计算涨跌幅（缺少持仓金额）: ${fund.fundName}`);
         }
         
         return {
