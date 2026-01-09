@@ -385,7 +385,13 @@ export class AnalysisService implements IAnalysisService {
    * 构建批量分析提示词 - 为每条新闻返回单独分析（平衡版本）
    */
   private buildBatchAnalysisPrompt(newsList: Array<{ title: string; content: string }>, assetType: string): string {
-    const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    const assetNames = {
+      'gold': '现货黄金(XAUUSD)',
+      'nasdaq': '纳斯达克100指数',
+      'astock': 'A股市场(上证指数)'
+    };
+    
+    const assetName = assetNames[assetType as keyof typeof assetNames] || assetType;
     
     // 将新闻列表格式化，每条新闻带编号（使用完整内容，最多800字）
     const newsText = newsList.map((news, index) => {
@@ -1073,7 +1079,13 @@ ${newsText}
    */
   private generateLocalSummary(newsContent: string, impact: ImpactType, assetType: string): string {
     const title = newsContent.split('\n')[0] || newsContent.substring(0, 100);
-    const assetName = assetType === 'gold' ? '黄金' : '纳斯达克100';
+    const assetNames = {
+      'gold': '黄金',
+      'nasdaq': '纳斯达克100',
+      'astock': 'A股'
+    };
+    
+    const assetName = assetNames[assetType as keyof typeof assetNames] || assetType;
     
     const impactText: Record<ImpactType, string> = {
       positive: `可能对${assetName}产生积极影响`,
@@ -1241,7 +1253,13 @@ ${newsText}
     newsList: Array<{ title: string; content: string }>, 
     assetType: import('../types').AssetType
   ): import('../types').OverallMarketAnalysis {
-    const assetName = assetType === 'gold' ? '现货黄金' : '纳斯达克100';
+    const assetNames = {
+      'gold': '现货黄金',
+      'nasdaq': '纳斯达克100',
+      'astock': 'A股'
+    };
+    
+    const assetName = assetNames[assetType] || assetType;
     
     // 简单的关键词分析
     const allText = newsList.map(n => `${n.title} ${n.content}`).join(' ').toLowerCase();
@@ -1290,7 +1308,13 @@ ${newsText}
     newsList: Array<{ title: string; content: string }>, 
     assetType: import('../types').AssetType
   ): Promise<import('../types').OverallMarketAnalysis> {
-    const assetName = assetType === 'gold' ? '现货黄金(XAUUSD)' : '纳斯达克100指数';
+    const assetNames = {
+      'gold': '现货黄金(XAUUSD)',
+      'nasdaq': '纳斯达克100指数',
+      'astock': 'A股市场(上证指数)'
+    };
+    
+    const assetName = assetNames[assetType] || assetType;
     
     // 使用标题+完整内容（最多200字）
     const newsText = newsList.map((news, index) => {
