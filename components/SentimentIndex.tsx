@@ -51,7 +51,12 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
   useEffect(() => {
     try {
       const historyData = sentimentService.getSentimentHistory(assetType, 7);
-      setHistory(historyData);
+      // 确保返回的数据有效
+      if (historyData && historyData.data && Array.isArray(historyData.data)) {
+        setHistory(historyData);
+      } else {
+        setHistory(null);
+      }
     } catch (error) {
       console.error('加载情绪历史失败:', error);
       setHistory(null);

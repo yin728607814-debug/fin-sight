@@ -21,6 +21,31 @@ interface SentimentTrendProps {
 }
 
 export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
+  // 安全检查：确保 history 和 history.data 存在
+  if (!history || !history.data || !Array.isArray(history.data)) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <p className="mt-2 text-sm">暂无历史数据</p>
+          <p className="text-xs mt-1">数据将在分析新闻后自动记录</p>
+        </div>
+      </div>
+    );
+  }
+
   // 格式化日期显示
   const formatDate = (dateStr: string | Date | any): string => {
     try {
@@ -47,7 +72,7 @@ export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
   };
 
   // 准备图表数据 - 过滤无效数据
-  const chartData = (history?.data || [])
+  const chartData = history.data
     .filter((item) => {
       if (!item || typeof item !== 'object') {
         return false;
