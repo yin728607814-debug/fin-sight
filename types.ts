@@ -325,7 +325,7 @@ export const ASSET_SYMBOLS: Record<AssetType, string> = {
 export const ASSET_NAMES: Record<AssetType, string> = {
   gold: '现货黄金',
   nasdaq: '纳斯达克100',
-  astock: 'A股基金'
+  astock: 'A股市场'
 };
 
 /**

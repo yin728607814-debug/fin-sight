@@ -68,6 +68,15 @@ const navigationCards: NavigationCard[] = [
     bgColor: 'from-blue-500/10 to-cyan-500/10'
   },
   {
+    id: 'astock',
+    title: 'A股市场',
+    description: '追踪上证指数走势，把握A股投资机会',
+    path: '/astock',
+    icon: ChartBarIcon,
+    color: 'text-red-600 dark:text-red-400',
+    bgColor: 'from-red-500/10 to-orange-500/10'
+  },
+  {
     id: 'dashboard',
     title: '智能仪表盘',
     description: '个性化数据看板，一站式掌握市场动态',

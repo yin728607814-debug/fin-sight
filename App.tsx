@@ -15,6 +15,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const GoldAnalysisPage = lazy(() => import('./pages/GoldAnalysisPage'));
 const NasdaqAnalysisPage = lazy(() => import('./pages/NasdaqAnalysisPage'));
+const AStockAnalysisPage = lazy(() => import('./pages/AStockAnalysisPage'));
 const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -101,6 +102,7 @@ const App: React.FC = () => {
                   <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
                   <Route path="/gold" element={<ProtectedRoute><GoldAnalysisPage /></ProtectedRoute>} />
                   <Route path="/nasdaq" element={<ProtectedRoute><NasdaqAnalysisPage /></ProtectedRoute>} />
+                  <Route path="/astock" element={<ProtectedRoute><AStockAnalysisPage /></ProtectedRoute>} />
                   <Route path="/ai-chat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />
                   <Route path="/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
                   <Route path="/fund-config" element={<ProtectedRoute><FundConfigPage /></ProtectedRoute>} />
