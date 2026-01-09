@@ -571,18 +571,25 @@ export const PortfolioPage: React.FC = () => {
 
     for (const result of results) {
       try {
-        // 查找匹配的持仓
+        // 查找匹配的持仓（只使用精确匹配）
         const matchingPosition = supabasePositions.find(p => {
           // 精确匹配基金名称
           if (p.fundName === result.fundName) return true;
           
-          // 如果有基金代码，也尝试匹配
-          if (result.fundCode && p.fundCode === result.fundCode) return true;
-          
-          // 模糊匹配（去除空格后比较）
-          const normalizedFundName = result.fundName.replace(/\s+/g, '');
-          const normalizedPositionName = p.fundName?.replace(/\s+/g, '') || '';
-          if (normalizedFundName === normalizedPositionName) return true;
+          // 如果有基金代码，也尝试通过代码+部分名称匹配
+          // 但必须确保名称的主要部分也匹配
+          if (result.fundCode && p.fundCode === result.fundCode) {
+            // 提取基金名称的主要部分（去掉括号和代码）
+            const extractMainName = (name: string) => {
+              return name.replace(/\([^)]*\)/g, '').replace(/\s+/g, '').toLowerCase();
+            };
+            
+            const resultMainName = extractMainName(result.fundName);
+            const positionMainName = extractMainName(p.fundName || '');
+            
+            // 主要名称必须匹配
+            if (resultMainName === positionMainName) return true;
+          }
           
           return false;
         });
