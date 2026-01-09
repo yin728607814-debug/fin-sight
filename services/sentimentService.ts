@@ -175,7 +175,7 @@ export class SentimentService {
     );
 
     sortedAnalyses.slice(0, 5).forEach((analysis) => {
-      if (analysis.keyPoints && analysis.keyPoints.length > 0) {
+      if (analysis.keyPoints && Array.isArray(analysis.keyPoints) && analysis.keyPoints.length > 0) {
         // 取第一个关键点
         factors.push(analysis.keyPoints[0]);
       }
