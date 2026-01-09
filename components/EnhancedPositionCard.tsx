@@ -150,9 +150,40 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
               </div>
             )}
           </>
+        ) : position.assetType === 'astock' ? (
+          <>
+            {/* A股基金：显示持仓金额和当日收益 */}
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">持仓金额</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {formatCurrency(position.investmentAmount)}
+              </p>
+            </div>
+
+            {/* 当日收益 */}
+            {position.dailyProfitLoss !== undefined && (
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
+                <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {position.dailyProfitLoss >= 0 ? '+' : ''}
+                  {formatCurrency(Math.abs(position.dailyProfitLoss))}
+                </p>
+              </div>
+            )}
+
+            {/* 当天收益率（自动计算：当日收益 / 持仓金额 * 100） */}
+            {position.dailyProfitLoss !== undefined && position.investmentAmount > 0 && (
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
+                <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {formatPercent((position.dailyProfitLoss / position.investmentAmount) * 100)}
+                </p>
+              </div>
+            )}
+          </>
         ) : (
           <>
-            {/* 其他资产：显示持仓金额和当前市值 */}
+            {/* 黄金等其他资产：显示持仓金额和当前市值 */}
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">持仓金额</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -168,25 +199,6 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             </div>
           </>
         )}
-
-        {/* A股基金：显示当日收益和当天收益率 */}
-        {position.assetType === 'astock' && position.dailyProfitLoss !== undefined && position.dailyChange !== undefined ? (
-          <>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当日收益</p>
-              <p className={`text-sm font-bold ${position.dailyProfitLoss >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {position.dailyProfitLoss >= 0 ? '+' : ''}
-                {formatCurrency(Math.abs(position.dailyProfitLoss))}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">当天收益率</p>
-              <p className={`text-sm font-bold ${position.dailyChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {position.dailyChange >= 0 ? '+' : ''}{position.dailyChange.toFixed(2)}%
-              </p>
-            </div>
-          </>
-        ) : null}
 
         {/* 黄金特有：克数和均价 */}
         {position.assetType === 'gold' && position.quantity && position.averageBuyPrice && (
@@ -224,17 +236,9 @@ export const EnhancedPositionCard: React.FC<EnhancedPositionCardProps> = ({
             ) : (
               <ArrowTrendingDownIcon className={`h-4 w-4 ${profitColor}`} />
             )}
-            <div className="flex flex-col items-end">
-              <span className={`text-lg font-bold ${profitColor}`}>
-                {formatCurrency(Math.abs(position.profitLoss))}
-              </span>
-              {/* A股基金显示收益分解：昨日收益 + 今日收益，纳斯达克不显示 */}
-              {position.assetType === 'astock' && position.dailyProfitLoss !== undefined && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  (昨日收益：{formatCurrency(Math.abs(position.profitLoss - position.dailyProfitLoss))}{position.dailyProfitLoss >= 0 ? '+' : '-'}{formatCurrency(Math.abs(position.dailyProfitLoss))})
-                </span>
-              )}
-            </div>
+            <span className={`text-lg font-bold ${profitColor}`}>
+              {formatCurrency(Math.abs(position.profitLoss))}
+            </span>
           </div>
         </div>
         <div className="flex items-center justify-between">
