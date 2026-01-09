@@ -191,15 +191,15 @@ export class PriceService implements IPriceService {
           const latestPrice = priceData[priceData.length - 1].close;
           logInfo('💰 上证指数价格验证', { 
             latestPrice, 
-            isCorrectRange: latestPrice >= 2500 && latestPrice <= 4000,
+            isCorrectRange: latestPrice >= 2000 && latestPrice <= 6500,
             dataPoints: priceData.length 
           });
           
           // 上证指数历史最高点是2007年10月的6124点
           // 2015年6月达到5178点
-          // 通常在2500-3500之间波动
-          if (latestPrice < 2500 || latestPrice > 4000) {
-            logError('⚠️ 上证指数价格异常', { latestPrice, expected: '2500-4000', note: '历史最高6124(2007)' });
+          // 通常在2500-4500之间波动
+          if (latestPrice < 2000 || latestPrice > 6500) {
+            logError('⚠️ 上证指数价格异常', { latestPrice, expected: '2000-6500', note: '历史最高6124(2007)' });
           }
         }
       } else {
