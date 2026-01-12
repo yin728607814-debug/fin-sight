@@ -44,7 +44,7 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * 计算持仓比例
+   * 计算持仓比例（基于总资产190万）
    */
   const calculatePositionRatios = () => {
     const goldPositions = portfolio.positions.filter(p => p.assetType === 'gold');
@@ -55,24 +55,25 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
     const nasdaqInvestment = nasdaqPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
     const astockInvestment = astockPositions.reduce((sum, p) => sum + p.investmentAmount, 0);
 
-    const total = portfolio.totalInvestment;
+    // 总资产固定为190万
+    const totalAssets = 1900000;
 
     return {
       gold: {
         amount: goldInvestment,
-        ratio: total > 0 ? (goldInvestment / total) * 100 : 0,
+        ratio: totalAssets > 0 ? (goldInvestment / totalAssets) * 100 : 0,
         count: goldPositions.length,
         profitLoss: goldPositions.reduce((sum, p) => sum + (p.profitLoss || 0), 0)
       },
       nasdaq: {
         amount: nasdaqInvestment,
-        ratio: total > 0 ? (nasdaqInvestment / total) * 100 : 0,
+        ratio: totalAssets > 0 ? (nasdaqInvestment / totalAssets) * 100 : 0,
         count: nasdaqPositions.length,
         profitLoss: nasdaqPositions.reduce((sum, p) => sum + (p.profitLoss || 0), 0)
       },
       astock: {
         amount: astockInvestment,
-        ratio: total > 0 ? (astockInvestment / total) * 100 : 0,
+        ratio: totalAssets > 0 ? (astockInvestment / totalAssets) * 100 : 0,
         count: astockPositions.length,
         profitLoss: astockPositions.reduce((sum, p) => sum + (p.profitLoss || 0), 0)
       }
