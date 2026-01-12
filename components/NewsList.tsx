@@ -20,6 +20,7 @@ export const NewsList: React.FC<NewsListProps> = ({
   const [sortBy, setSortBy] = useState<'time' | 'impact' | 'relevance'>('time');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const newsListRef = React.useRef<HTMLDivElement>(null);
 
   /**
    * 切换新闻项展开状态
@@ -96,7 +97,10 @@ export const NewsList: React.FC<NewsListProps> = ({
    */
   const goToPage = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 滚动到新闻列表的起始位置
+    if (newsListRef.current) {
+      newsListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   /**
@@ -191,7 +195,7 @@ export const NewsList: React.FC<NewsListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={newsListRef}>
       {/* 排序控制 */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <div className="flex items-center justify-between">
