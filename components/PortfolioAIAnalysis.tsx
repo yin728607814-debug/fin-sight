@@ -179,26 +179,31 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
     return `你是一位专业的投资顾问。请基于以下信息，为用户的投资组合提供专业分析和建议。
 
 ## 投资组合概况
+- 总资产：¥1,900,000.00（固定）
 - 总投资金额：¥${portfolio.totalInvestment.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
 - 当前市值：¥${portfolio.currentValue.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
 - 总盈亏：¥${portfolio.totalProfitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })} (${portfolio.totalProfitLossPercent.toFixed(2)}%)
 
-## 持仓结构
+## 持仓结构（占总资产比例）
 ### 黄金
-- 投资金额：¥${ratios.gold.amount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })} (${ratios.gold.ratio.toFixed(1)}%)
+- 投资金额：¥${ratios.gold.amount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+- 占总资产比例：${ratios.gold.ratio.toFixed(1)}%
 - 持仓数量：${ratios.gold.count}个
 - 盈亏：¥${ratios.gold.profitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
 
 ### 纳斯达克100
-- 投资金额：¥${ratios.nasdaq.amount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })} (${ratios.nasdaq.ratio.toFixed(1)}%)
+- 投资金额：¥${ratios.nasdaq.amount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+- 占总资产比例：${ratios.nasdaq.ratio.toFixed(1)}%
 - 持仓数量：${ratios.nasdaq.count}个
 - 盈亏：¥${ratios.nasdaq.profitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
 
 ### A股基金
-- 投资金额：¥${ratios.astock.amount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })} (${ratios.astock.ratio.toFixed(1)}%)
+- 投资金额：¥${ratios.astock.amount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
+- 占总资产比例：${ratios.astock.ratio.toFixed(1)}%
 - 持仓数量：${ratios.astock.count}个
 - 盈亏：¥${ratios.astock.profitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
 
+**重要说明**：持仓比例是基于总资产190万计算的，不是基于总投资金额。这意味着还有部分资产（约${((1900000 - portfolio.totalInvestment) / 1900000 * 100).toFixed(1)}%）未投资或以现金形式持有。
 ## 市场分析（基于AI新闻分析）
 
 ### 黄金市场
