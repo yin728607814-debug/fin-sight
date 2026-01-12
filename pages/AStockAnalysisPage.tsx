@@ -30,7 +30,7 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
   const { news, loading: newsLoading, error: newsError } = useNews('astock');
   const { analysis, loading: analysisLoading, error: analysisError } = useAnalysis('astock');
   const { overallAnalysis } = useOverallAnalysis('astock');
-  const { priceData, setPriceData, loading: pricesLoading, error: pricesError } = usePriceData('astock');
+  const { priceData: contextPriceData, setPriceData, loading: pricesLoading, error: pricesError } = usePriceData('astock');
   const { loading } = useLoading();
   const { errors } = useErrors();
   
@@ -39,6 +39,14 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
   const [refreshNewsOnly, setRefreshNewsOnly] = useState(false);
   const [refreshingPrice, setRefreshingPrice] = useState(false);
   const [chartKey, setChartKey] = useState(0); // 用于强制刷新图表
+  const [localPriceData, setLocalPriceData] = useState(contextPriceData); // 本地价格数据
+
+  // 同步context数据到本地state
+  useEffect(() => {
+    if (contextPriceData && contextPriceData.length > 0) {
+      setLocalPriceData(contextPriceData);
+    }
+  }, [contextPriceData]);
 
   // 设置当前资产类型
   useEffect(() => {
@@ -77,14 +85,17 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
       const newPriceData = await priceService.fetchFiveDayPriceHistory('astock');
       console.log('✅ 获取到新数据:', newPriceData);
       
-      // 5. 更新state
+      // 5. 更新context state
       setPriceData(newPriceData);
+      
+      // 6. 更新本地state（立即生效）
+      setLocalPriceData(newPriceData);
       console.log('✅ 价格数据已更新');
       
-      // 6. 更新最后更新时间
+      // 7. 更新最后更新时间
       setLastUpdated(new Date());
       
-      // 7. 强制刷新图表
+      // 8. 强制刷新图表
       setChartKey(prev => prev + 1);
       console.log('✅ 图表已刷新');
       
@@ -314,10 +325,10 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
                     message={pricesError}
                     onRetry={handleRefreshPrice}
                   />
-                ) : priceData.length > 0 ? (
+                ) : localPriceData.length > 0 ? (
                   <TrendChart 
                     key={chartKey}
-                    data={priceData}
+                    data={localPriceData}
                     assetType="astock"
                     timeRange={5}
                   />
