@@ -699,6 +699,15 @@ export class PriceService implements IPriceService {
   }
 
   /**
+   * 清除所有缓存（强制刷新）
+   */
+  public clearAllCache(): void {
+    this.priceCache.clear();
+    this.assetCache.clear();
+    logInfo('已清除所有价格缓存');
+  }
+
+  /**
    * 检查价格数据是否过期
    */
   public isPriceDataExpired(symbol: string, days: number): boolean {

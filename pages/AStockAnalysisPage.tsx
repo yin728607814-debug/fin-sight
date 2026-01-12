@@ -48,11 +48,23 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
   const handleRefreshPrice = async () => {
     setRefreshingPrice(true);
     try {
-      // 清除价格缓存并重新加载
+      // 1. 清除前端转换缓存
       const { clearPriceCache } = await import('../hooks/usePriceDataWithConversion');
       clearPriceCache();
       
-      // 触发重新获取价格数据
+      // 2. 清除priceService内部所有缓存
+      const { priceService } = await import('../services/priceService');
+      priceService.clearAllCache();
+      
+      // 3. 清除localStorage中的缓存
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.includes('price_') || key.includes('astock')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // 4. 强制重新加载页面
       window.location.reload();
     } catch (error) {
       console.error('刷新价格失败:', error);
