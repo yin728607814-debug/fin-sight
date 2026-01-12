@@ -84,20 +84,27 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
       console.log('🌐 开始获取新的价格数据...');
       const newPriceData = await priceService.fetchFiveDayPriceHistory('astock');
       console.log('✅ 获取到新数据:', newPriceData);
+      console.log('📊 新数据详情:', {
+        length: newPriceData.length,
+        dates: newPriceData.map(d => d.date),
+        lastDate: newPriceData[newPriceData.length - 1]?.date,
+        lastPrice: newPriceData[newPriceData.length - 1]?.close
+      });
       
       // 5. 更新context state
       setPriceData(newPriceData);
       
       // 6. 更新本地state（立即生效）
-      setLocalPriceData(newPriceData);
+      setLocalPriceData([...newPriceData]); // 创建新数组确保引用变化
       console.log('✅ 价格数据已更新');
+      console.log('📊 本地数据:', localPriceData.length, '条');
       
       // 7. 更新最后更新时间
       setLastUpdated(new Date());
       
       // 8. 强制刷新图表
       setChartKey(prev => prev + 1);
-      console.log('✅ 图表已刷新');
+      console.log('✅ 图表已刷新, 新key:', chartKey + 1);
       
     } catch (error) {
       console.error('❌ 刷新价格失败:', error);
