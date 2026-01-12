@@ -14,6 +14,7 @@ import { EditPositionModal } from '../components/EditPositionModal';
 import { GoldSummary } from '../components/GoldSummary';
 import { MigrationPrompt } from '../components/MigrationPrompt';
 import { ImageUploadAnalyzer, AnalysisResult } from '../components/ImageUploadAnalyzer';
+import { PortfolioAIAnalysis } from '../components/PortfolioAIAnalysis';
 import { portfolioService, Position, Portfolio } from '../services/portfolioService';
 import { usePriceDataWithConversion } from '../hooks/usePriceDataWithConversion';
 import { usePortfolioWithSupabase } from '../hooks/usePortfolioWithSupabase';
@@ -21,6 +22,7 @@ import { useAStockFundData } from '../hooks/useAStockFundData';
 import { useNasdaqFundData } from '../hooks/useNasdaqFundData';
 import { aStockFundService } from '../services/aStockFundService';
 import { nasdaqFundService } from '../services/nasdaqFundService';
+import { useAnalysis, useOverallAnalysis } from '../utils/context';
 
 /**
  * 投资组合页面组件
@@ -88,6 +90,14 @@ export const PortfolioPage: React.FC = () => {
     false, // 禁用自动刷新
     undefined
   );
+
+  // 获取各资产类型的分析数据（用于AI分析）
+  const { analysis: goldAnalysis } = useAnalysis('gold');
+  const { analysis: nasdaqAnalysis } = useAnalysis('nasdaq');
+  const { analysis: astockAnalysis } = useAnalysis('astock');
+  const { overallAnalysis: goldOverallAnalysis } = useOverallAnalysis('gold');
+  const { overallAnalysis: nasdaqOverallAnalysis } = useOverallAnalysis('nasdaq');
+  const { overallAnalysis: astockOverallAnalysis } = useOverallAnalysis('astock');
 
   /**
    * 加载和计算投资组合（不更新数据库）
@@ -944,8 +954,20 @@ export const PortfolioPage: React.FC = () => {
                 <div className="p-6">
                   {currentStats && (
                     <>
-                      {/* 第一行：总投资、当前市值、总盈亏 */}
-                      <div className="grid grid-cols-3 gap-6 mb-6">
+                      {/* 第一行：总资产（仅全部资产显示）、总投资、当前市值、总盈亏 */}
+                      <div className={`grid ${summaryTab === 'all' ? 'grid-cols-4' : 'grid-cols-3'} gap-6 mb-6`}>
+                        {/* 总资产 - 仅在全部资产Tab显示 */}
+                        {summaryTab === 'all' && (
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mb-2 font-medium">总资产</p>
+                            <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                              ¥{(1900000).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+                              只读
+                            </p>
+                          </div>
+                        )}
                         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">总投资</p>
                           <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -1081,6 +1103,19 @@ export const PortfolioPage: React.FC = () => {
 
           {/* 右侧：统计信息 */}
           <div className="space-y-6">
+            {/* AI 投资组合分析 */}
+            {portfolio && portfolio.positions.length > 0 && (
+              <PortfolioAIAnalysis
+                portfolio={portfolio}
+                goldAnalysis={goldAnalysis || []}
+                nasdaqAnalysis={nasdaqAnalysis || []}
+                astockAnalysis={astockAnalysis || []}
+                goldOverallAnalysis={goldOverallAnalysis}
+                nasdaqOverallAnalysis={nasdaqOverallAnalysis}
+                astockOverallAnalysis={astockOverallAnalysis}
+              />
+            )}
+
             {/* 黄金持仓总览 */}
             {portfolio && (() => {
               const goldStats = portfolioService.getGoldStats(portfolio);

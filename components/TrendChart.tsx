@@ -38,8 +38,15 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   assetType, 
   timeRange 
 }) => {
-  // 处理图表数据
+  // 处理图表数据 - 添加 key 作为依赖，确保强制刷新时重新计算
   const chartData = useMemo(() => {
+    console.log('🔄 TrendChart: 重新计算图表数据', { 
+      dataLength: data?.length, 
+      assetType,
+      firstDate: data?.[0]?.date,
+      lastDate: data?.[data.length - 1]?.date 
+    });
+    
     if (!data || data.length === 0) {
       return {
         labels: [],
@@ -69,6 +76,13 @@ export const TrendChart: React.FC<TrendChartProps> = ({
     
     const lineColor = latestChange >= 0 ? '#ef4444' : '#10b981'; // 红色上涨，绿色下跌
     const fillColor = latestChange >= 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)';
+
+    console.log('📊 TrendChart: 图表数据已生成', { 
+      labels, 
+      pricesCount: prices.length,
+      latestPrice: prices[prices.length - 1],
+      latestChange 
+    });
 
     return {
       labels,

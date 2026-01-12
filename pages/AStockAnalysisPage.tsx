@@ -80,7 +80,12 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
       });
       console.log(`✅ 已清除localStorage缓存 (${clearedCount}项)`);
       
-      // 4. 直接调用API获取新数据（不重新加载页面）
+      // 4. 强制刷新图表（先增加key，触发卸载）
+      const newKey = chartKey + 1;
+      setChartKey(newKey);
+      console.log('🔄 图表key已更新:', newKey);
+      
+      // 5. 直接调用API获取新数据（不重新加载页面）
       console.log('🌐 开始获取新的价格数据...');
       const newPriceData = await priceService.fetchFiveDayPriceHistory('astock');
       console.log('✅ 获取到新数据:', newPriceData);
@@ -91,20 +96,17 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
         lastPrice: newPriceData[newPriceData.length - 1]?.close
       });
       
-      // 5. 更新context state
-      setPriceData(newPriceData);
-      
-      // 6. 更新本地state（立即生效）
+      // 6. 先更新本地state（立即生效）
       setLocalPriceData([...newPriceData]); // 创建新数组确保引用变化
-      console.log('✅ 价格数据已更新');
-      console.log('📊 本地数据:', localPriceData.length, '条');
+      console.log('✅ 本地价格数据已更新, 数据点:', newPriceData.length);
       
-      // 7. 更新最后更新时间
+      // 7. 然后更新context state
+      setPriceData(newPriceData);
+      console.log('✅ Context价格数据已更新');
+      
+      // 8. 更新最后更新时间
       setLastUpdated(new Date());
-      
-      // 8. 强制刷新图表
-      setChartKey(prev => prev + 1);
-      console.log('✅ 图表已刷新, 新key:', chartKey + 1);
+      console.log('✅ 刷新完成!');
       
     } catch (error) {
       console.error('❌ 刷新价格失败:', error);
