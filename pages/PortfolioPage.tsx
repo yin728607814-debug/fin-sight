@@ -1024,6 +1024,19 @@ export const PortfolioPage: React.FC = () => {
               </div>
             )}
 
+            {/* AI 投资组合分析 - 放在总览下面 */}
+            {portfolio && portfolio.positions.length > 0 && (
+              <PortfolioAIAnalysis
+                portfolio={portfolio}
+                goldAnalysis={goldAnalysis || []}
+                nasdaqAnalysis={nasdaqAnalysis || []}
+                astockAnalysis={astockAnalysis || []}
+                goldOverallAnalysis={goldOverallAnalysis}
+                nasdaqOverallAnalysis={nasdaqOverallAnalysis}
+                astockOverallAnalysis={astockOverallAnalysis}
+              />
+            )}
+
             {/* 图表 */}
             {portfolio && portfolio.positions.length > 0 && (
               <PortfolioChart portfolio={portfolio} history={history} />
@@ -1103,19 +1116,6 @@ export const PortfolioPage: React.FC = () => {
 
           {/* 右侧：统计信息 */}
           <div className="space-y-6">
-            {/* AI 投资组合分析 */}
-            {portfolio && portfolio.positions.length > 0 && (
-              <PortfolioAIAnalysis
-                portfolio={portfolio}
-                goldAnalysis={goldAnalysis || []}
-                nasdaqAnalysis={nasdaqAnalysis || []}
-                astockAnalysis={astockAnalysis || []}
-                goldOverallAnalysis={goldOverallAnalysis}
-                nasdaqOverallAnalysis={nasdaqOverallAnalysis}
-                astockOverallAnalysis={astockOverallAnalysis}
-              />
-            )}
-
             {/* 黄金持仓总览 */}
             {portfolio && (() => {
               const goldStats = portfolioService.getGoldStats(portfolio);
