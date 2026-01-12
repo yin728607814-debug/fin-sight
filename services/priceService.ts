@@ -349,9 +349,14 @@ export class PriceService implements IPriceService {
             response = await axios.get('/.netlify/functions/sina-stock-proxy', {
               params: { 
                 symbol: 'sh000001', // 上证指数代码
-                range: '5d'
+                range: '5d',
+                _t: Date.now() // 添加时间戳防止缓存
               },
-              timeout: this.config.timeout
+              timeout: this.config.timeout,
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
             });
           } else {
             // 其他资产使用Alpha Vantage API

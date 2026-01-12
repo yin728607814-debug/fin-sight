@@ -227,7 +227,10 @@ exports.handler = async (event, _context) => {
               statusCode: 200,
               headers: {
                 'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
               },
               body: JSON.stringify({
                 symbol: symbol,
