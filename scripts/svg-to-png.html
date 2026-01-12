@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG转PNG - PWA图标生成器</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #10b981;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .preview {
+      display: flex;
+      gap: 30px;
+      margin: 30px 0;
+      justify-content: center;
+    }
+    .preview-item {
+      text-align: center;
+    }
+    .preview-item img {
+      border: 2px solid #e5e7eb;
+      border-radius: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .preview-item p {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+    button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #059669;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .success {
+      background: #d1fae5;
+      border: 1px solid #10b981;
+      color: #065f46;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      display: none;
+    }
+    .success.show {
+      display: block;
+    }
+    .instructions {
+      background: #f0f9ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #1e40af;
+    }
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 PWA图标生成器</h1>
+    <p class="subtitle">将SVG图标转换为PNG格式</p>
+
+    <div class="instructions">
+      <h3>📝 使用说明</h3>
+      <ol>
+        <li>点击下方的"生成PNG图标"按钮</li>
+        <li>预览生成的图标</li>
+        <li>点击"下载 192x192"和"下载 512x512"按钮</li>
+        <li>将下载的文件重命名为 <code>icon-192.png</code> 和 <code>icon-512.png</code></li>
+        <li>放到项目的 <code>public/</code> 目录</li>
+        <li>推送代码到GitHub</li>
+      </ol>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <button onclick="generateIcons()" id="generateBtn">🚀 生成PNG图标</button>
+    </div>
+
+    <div class="success" id="successMsg">
+      ✅ 图标生成成功！请点击下方按钮下载
+    </div>
+
+    <div class="preview" id="preview" style="display: none;">
+      <div class="preview-item">
+        <img id="icon192" width="192" height="192" alt="192x192图标">
+        <p>192 x 192 像素</p>
+        <button onclick="downloadIcon(192)">📥 下载 192x192</button>
+      </div>
+      <div class="preview-item">
+        <img id="icon512" width="192" height="192" alt="512x512图标" style="width: 192px; height: 192px;">
+        <p>512 x 512 像素</p>
+        <button onclick="downloadIcon(512)">📥 下载 512x512</button>
+      </div>
+    </div>
+
+    <canvas id="canvas192" width="192" height="192" style="display: none;"></canvas>
+    <canvas id="canvas512" width="512" height="512" style="display: none;"></canvas>
+  </div>
+
+  <script>
+    let canvas192Data, canvas512Data;
+
+    function drawIcon(canvas) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      const center = size / 2;
+      
+      // 背景渐变
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#10b981');
+      gradient.addColorStop(1, '#059669');
+      
+      // 圆角矩形背景
+      const radius = size * 0.2;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fill();
+      
+      // 绘制图表图标
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      const barWidth = size * 0.08;
+      const barGap = size * 0.05;
+      const baseY = center + size * 0.2;
+      
+      // 三个柱状图
+      const bars = [
+        { x: center - barWidth * 1.5 - barGap, height: size * 0.4 },
+        { x: center - barWidth * 0.5, height: size * 0.25 },
+        { x: center + barWidth * 0.5 + barGap, height: size * 0.35 }
+      ];
+      
+      bars.forEach(bar => {
+        ctx.fillRect(bar.x, baseY - bar.height, barWidth, bar.height);
+      });
+      
+      // 底部线
+      ctx.fillRect(center - size * 0.25, baseY, size * 0.5, size * 0.03);
+      
+      // 装饰圆点
+      ctx.fillStyle = '#10b981';
+      const dotRadius = size * 0.015;
+      const dotY = baseY + size * 0.08;
+      [-0.15, -0.05, 0.05, 0.15].forEach((offset) => {
+        ctx.beginPath();
+        ctx.arc(center + size * offset, dotY, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function generateIcons() {
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 生成中...';
+
+      setTimeout(() => {
+        // 生成192x192
+        const canvas192 = document.getElementById('canvas192');
+        drawIcon(canvas192);
+        canvas192Data = canvas192.toDataURL('image/png');
+        document.getElementById('icon192').src = canvas192Data;
+
+        // 生成512x512
+        const canvas512 = document.getElementById('canvas512');
+        drawIcon(canvas512);
+        canvas512Data = canvas512.toDataURL('image/png');
+        document.getElementById('icon512').src = canvas512Data;
+
+        // 显示预览和成功消息
+        document.getElementById('preview').style.display = 'flex';
+        document.getElementById('successMsg').classList.add('show');
+        
+        btn.disabled = false;
+        btn.textContent = '✅ 重新生成';
+      }, 100);
+    }
+
+    function downloadIcon(size) {
+      const data = size === 192 ? canvas192Data : canvas512Data;
+      const link = document.createElement('a');
+      link.download = `icon-${size}.png`;
+      link.href = data;
+      link.click();
+    }
+
+    // 页面加载时自动生成
+    window.addEventListener('load', () => {
+      setTimeout(generateIcons, 500);
+    });
+  </script>
+</body>
+</html>
