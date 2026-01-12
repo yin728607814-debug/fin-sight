@@ -38,6 +38,7 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNewsOnly, setRefreshNewsOnly] = useState(false);
   const [refreshingPrice, setRefreshingPrice] = useState(false);
+  const [chartKey, setChartKey] = useState(0); // 用于强制刷新图表
 
   // 设置当前资产类型
   useEffect(() => {
@@ -82,6 +83,10 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
       
       // 6. 更新最后更新时间
       setLastUpdated(new Date());
+      
+      // 7. 强制刷新图表
+      setChartKey(prev => prev + 1);
+      console.log('✅ 图表已刷新');
       
     } catch (error) {
       console.error('❌ 刷新价格失败:', error);
@@ -311,6 +316,7 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
                   />
                 ) : priceData.length > 0 ? (
                   <TrendChart 
+                    key={chartKey}
                     data={priceData}
                     assetType="astock"
                     timeRange={5}
