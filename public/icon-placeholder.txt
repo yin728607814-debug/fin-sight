@@ -1,0 +1,10 @@
+# PWA图标占位文件
+
+请按照以下步骤生成图标：
+
+1. 访问 https://www.pwabuilder.com/imageGenerator
+2. 上传任意正方形图片
+3. 下载生成的 icon-192.png 和 icon-512.png
+4. 放到 public/ 目录
+
+或者查看 public/ICONS_README.md 了解更多方法

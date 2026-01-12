@@ -72,6 +72,8 @@ export default defineConfig(({ mode }) => {
       // 构建优化
       chunkSizeWarningLimit: 1000,
       assetsInlineLimit: 4096,
+      // PWA支持 - 复制Service Worker和manifest到dist
+      copyPublicDir: true,
     },
     // 预构建优化
     optimizeDeps: {

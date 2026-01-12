@@ -7,6 +7,7 @@ import { DebugPanel } from './components/DebugPanel';
 import { PageLoading } from './components/LoadingSpinner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { logInfo } from './services/logger';
 import { migrateData } from './utils/dataMigration';
 
@@ -112,6 +113,7 @@ const App: React.FC = () => {
                 </Routes>
               </Suspense>
               <DebugPanel />
+              <PWAInstallPrompt />
             </Router>
           </AppProvider>
         </AuthProvider>
