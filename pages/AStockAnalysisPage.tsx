@@ -30,7 +30,7 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
   const { news, loading: newsLoading, error: newsError } = useNews('astock');
   const { analysis, loading: analysisLoading, error: analysisError } = useAnalysis('astock');
   const { overallAnalysis } = useOverallAnalysis('astock');
-  const { priceData, loading: pricesLoading, error: pricesError } = usePriceData('astock');
+  const { priceData, setPriceData, loading: pricesLoading, error: pricesError } = usePriceData('astock');
   const { loading } = useLoading();
   const { errors } = useErrors();
   
@@ -48,26 +48,44 @@ export const AStockAnalysisPage: React.FC<AStockAnalysisPageProps> = () => {
   const handleRefreshPrice = async () => {
     setRefreshingPrice(true);
     try {
+      console.log('🔄 开始刷新价格数据...');
+      
       // 1. 清除前端转换缓存
       const { clearPriceCache } = await import('../hooks/usePriceDataWithConversion');
       clearPriceCache();
+      console.log('✅ 已清除前端转换缓存');
       
       // 2. 清除priceService内部所有缓存
       const { priceService } = await import('../services/priceService');
       priceService.clearAllCache();
+      console.log('✅ 已清除priceService缓存');
       
       // 3. 清除localStorage中的缓存
       const keys = Object.keys(localStorage);
+      let clearedCount = 0;
       keys.forEach(key => {
         if (key.includes('price_') || key.includes('astock')) {
           localStorage.removeItem(key);
+          clearedCount++;
         }
       });
+      console.log(`✅ 已清除localStorage缓存 (${clearedCount}项)`);
       
-      // 4. 强制重新加载页面
-      window.location.reload();
+      // 4. 直接调用API获取新数据（不重新加载页面）
+      console.log('🌐 开始获取新的价格数据...');
+      const newPriceData = await priceService.fetchFiveDayPriceHistory('astock');
+      console.log('✅ 获取到新数据:', newPriceData);
+      
+      // 5. 更新state
+      setPriceData(newPriceData);
+      console.log('✅ 价格数据已更新');
+      
+      // 6. 更新最后更新时间
+      setLastUpdated(new Date());
+      
     } catch (error) {
-      console.error('刷新价格失败:', error);
+      console.error('❌ 刷新价格失败:', error);
+      alert('刷新失败: ' + (error instanceof Error ? error.message : '未知错误'));
     } finally {
       setRefreshingPrice(false);
     }
