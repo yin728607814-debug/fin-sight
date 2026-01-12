@@ -134,6 +134,37 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
   };
 
   /**
+   * 安全转义用户输入
+   */
+  const escapeUserInput = (input: string): string => {
+    if (!input || input.trim() === '') {
+      return '';
+    }
+    
+    // 1. 移除所有换行符,替换为空格
+    let escaped = input.replace(/[\r\n]+/g, ' ');
+    
+    // 2. 移除多余的空格
+    escaped = escaped.replace(/\s+/g, ' ').trim();
+    
+    // 3. 转义特殊字符
+    escaped = escaped
+      .replace(/\\/g, '\\\\')  // 反斜杠
+      .replace(/"/g, '\\"')    // 双引号
+      .replace(/'/g, "\\'")    // 单引号
+      .replace(/\t/g, ' ')     // 制表符
+      .replace(/\f/g, ' ')     // 换页符
+      .replace(/\b/g, ' ');    // 退格符
+    
+    // 4. 限制长度(最多500字符)
+    if (escaped.length > 500) {
+      escaped = escaped.substring(0, 500) + '...';
+    }
+    
+    return escaped;
+  };
+
+  /**
    * 构建分析提示词
    */
   const buildAnalysisPrompt = (
@@ -209,7 +240,7 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
 
 **重要说明**：持仓比例是基于总资产190万计算的，不是基于总投资金额。这意味着还有部分资产（约${((1900000 - portfolio.totalInvestment) / 1900000 * 100).toFixed(1)}%）未投资或以现金形式持有。
 
-${userInput ? `## 用户补充信息\n${userInput.replace(/\n/g, ' ').replace(/"/g, '\\"')}\n\n` : ''}## 市场分析（基于AI新闻分析）
+${userInput ? `## 用户补充信息\n${escapeUserInput(userInput)}\n\n` : ''}## 市场分析（基于AI新闻分析）
 
 ### 黄金市场
 ${goldMarketSummary}
@@ -230,8 +261,9 @@ ${astockMarketSummary}
 ${astockNewsSummary}
 
 ## 分析要求
-请提供以下内容（返回JSON格式，不要markdown代码块）：
+请提供以下内容。重要：必须返回纯JSON格式，不要包含任何markdown代码块标记（如三个反引号json或三个反引号），不要有任何额外的文字说明。
 
+返回格式示例：
 {
   "summary": "整体投资组合评价，结合持仓结构和市场分析（150-200字）",
   "positionAnalysis": {
@@ -257,7 +289,9 @@ ${astockNewsSummary}
 2. 建议要具体、可操作，并说明理由
 3. 考虑资产配置的合理性和风险分散
 4. 结合市场趋势给出前瞻性建议
-5. 语言要专业但易懂`;
+5. 语言要专业但易懂
+6. 所有文本内容中不要使用双引号，如需引用请使用单引号
+7. 确保JSON格式完全正确，所有括号和引号都要闭合`;
   };
 
   /**
@@ -265,6 +299,8 @@ ${astockNewsSummary}
    */
   const parseAnalysisResponse = (responseText: string): AIAnalysisResult => {
     try {
+      console.log('原始AI响应:', responseText);
+      
       // 移除可能的markdown代码块标记
       let cleanedText = responseText
         .replace(/```json\s*/gi, '')
@@ -278,6 +314,7 @@ ${astockNewsSummary}
       // 2. 提取JSON
       const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        console.error('无法从响应中提取JSON');
         throw new Error('无法从响应中提取JSON');
       }
 
@@ -289,9 +326,38 @@ ${astockNewsSummary}
       if (openBraces > closeBraces) {
         jsonStr += '}'.repeat(openBraces - closeBraces);
       }
+      
+      const openBrackets = (jsonStr.match(/\[/g) || []).length;
+      const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+      if (openBrackets > closeBrackets) {
+        jsonStr += ']'.repeat(openBrackets - closeBrackets);
+      }
 
-      const parsed = JSON.parse(jsonStr);
+      console.log('清理后的JSON:', jsonStr);
 
+      // 尝试解析
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch (parseError) {
+        console.error('JSON解析失败,尝试修复...', parseError);
+        
+        // 尝试更激进的修复
+        // 移除所有控制字符
+        // eslint-disable-next-line no-control-regex
+        jsonStr = jsonStr.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+        
+        // 再次尝试解析
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch (secondError) {
+          console.error('第二次解析也失败:', secondError);
+          console.error('问题JSON:', jsonStr);
+          throw new Error(`JSON解析失败: ${secondError instanceof Error ? secondError.message : '未知错误'}`);
+        }
+      }
+
+      // 验证并返回结果
       return {
         summary: parsed.summary || '分析完成',
         positionAnalysis: {
@@ -439,7 +505,7 @@ ${astockNewsSummary}
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center mt-4">
-              点击"开始分析"按钮，AI将结合最新市场新闻为您提供专业的投资建议
+              点击&ldquo;开始分析&rdquo;按钮，AI将结合最新市场新闻为您提供专业的投资建议
             </p>
           </div>
         )}

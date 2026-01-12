@@ -91,7 +91,7 @@ export const ASTOCK_FUNDS: Record<string, AStockFundInfo> = {
     category: '指数型'
   },
   '汇添富中证科创业50指数增强C': {
-    code: '015555',
+    code: '014219',
     name: '汇添富中证科创业50指数增强C',
     category: '指数型'
   },

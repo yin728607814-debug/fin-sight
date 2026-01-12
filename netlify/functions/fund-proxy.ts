@@ -27,19 +27,68 @@ const handler: Handler = async (event: HandlerEvent) => {
   try {
     // 请求天天基金网API
     const apiUrl = `http://fundgz.1234567.com.cn/js/${fundCode}.js`;
-    const response = await fetch(apiUrl);
+    console.log(`Fetching fund data for ${fundCode} from ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`HTTP error from fund API: ${response.status}`);
+      return {
+        statusCode: 502,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({ 
+          error: 'Fund API returned error',
+          fundCode,
+          httpStatus: response.status
+        })
+      };
+    }
+    
     const text = await response.text();
+    console.log(`Received response for ${fundCode}:`, text.substring(0, 200));
 
     // 解析JSONP响应
     const jsonMatch = text.match(/jsonpgz\((.*)\)/);
     if (!jsonMatch) {
+      console.error(`Failed to parse JSONP for ${fundCode}. Response:`, text);
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: 'Failed to parse fund data' })
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({ 
+          error: 'Failed to parse fund data - invalid JSONP format',
+          fundCode,
+          responsePreview: text.substring(0, 100)
+        })
       };
     }
 
     const data = JSON.parse(jsonMatch[1]);
+    
+    // 验证必要字段
+    if (!data.fundcode || !data.name) {
+      console.error(`Missing required fields for ${fundCode}:`, data);
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({ 
+          error: 'Invalid fund data - missing required fields',
+          fundCode
+        })
+      };
+    }
 
     // 返回JSON数据
     return {
@@ -52,15 +101,15 @@ const handler: Handler = async (event: HandlerEvent) => {
       body: JSON.stringify({
         fundCode: data.fundcode,
         fundName: data.name,
-        netValue: parseFloat(data.dwjz),
-        estimatedValue: parseFloat(data.gsz),
-        dailyReturn: parseFloat(data.gszzl),
-        updateTime: data.gztime,
-        netValueDate: data.jzrq
+        netValue: parseFloat(data.dwjz) || 0,
+        estimatedValue: parseFloat(data.gsz) || 0,
+        dailyReturn: parseFloat(data.gszzl) || 0,
+        updateTime: data.gztime || '',
+        netValueDate: data.jzrq || ''
       })
     };
   } catch (error) {
-    console.error('Fund proxy error:', error);
+    console.error(`Fund proxy error for ${fundCode}:`, error);
     return {
       statusCode: 500,
       headers: {
@@ -69,7 +118,9 @@ const handler: Handler = async (event: HandlerEvent) => {
       },
       body: JSON.stringify({ 
         error: 'Failed to fetch fund data',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        fundCode,
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
       })
     };
   }
