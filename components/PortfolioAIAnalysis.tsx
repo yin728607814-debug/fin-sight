@@ -43,6 +43,7 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true); // 默认折叠
+  const [userInput, setUserInput] = useState(''); // 用户补充信息
 
   /**
    * 计算持仓比例（基于总资产190万）
@@ -100,7 +101,8 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
         astockAnalysis,
         goldOverallAnalysis,
         nasdaqOverallAnalysis,
-        astockOverallAnalysis
+        astockOverallAnalysis,
+        userInput // 传递用户输入
       );
 
       // 调用Gemini API
@@ -142,7 +144,8 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
     astockAnalysis: NewsAnalysis[],
     goldOverallAnalysis: OverallMarketAnalysis | null,
     nasdaqOverallAnalysis: OverallMarketAnalysis | null,
-    astockOverallAnalysis: OverallMarketAnalysis | null
+    astockOverallAnalysis: OverallMarketAnalysis | null,
+    userInput: string // 添加用户输入参数
   ): string => {
     // 汇总黄金市场分析
     const goldMarketSummary = goldOverallAnalysis 
@@ -205,7 +208,8 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
 - 盈亏：¥${ratios.astock.profitLoss.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
 
 **重要说明**：持仓比例是基于总资产190万计算的，不是基于总投资金额。这意味着还有部分资产（约${((1900000 - portfolio.totalInvestment) / 1900000 * 100).toFixed(1)}%）未投资或以现金形式持有。
-## 市场分析（基于AI新闻分析）
+
+${userInput ? `## 用户补充信息\n${userInput}\n\n` : ''}## 市场分析（基于AI新闻分析）
 
 ### 黄金市场
 ${goldMarketSummary}
@@ -401,6 +405,25 @@ ${astockNewsSummary}
                 <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">{ratios.astock.count}个持仓</div>
               </div>
             </div>
+            
+            {/* 用户补充信息输入框 */}
+            <div className="mt-4">
+              <label htmlFor="userInput" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                补充信息（可选）
+              </label>
+              <textarea
+                id="userInput"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="您可以在这里添加任何想让AI考虑的信息，例如：投资目标、风险偏好、特殊考虑等..."
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                例如：我计划长期持有、我比较保守、我想增加A股配置等
+              </p>
+            </div>
+            
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center mt-4">
               点击"开始分析"按钮，AI将结合最新市场新闻为您提供专业的投资建议
             </p>
