@@ -209,7 +209,7 @@ export const PortfolioAIAnalysis: React.FC<PortfolioAIAnalysisProps> = ({
 
 **重要说明**：持仓比例是基于总资产190万计算的，不是基于总投资金额。这意味着还有部分资产（约${((1900000 - portfolio.totalInvestment) / 1900000 * 100).toFixed(1)}%）未投资或以现金形式持有。
 
-${userInput ? `## 用户补充信息\n${userInput}\n\n` : ''}## 市场分析（基于AI新闻分析）
+${userInput ? `## 用户补充信息\n${userInput.replace(/\n/g, ' ').replace(/"/g, '\\"')}\n\n` : ''}## 市场分析（基于AI新闻分析）
 
 ### 黄金市场
 ${goldMarketSummary}
@@ -266,18 +266,31 @@ ${astockNewsSummary}
   const parseAnalysisResponse = (responseText: string): AIAnalysisResult => {
     try {
       // 移除可能的markdown代码块标记
-      const cleanedText = responseText
+      let cleanedText = responseText
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
 
-      // 提取JSON
+      // 尝试修复常见的JSON格式问题
+      // 1. 移除尾部逗号
+      cleanedText = cleanedText.replace(/,(\s*[}\]])/g, '$1');
+      
+      // 2. 提取JSON
       const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('无法从响应中提取JSON');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      let jsonStr = jsonMatch[0];
+      
+      // 3. 尝试修复未闭合的引号和括号
+      const openBraces = (jsonStr.match(/\{/g) || []).length;
+      const closeBraces = (jsonStr.match(/\}/g) || []).length;
+      if (openBraces > closeBraces) {
+        jsonStr += '}'.repeat(openBraces - closeBraces);
+      }
+
+      const parsed = JSON.parse(jsonStr);
 
       return {
         summary: parsed.summary || '分析完成',
@@ -292,7 +305,8 @@ ${astockNewsSummary}
       };
     } catch (error) {
       console.error('解析AI响应失败:', error);
-      throw new Error('解析分析结果失败');
+      console.error('原始响应:', responseText);
+      throw new Error('解析分析结果失败。AI返回的格式可能不正确，请重试。');
     }
   };
 
