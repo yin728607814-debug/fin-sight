@@ -29,7 +29,8 @@ exports.handler = async (event, _context) => {
     // 格式: https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=sh000001&scale=240&ma=no&datalen=5
     // scale: 5=5分钟, 15=15分钟, 30=30分钟, 60=60分钟, 240=日线
     // datalen: 返回数据条数
-    const historyUrl = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${symbol}&scale=240&ma=no&datalen=10`;
+    // 获取更多数据以确保有足够的工作日数据
+    const historyUrl = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${symbol}&scale=240&ma=no&datalen=15`;
     
     console.log('🌐 请求历史数据API:', historyUrl);
     
@@ -79,20 +80,30 @@ exports.handler = async (event, _context) => {
                   change: (close - open).toFixed(2),
                   changePercent: ((close - open) / open * 100).toFixed(2)
                 };
-              })
-              .slice(-5); // 只取最近5天
+              });
             
-            if (priceData.length === 0) {
+            // 过滤掉周末数据，只保留工作日
+            const weekdayData = priceData.filter(item => {
+              const date = new Date(item.date);
+              const dayOfWeek = date.getDay();
+              return dayOfWeek !== 0 && dayOfWeek !== 6; // 0=周日, 6=周六
+            });
+            
+            // 只取最近5个工作日
+            const recentData = weekdayData.slice(-5);
+            
+            if (recentData.length === 0) {
               throw new Error('没有有效的历史数据');
             }
             
             // 获取最新数据
-            const latestData = priceData[priceData.length - 1];
+            const latestData = recentData[recentData.length - 1];
             
             console.log('✅ 历史数据转换完成:', {
-              总条数: priceData.length,
+              总条数: recentData.length,
               最新日期: latestData.date,
-              最新价格: latestData.close
+              最新价格: latestData.close,
+              数据日期列表: recentData.map(d => d.date).join(', ')
             });
             
             resolve({
@@ -108,12 +119,12 @@ exports.handler = async (event, _context) => {
                 open: latestData.open,
                 high: latestData.high,
                 low: latestData.low,
-                prevClose: priceData.length > 1 ? priceData[priceData.length - 2].close : latestData.open,
+                prevClose: recentData.length > 1 ? recentData[recentData.length - 2].close : latestData.open,
                 change: latestData.change,
                 changePercent: latestData.changePercent,
                 date: latestData.date,
                 time: '15:00:00',
-                priceData: priceData
+                priceData: recentData
               })
             });
           } catch (parseError) {
