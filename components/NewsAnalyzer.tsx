@@ -351,19 +351,19 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
       )}
       
       {/* 控制面板 */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <h3 className="text-lg font-semibold text-slate-900">
+      <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg shadow-sm border border-white/40 dark:border-gray-700/40 p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-gray-100 flex-shrink-0">
               新闻分析
             </h3>
             {lastFetchTime && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-slate-500">
+              <div className="flex items-center space-x-2 min-w-0">
+                <span className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 truncate">
                   更新时间: {lastFetchTime.toLocaleTimeString('zh-CN')}
                 </span>
                 {isDataStale() && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 flex-shrink-0">
                     数据可能过期
                   </span>
                 )}
@@ -371,25 +371,27 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
             )}
           </div>
           
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 flex-shrink-0">
             <RetryHandler onRetry={fetchAndAnalyze}>
               {({ isRetrying, canRetry, retry, attempt, maxAttempts }) => (
                 <button
                   onClick={retry}
                   disabled={loading.news || isAnalyzing || isRetrying || !canRetry}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading.news || isRetrying ? (
                     <>
-                      <LoadingSpinner size="sm" className="mr-2" />
-                      {isRetrying ? `重试中... (${attempt}/${maxAttempts})` : '获取中...'}
+                      <LoadingSpinner size="sm" className="mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">{isRetrying ? `重试中... (${attempt}/${maxAttempts})` : '获取中...'}</span>
+                      <span className="sm:hidden">{isRetrying ? '重试中' : '获取中'}</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      刷新新闻
+                      <span className="hidden sm:inline">刷新新闻</span>
+                      <span className="sm:hidden">刷新</span>
                     </>
                   )}
                 </button>
@@ -402,19 +404,21 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
                   <button
                     onClick={retry}
                     disabled={isAnalyzing || isRetrying || !canRetry}
-                    className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-300 dark:border-gray-600 text-xs sm:text-sm font-medium rounded-md text-slate-700 dark:text-gray-300 bg-white/60 dark:bg-gray-700/60 hover:bg-white/80 dark:hover:bg-gray-700/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isAnalyzing || isRetrying ? (
                       <>
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        {isRetrying ? `重新分析中... (${attempt}/${maxAttempts})` : '分析中...'}
+                        <LoadingSpinner size="sm" className="mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">{isRetrying ? `重新分析中... (${attempt}/${maxAttempts})` : '分析中...'}</span>
+                        <span className="sm:hidden">{isRetrying ? '分析中' : '分析中'}</span>
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
-                        重新分析
+                        <span className="hidden sm:inline">重新分析</span>
+                        <span className="sm:hidden">分析</span>
                       </>
                     )}
                   </button>
@@ -426,26 +430,26 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
         {/* 统计信息 */}
         {news.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-slate-900">{news.length}</p>
-              <p className="text-sm text-slate-500">新闻条数</p>
+          <div className="mt-3 sm:mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="text-center p-2 bg-white/40 dark:bg-gray-700/40 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-gray-100">{news.length}</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">新闻条数</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-slate-900">{analysis.length}</p>
-              <p className="text-sm text-slate-500">已分析</p>
+            <div className="text-center p-2 bg-white/40 dark:bg-gray-700/40 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-gray-100">{analysis.length}</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">已分析</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">
+            <div className="text-center p-2 bg-white/40 dark:bg-gray-700/40 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                 {analysis.filter(a => a.impact === 'positive').length}
               </p>
-              <p className="text-sm text-slate-500">利好</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">利好</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">
+            <div className="text-center p-2 bg-white/40 dark:bg-gray-700/40 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
                 {analysis.filter(a => a.impact === 'negative').length}
               </p>
-              <p className="text-sm text-slate-500">利空</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">利空</p>
             </div>
           </div>
         )}
@@ -483,10 +487,10 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
       {/* 加载状态 */}
       {(loading.news || loading.analysis) && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg shadow-sm border border-white/40 dark:border-gray-700/40 p-6 sm:p-8">
           <div className="text-center">
             <LoadingSpinner size="lg" className="mx-auto mb-4" />
-            <p className="text-slate-600">
+            <p className="text-slate-600 dark:text-gray-400 text-sm sm:text-base">
               {loading.news ? '正在获取新闻...' : '正在分析新闻影响...'}
             </p>
           </div>
@@ -495,15 +499,15 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
       {/* 空状态 */}
       {!loading.news && !loading.analysis && news.length === 0 && !errors.news && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg shadow-sm border border-white/40 dark:border-gray-700/40 p-6 sm:p-8">
           <div className="text-center">
-            <div className="text-slate-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-slate-400 dark:text-gray-500 mb-4">
+              <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 mb-2">暂无新闻数据</h3>
-            <p className="text-slate-500 mb-4">点击&quot;刷新新闻&quot;按钮获取最新的市场新闻</p>
+            <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-gray-100 mb-2">暂无新闻数据</h3>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-gray-400 mb-4">点击&quot;刷新新闻&quot;按钮获取最新的市场新闻</p>
             <button
               onClick={fetchAndAnalyze}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

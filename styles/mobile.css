@@ -47,6 +47,16 @@ button, a, [role="button"] {
   .card-padding {
     padding: 1rem !important;
   }
+  
+  /* 优化卡片内边距 */
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  /* 优化统计卡片 */
+  .grid.gap-4 {
+    gap: 0.75rem !important;
+  }
 }
 
 /* 移动端字体大小优化 */
