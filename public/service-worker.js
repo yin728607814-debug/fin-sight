@@ -54,6 +54,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 跳过外部字体和样式（让浏览器直接处理，避免CSP问题）
+  if (
+    url.hostname.includes('fonts.googleapis.com') ||
+    url.hostname.includes('fonts.gstatic.com')
+  ) {
+    return; // 不拦截，让浏览器直接处理
+  }
+
   // API请求使用网络优先策略
   if (
     url.pathname.includes('/api/') ||
