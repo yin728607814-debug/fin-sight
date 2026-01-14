@@ -104,9 +104,9 @@ export class SentimentService {
       totalConfidence += confidence;
     });
 
-    // 计算最终分数（加权平均）
+    // 计算最终分数（加权平均，0-100）
     const score = totalConfidence > 0 
-      ? Math.round((weightedScore / totalConfidence) * 100) / 100
+      ? Math.round((weightedScore / totalConfidence) * 100)
       : 50;
 
     // 计算分布
