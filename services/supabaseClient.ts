@@ -14,18 +14,56 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
  * 验证 Supabase 配置
  */
 function validateConfig(): boolean {
+  console.log('🔍 验证 Supabase 配置...', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    urlValue: supabaseUrl,
+    keyPrefix: supabaseAnonKey ? supabaseAnonKey.substring(0, 20) : 'undefined',
+    keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
+  });
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    logError('Supabase 配置缺失', {
+    console.error('❌ Supabase 配置缺失', {
       hasUrl: !!supabaseUrl,
       hasKey: !!supabaseAnonKey
     });
     return false;
   }
 
-  if (supabaseUrl.includes('your_supabase') || supabaseAnonKey.includes('your_supabase')) {
-    logError('Supabase 配置未设置，请在 .env 文件中配置真实的 Supabase 凭证');
+  // 检查是否是占位符
+  if (supabaseUrl.includes('your_supabase') || supabaseUrl.includes('your-project')) {
+    console.error('❌ Supabase URL 是占位符');
     return false;
   }
+
+  if (supabaseAnonKey.includes('your_supabase') || supabaseAnonKey.includes('your-anon-key')) {
+    console.error('❌ Supabase Anon Key 是占位符');
+    return false;
+  }
+
+  // 验证 URL 格式
+  if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+    console.error('❌ Supabase URL 格式不正确', { url: supabaseUrl });
+    return false;
+  }
+
+  // 验证 Key 格式（支持新旧两种格式）
+  const isOldFormat = supabaseAnonKey.startsWith('eyJ'); // JWT token
+  const isNewFormat = supabaseAnonKey.startsWith('sb_publishable_'); // Publishable key
+  
+  if (!isOldFormat && !isNewFormat) {
+    console.error('❌ Supabase Anon Key 格式不正确', {
+      keyPrefix: supabaseAnonKey.substring(0, 20),
+      expectedFormat: 'eyJ... (JWT) 或 sb_publishable_... (Publishable Key)'
+    });
+    return false;
+  }
+
+  console.log('✅ Supabase 配置验证通过', {
+    url: supabaseUrl,
+    keyFormat: isNewFormat ? 'Publishable Key' : 'JWT Token',
+    keyLength: supabaseAnonKey.length
+  });
 
   return true;
 }
@@ -34,7 +72,10 @@ function validateConfig(): boolean {
  * 创建 Supabase 客户端实例
  */
 function createSupabaseClient(): SupabaseClient | null {
+  console.log('🚀 开始创建 Supabase 客户端...');
+  
   if (!validateConfig()) {
+    console.error('❌ 配置验证失败，无法创建客户端');
     return null;
   }
 
@@ -66,9 +107,9 @@ function createSupabaseClient(): SupabaseClient | null {
               });
               clearTimeout(timeoutId);
               return response;
-            } catch (error) {
+            } catch (error: any) {
               if (retries > 0 && error.name === 'AbortError') {
-                logInfo(`Supabase 请求超时，重试中... (剩余 ${retries} 次)`);
+                console.log(`⏱️ Supabase 请求超时，重试中... (剩余 ${retries} 次)`);
                 await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
                 return fetchWithRetry(retries - 1);
               }
@@ -82,13 +123,13 @@ function createSupabaseClient(): SupabaseClient | null {
       }
     });
 
-    logInfo('Supabase 客户端初始化成功', {
+    console.log('✅ Supabase 客户端创建成功', {
       url: supabaseUrl.substring(0, 30) + '...'
     });
 
     return client;
   } catch (error) {
-    logError('Supabase 客户端初始化失败', error);
+    console.error('❌ Supabase 客户端创建失败', error);
     return null;
   }
 }

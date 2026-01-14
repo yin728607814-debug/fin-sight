@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>环境变量检查</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .env-item {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      border-left: 4px solid #4CAF50;
+    }
+    .env-item.error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    .env-item.warning {
+      border-left-color: #ff9800;
+      background: #fff3e0;
+    }
+    .label {
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    .value {
+      font-family: 'Courier New', monospace;
+      background: #263238;
+      color: #aed581;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    .status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status.ok {
+      background: #4CAF50;
+      color: white;
+    }
+    .status.error {
+      background: #f44336;
+      color: white;
+    }
+    .status.warning {
+      background: #ff9800;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 环境变量检查</h1>
+    <div id="env-check"></div>
+  </div>
+
+  <script type="module">
+    const envVars = [
+      { key: 'VITE_SUPABASE_URL', required: true },
+      { key: 'VITE_SUPABASE_ANON_KEY', required: true },
+      { key: 'VITE_GEMINI_API_KEY', required: false },
+      { key: 'VITE_NEWS_API_KEY', required: false },
+      { key: 'VITE_FINNHUB_API_KEY', required: false },
+      { key: 'VITE_ALPHA_VANTAGE_API_KEY', required: false },
+    ];
+
+    function checkEnv() {
+      const container = document.getElementById('env-check');
+      let html = '';
+
+      envVars.forEach(({ key, required }) => {
+        const value = import.meta.env[key];
+        const exists = !!value;
+        const isPlaceholder = value && (value.includes('your_') || value.includes('your-'));
+        
+        let status = 'ok';
+        let statusText = '✅ 已设置';
+        let className = '';
+
+        if (!exists) {
+          status = required ? 'error' : 'warning';
+          statusText = required ? '❌ 未设置（必需）' : '⚠️ 未设置（可选）';
+          className = required ? 'error' : 'warning';
+        } else if (isPlaceholder) {
+          status = 'error';
+          statusText = '❌ 占位符（需要真实值）';
+          className = 'error';
+        }
+
+        let displayValue = '未设置';
+        let details = '';
+
+        if (exists) {
+          if (key.includes('KEY') || key.includes('ANON')) {
+            // 对于密钥，只显示前后部分
+            displayValue = `${value.substring(0, 20)}...${value.substring(value.length - 10)}`;
+            details = `
+              <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                <div>长度: ${value.length} 字符</div>
+                <div>格式: ${
+                  value.startsWith('eyJ') ? 'JWT Token' :
+                  value.startsWith('sb_publishable_') ? 'Publishable Key' :
+                  value.startsWith('AIza') ? 'Google API Key' :
+                  '未知格式'
+                }</div>
+              </div>
+            `;
+          } else {
+            displayValue = value;
+          }
+        }
+
+        html += `
+          <div class="env-item ${className}">
+            <div class="label">
+              ${key}
+              <span class="status ${status}">${statusText}</span>
+            </div>
+            <div class="value">${displayValue}</div>
+            ${details}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    checkEnv();
+  </script>
+</body>
+</html>
