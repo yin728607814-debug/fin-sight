@@ -393,6 +393,14 @@ export class AnalysisService implements IAnalysisService {
     
     const assetName = assetNames[assetType as keyof typeof assetNames] || assetType;
     
+    // 根据资产类型添加投资策略说明
+    let investmentStrategy = '';
+    if (assetType === 'gold') {
+      investmentStrategy = '\n\n**投资策略背景**：用户对黄金采取长期持有策略，只买入不卖出，关注长期价值保值和增值机会。请在分析时考虑长期持有的视角，重点关注影响黄金长期价值的因素。';
+    } else if (assetType === 'nasdaq') {
+      investmentStrategy = '\n\n**投资策略背景**：用户对纳斯达克100采取定期定投策略，持续买入，关注长期增长趋势。请在分析时考虑定投策略的特点，重点关注长期成长性和趋势性机会。';
+    }
+    
     // 将新闻列表格式化，每条新闻带编号（使用完整内容，最多800字）
     const newsText = newsList.map((news, index) => {
       // 使用完整的content，如果太长则截取800字
@@ -402,7 +410,7 @@ export class AnalysisService implements IAnalysisService {
       return `[${index}] ${news.title}\n${fullContent}`;
     }).join('\n\n');
     
-    return `你是一位专业的金融分析师。分析以下${newsList.length}条新闻对${assetName}的影响。
+    return `你是一位专业的金融分析师。分析以下${newsList.length}条新闻对${assetName}的影响。${investmentStrategy}
 
 注意：新闻内容可能较简短（仅标题和摘要），请基于标题和关键信息做出专业判断。返回JSON（无markdown）：
 
@@ -1333,10 +1341,18 @@ ${newsText}
     
     console.log(`📊 新闻文本长度: ${newsText.length}字，最终长度: ${finalNewsText.length}字`);
     
+    // 根据资产类型添加投资策略说明
+    let investmentStrategy = '';
+    if (assetType === 'gold') {
+      investmentStrategy = '\n\n**投资策略背景**：用户对黄金采取长期持有策略，只买入不卖出，关注长期价值保值和增值机会。请在提供投资建议时，重点关注长期持有的视角，分析何时是较好的买入时机，以及如何通过长期持有实现资产保值增值。';
+    } else if (assetType === 'nasdaq') {
+      investmentStrategy = '\n\n**投资策略背景**：用户对纳斯达克100采取定期定投策略，持续买入，关注长期增长趋势。请在提供投资建议时，重点关注定投策略的优化，分析当前是否适合继续定投，以及如何通过定投策略获得长期收益。';
+    }
+    
     // 详细的prompt，要求深入分析
     const prompt = `你是专业的金融分析师。请深入分析以下${newsList.length}条关于${assetName}的新闻，提供详细的市场洞察。
 
-**重要提示：你正在分析的是${assetName}，请确保所有分析、建议和预测都是针对${assetName}的，不要提及其他市场或指数。**
+**重要提示：你正在分析的是${assetName}，请确保所有分析、建议和预测都是针对${assetName}的，不要提及其他市场或指数。**${investmentStrategy}
 
 新闻内容：
 ${finalNewsText}
@@ -1346,7 +1362,7 @@ ${finalNewsText}
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
   "summary": "综合市场分析（250-350字）：深入分析${assetName}当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对${assetName}的综合影响",
-  "investmentAdvice": "投资建议（200-300字）：基于当前分析，提供针对${assetName}的具体投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
+  "investmentAdvice": "投资建议（200-300字）：基于当前分析和用户的投资策略，提供针对${assetName}的具体投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
   "keyFactors": ["关键因素1：具体说明对${assetName}的影响机制", "关键因素2：具体说明对${assetName}的影响机制", "关键因素3：具体说明对${assetName}的影响机制", "关键因素4：具体说明对${assetName}的影响机制"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
@@ -1359,7 +1375,7 @@ ${finalNewsText}
 3. 所有分析必须针对${assetName}，不要提及其他市场或指数
 4. 分析要深入、具体、详细，避免泛泛而谈
 5. keyFactors要具体说明每个因素对${assetName}的影响机制和传导路径
-6. 投资建议要针对${assetName}，实用、可操作、有针对性
+6. 投资建议要结合用户的投资策略，针对${assetName}，实用、可操作、有针对性
 7. 趋势预测要有${assetName}的具体价格区间和时间预期`;
 
     try {
