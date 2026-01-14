@@ -117,7 +117,7 @@ export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
     return null;
   };
 
-  // 如果没有数据
+  // 如果没有数据或数据太少
   if (!chartData || chartData.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
@@ -142,64 +142,88 @@ export const SentimentTrend: React.FC<SentimentTrendProps> = ({ history }) => {
     );
   }
 
-  return (
-    <div className="w-full h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={chartData}
-          margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
-        >
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            className="stroke-gray-200 dark:stroke-gray-700" 
-          />
-          <XAxis
-            dataKey="date"
-            tick={{ fill: 'currentColor' }}
-            className="text-gray-600 dark:text-gray-400 text-xs"
-          />
-          <YAxis
-            domain={[0, 100]}
-            ticks={[0, 20, 40, 60, 80, 100]}
-            tick={{ fill: 'currentColor' }}
-            className="text-gray-600 dark:text-gray-400 text-xs"
-          />
-          <Tooltip content={<CustomTooltip />} />
-          
-          {/* 参考线 */}
-          <ReferenceLine
-            y={60}
-            stroke="#10b981"
-            strokeDasharray="3 3"
-            strokeOpacity={0.3}
-            label={{ value: '乐观', position: 'right', fill: '#10b981', fontSize: 10 }}
-          />
-          <ReferenceLine
-            y={40}
-            stroke="#ef4444"
-            strokeDasharray="3 3"
-            strokeOpacity={0.3}
-            label={{ value: '悲观', position: 'right', fill: '#ef4444', fontSize: 10 }}
-          />
+  // 如果数据点太少，显示提示
+  const showDataInsufficient = chartData.length < 3;
 
-          {/* 趋势线 */}
-          <Line
-            type="monotone"
-            dataKey="score"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{
-              fill: '#3b82f6',
-              strokeWidth: 2,
-              r: 4,
-            }}
-            activeDot={{
-              r: 6,
-              fill: '#3b82f6',
-            }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+  return (
+    <div className="w-full">
+      {/* 数据不足提示 */}
+      {showDataInsufficient && (
+        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start">
+            <svg className="h-5 w-5 text-blue-500 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                历史数据积累中
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                当前仅有 {chartData.length} 天数据。继续使用 {7 - chartData.length} 天后，将显示完整的 7 天趋势图。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={chartData}
+            margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+          >
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              className="stroke-gray-200 dark:stroke-gray-700" 
+            />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: 'currentColor' }}
+              className="text-gray-600 dark:text-gray-400 text-xs"
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 20, 40, 60, 80, 100]}
+              tick={{ fill: 'currentColor' }}
+              className="text-gray-600 dark:text-gray-400 text-xs"
+            />
+            <Tooltip content={<CustomTooltip />} />
+            
+            {/* 参考线 */}
+            <ReferenceLine
+              y={60}
+              stroke="#10b981"
+              strokeDasharray="3 3"
+              strokeOpacity={0.3}
+              label={{ value: '乐观', position: 'right', fill: '#10b981', fontSize: 10 }}
+            />
+            <ReferenceLine
+              y={40}
+              stroke="#ef4444"
+              strokeDasharray="3 3"
+              strokeOpacity={0.3}
+              label={{ value: '悲观', position: 'right', fill: '#ef4444', fontSize: 10 }}
+            />
+
+            {/* 趋势线 */}
+            <Line
+              type="monotone"
+              dataKey="score"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              dot={{
+                fill: '#3b82f6',
+                strokeWidth: 2,
+                r: 4,
+              }}
+              activeDot={{
+                r: 6,
+                fill: '#3b82f6',
+              }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };
