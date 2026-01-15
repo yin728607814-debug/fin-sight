@@ -1,6 +1,6 @@
 // Service Worker for PWA
-const CACHE_NAME = 'portfolio-v3'; // 更新版本号以清除旧缓存
-const RUNTIME_CACHE = 'portfolio-runtime-v3';
+const CACHE_NAME = 'portfolio-v4'; // 更新版本号以清除旧缓存
+const RUNTIME_CACHE = 'portfolio-runtime-v4';
 
 // 需要缓存的静态资源
 const STATIC_CACHE_URLS = [
@@ -28,15 +28,18 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
+          // 删除所有旧版本的缓存
           if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // 立即接管所有页面
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
 // Fetch事件 - 网络优先策略（适合动态数据）
