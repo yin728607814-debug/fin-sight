@@ -367,10 +367,37 @@ export const PortfolioPage: React.FC = () => {
   const handleRefreshPrices = async () => {
     setIsRefreshing(true);
     try {
-      // 刷新页面来重新获取价格数据
+      console.log('🔄 开始刷新所有价格数据...');
+      
+      // 1. 清除前端转换缓存
+      const { clearPriceCache } = await import('../hooks/usePriceDataWithConversion');
+      clearPriceCache();
+      console.log('✅ 已清除前端缓存');
+      
+      // 2. 清除priceService内部所有缓存
+      const { priceService } = await import('../services/priceService');
+      priceService.clearAllCache();
+      console.log('✅ 已清除priceService缓存');
+      
+      // 3. 清除浏览器缓存（添加时间戳）
+      const timestamp = Date.now();
+      console.log('🔄 使用时间戳防止缓存:', timestamp);
+      
+      // 4. 重新获取所有价格数据
+      console.log('🔄 重新获取黄金和纳斯达克价格数据...');
+      const [goldData, nasdaqData] = await Promise.all([
+        priceService.fetchFiveDayPriceHistory('gold'),
+        priceService.fetchFiveDayPriceHistory('nasdaq')
+      ]);
+      console.log('✅ 获取到黄金价格数据:', goldData.length, '条');
+      console.log('✅ 获取到纳斯达克价格数据:', nasdaqData.length, '条');
+      
+      // 5. 强制刷新页面以应用新数据
+      console.log('🔄 刷新页面...');
       window.location.reload();
     } catch (error) {
-      console.error('刷新价格失败:', error);
+      console.error('❌ 刷新价格失败:', error);
+      alert('刷新失败: ' + (error instanceof Error ? error.message : '未知错误'));
     } finally {
       setIsRefreshing(false);
     }
