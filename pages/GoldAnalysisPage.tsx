@@ -69,8 +69,12 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
       console.log('🔄 重新获取黄金价格数据...');
       const newPriceData = await priceService.fetchFiveDayPriceHistory('gold');
       console.log('✅ 获取到新的价格数据:', newPriceData.length, '条');
+      console.log('📊 新数据详情:', newPriceData);
       
-      // 5. 强制刷新页面以应用新数据
+      // 5. 显示成功消息
+      alert(`✅ 价格数据已更新！\n\n最新价格: ${newPriceData[newPriceData.length - 1]?.close || 'N/A'}\n数据点数: ${newPriceData.length}`);
+      
+      // 6. 刷新页面以应用新数据
       console.log('🔄 刷新页面...');
       window.location.reload();
     } catch (error) {
