@@ -167,9 +167,74 @@ const handler = async (event, _context) => {
       };
     }
 
-    // 直接使用 Yahoo Finance 黄金现货 (XAUUSD=X) 获取真实历史数据
-    console.log('🌐 使用 Yahoo Finance 黄金现货 (XAUUSD=X) 获取真实数据');
-    const historicalData = await fetchYahooGoldSpot(range);
+    // 优先使用 Finnhub 获取黄金价格（更准确）
+    console.log('🌐 优先使用 Finnhub API 获取黄金价格');
+    
+    try {
+      // 尝试从 Finnhub 获取数据
+      const finnhubResponse = await new Promise((resolve, reject) => {
+        const https = require('https');
+        const apiKey = process.env.VITE_FINNHUB_API_KEY;
+        
+        if (!apiKey) {
+          reject(new Error('Finnhub API Key not configured'));
+          return;
+        }
+        
+        const now = Math.floor(Date.now() / 1000);
+        const from = now - (7 * 24 * 60 * 60); // 7天
+        
+        const url = `https://finnhub.io/api/v1/forex/candle?symbol=OANDA:XAU_USD&resolution=D&from=${from}&to=${now}&token=${apiKey}`;
+        
+        https.get(url, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              if (json.s === 'ok' && json.c && json.c.length > 0) {
+                // 转换为标准格式
+                const priceData = [];
+                for (let i = 0; i < json.t.length; i++) {
+                  const date = new Date(json.t[i] * 1000);
+                  priceData.push({
+                    date: date.toISOString().split('T')[0],
+                    open: Math.round(json.o[i] * 100) / 100,
+                    high: Math.round(json.h[i] * 100) / 100,
+                    low: Math.round(json.l[i] * 100) / 100,
+                    close: Math.round(json.c[i] * 100) / 100,
+                    volume: json.v?.[i] || 0,
+                    change: Math.round((json.c[i] - json.o[i]) * 100) / 100,
+                    changePercent: Math.round(((json.c[i] - json.o[i]) / json.o[i]) * 10000) / 100
+                  });
+                }
+                resolve(priceData);
+              } else {
+                reject(new Error('Finnhub returned invalid data'));
+              }
+            } catch (error) {
+              reject(error);
+            }
+          });
+        }).on('error', reject);
+      });
+      
+      // 过滤周末数据
+      const weekdayData = finnhubResponse.filter(item => {
+        const date = new Date(item.date);
+        const dayOfWeek = date.getDay();
+        return dayOfWeek !== 0 && dayOfWeek !== 6;
+      });
+      
+      historicalData = weekdayData.slice(-5); // 最近5个交易日
+      console.log('✅ Finnhub 数据获取成功:', historicalData.length, '个交易日');
+      
+    } catch (finnhubError) {
+      console.warn('⚠️ Finnhub 获取失败，回退到 Yahoo Finance:', finnhubError.message);
+      
+      // 回退到 Yahoo Finance
+      historicalData = await fetchYahooGoldSpot(range);
+    }
     
     if (!historicalData || historicalData.length === 0) {
       console.error('❌ Yahoo Finance 黄金现货数据不可用');
@@ -195,23 +260,23 @@ const handler = async (event, _context) => {
       originalSymbol: 'gold',
       meta: {
         currency: 'USD',
-        exchangeName: 'FOREX',
+        exchangeName: 'OANDA/FOREX',
         instrumentType: 'SPOT',
-        timezone: 'America/New_York',
-        source: 'Yahoo Finance spot gold (XAUUSD=X)',
+        timezone: 'UTC',
+        source: 'Finnhub Forex API (primary) / Yahoo Finance (fallback)',
         lastUpdated: new Date().toISOString(),
-        note: 'Direct spot gold price from Yahoo Finance',
+        note: 'Real-time spot gold price from Finnhub',
         dataPoints: validatedData.length,
         isRealData: true
       },
       priceData: validatedData
     };
 
-    console.log('✅ 返回现货黄金价格数据:', {
-      symbol: 'XAUUSD (spot)',
+    console.log('✅ 返回黄金价格数据:', {
+      symbol: 'XAUUSD',
       dataPoints: validatedData.length,
       latestPrice: validatedData[validatedData.length - 1]?.close,
-      source: 'Yahoo Finance Gold Spot (XAUUSD=X)',
+      source: 'Finnhub (primary) / Yahoo Finance (fallback)',
       dateRange: {
         from: validatedData[0]?.date,
         to: validatedData[validatedData.length - 1]?.date
