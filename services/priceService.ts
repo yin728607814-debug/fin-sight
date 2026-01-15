@@ -339,9 +339,9 @@ export class PriceService implements IPriceService {
               }
             });
           } else if (params.symbol === 'gold') {
-            // 对于黄金，使用Investing.com API
-            console.log('🌐 使用Investing.com API获取黄金价格数据');
-            response = await axios.get('/.netlify/functions/investing-proxy', {
+            // 对于黄金，使用goldprice.org API（免费，无需API key）
+            console.log('🌐 使用goldprice.org API获取黄金价格数据');
+            response = await axios.get('/.netlify/functions/goldprice-proxy', {
               params: { 
                 symbol: 'gold',
                 range: '5d',

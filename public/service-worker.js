@@ -1,6 +1,6 @@
 // Service Worker for PWA
-const CACHE_NAME = 'portfolio-v4'; // 更新版本号以清除旧缓存
-const RUNTIME_CACHE = 'portfolio-runtime-v4';
+const CACHE_NAME = 'portfolio-v5'; // 更新版本号以清除旧缓存
+const RUNTIME_CACHE = 'portfolio-runtime-v5';
 
 // 需要缓存的静态资源
 const STATIC_CACHE_URLS = [
