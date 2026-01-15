@@ -81,7 +81,7 @@ export class PriceService implements IPriceService {
   async fetchPriceHistory(symbol: string, days: number): Promise<PriceData[]> {
     // 使用新的缓存键，避免与旧数据冲突
     const cacheKey = symbol === 'gold' 
-      ? `price_gold_investing_v2_${days}` 
+      ? `price_gold_goldprice_v1_${days}` // 更新为 goldprice.org
       : symbol === 'nasdaq' 
         ? `price_nasdaq_yahoo_${days}` 
         : symbol === 'astock' || symbol === 'SSE'
@@ -125,7 +125,8 @@ export class PriceService implements IPriceService {
           `price_gold_${days}`,
           `price_${symbol}_${days}`,
           `price_${symbol}_investing_${days}`,
-          `price_gold_yahoo_${days}`
+          `price_gold_yahoo_${days}`,
+          `price_gold_investing_v2_${days}` // 清除旧的 investing 缓存
         ];
         oldCacheKeys.forEach(key => this.priceCache.delete(key));
         logInfo('🗑️ 已清除黄金价格旧缓存', { clearedKeys: oldCacheKeys });
