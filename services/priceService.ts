@@ -329,9 +329,14 @@ export class PriceService implements IPriceService {
               params: { 
                 symbol: 'nasdaq',
                 range: '5d',
-                interval: '1d'
+                interval: '1d',
+                _t: Date.now() // 添加时间戳防止缓存
               },
-              timeout: this.config.timeout
+              timeout: this.config.timeout,
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
             });
           } else if (params.symbol === 'gold') {
             // 对于黄金，使用Investing.com API
@@ -339,9 +344,14 @@ export class PriceService implements IPriceService {
             response = await axios.get('/.netlify/functions/investing-proxy', {
               params: { 
                 symbol: 'gold',
-                range: '5d'
+                range: '5d',
+                _t: Date.now() // 添加时间戳防止缓存
               },
-              timeout: this.config.timeout
+              timeout: this.config.timeout,
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
             });
           } else if (params.symbol === 'astock' || params.symbol === 'SSE') {
             // 对于A股，使用Sina Finance API
