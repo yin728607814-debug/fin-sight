@@ -5,24 +5,18 @@
 
 const https = require('https');
 
-// 期货到现货价格调整系数
-// 根据实际市场数据对比（Investing.com vs Yahoo Finance）
-// 期货价格通常比现货高约 0.27%，但实际观察发现需要更小的调整
-// 调整系数 = 1.0（不调整，直接使用期货价格作为现货价格参考）
-const FUTURES_TO_SPOT_ADJUSTMENT = 1.0;
-
-// 从 Yahoo Finance 获取黄金期货历史数据 (GC=F)
-async function fetchYahooGoldFutures(range) {
+// 从 Yahoo Finance 获取黄金现货历史数据 (XAUUSD=X)
+async function fetchYahooGoldSpot(range) {
   return new Promise((resolve, reject) => {
-    // 使用黄金期货 (GC=F) - COMEX 黄金期货
-    const symbol = 'GC=F';
+    // 使用黄金现货 (XAUUSD=X) - 更准确的现货价格
+    const symbol = 'XAUUSD=X';
     
     // 为了确保有足够的交易日数据，请求更多天数
     // 5d 可能只有 3-4 个交易日（因为周末），所以请求 10d
     const actualRange = range === '5d' ? '10d' : range;
     const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=${actualRange}&interval=1d&includePrePost=false`;
     
-    console.log('📡 请求 Yahoo Finance 黄金期货:', { symbol, requestedRange: range, actualRange, url });
+    console.log('📡 请求 Yahoo Finance 黄金现货:', { symbol, requestedRange: range, actualRange, url });
     
     https.get(url, {
       timeout: 15000,
@@ -68,7 +62,7 @@ async function fetchYahooGoldFutures(range) {
             lastDate: new Date(timestamps[timestamps.length - 1] * 1000).toISOString().split('T')[0]
           });
           
-          // 转换为标准格式并调整为现货价格
+          // 转换为标准格式（现货价格，无需调整）
           const historicalData = timestamps.map((timestamp, index) => {
             const date = new Date(timestamp * 1000);
             const openPrice = open?.[index];
@@ -77,29 +71,22 @@ async function fetchYahooGoldFutures(range) {
             const closePrice = close?.[index];
             const vol = volume?.[index] || 0;
             
-            // 将期货价格调整为现货价格（减去约 0.27% 的溢价）
-            const adjustedOpen = openPrice * FUTURES_TO_SPOT_ADJUSTMENT;
-            const adjustedHigh = highPrice * FUTURES_TO_SPOT_ADJUSTMENT;
-            const adjustedLow = lowPrice * FUTURES_TO_SPOT_ADJUSTMENT;
-            const adjustedClose = closePrice * FUTURES_TO_SPOT_ADJUSTMENT;
-            
             return {
               date: date.toISOString().split('T')[0],
-              open: Math.round(adjustedOpen * 100) / 100,
-              high: Math.round(adjustedHigh * 100) / 100,
-              low: Math.round(adjustedLow * 100) / 100,
-              close: Math.round(adjustedClose * 100) / 100,
+              open: Math.round(openPrice * 100) / 100,
+              high: Math.round(highPrice * 100) / 100,
+              low: Math.round(lowPrice * 100) / 100,
+              close: Math.round(closePrice * 100) / 100,
               volume: vol,
-              change: Math.round((adjustedClose - adjustedOpen) * 100) / 100,
-              changePercent: Math.round(((adjustedClose - adjustedOpen) / adjustedOpen) * 10000) / 100
+              change: Math.round((closePrice - openPrice) * 100) / 100,
+              changePercent: Math.round(((closePrice - openPrice) / openPrice) * 10000) / 100
             };
           }).filter(item => item.close !== null && item.close !== undefined && !isNaN(item.close));
           
-          console.log('✅ 数据转换完成（已调整为现货价格）:', {
+          console.log('✅ 数据转换完成（现货价格）:', {
             validDataPoints: historicalData.length,
             latestDate: historicalData[historicalData.length - 1]?.date,
-            latestPrice: historicalData[historicalData.length - 1]?.close,
-            adjustment: `期货价格 × ${FUTURES_TO_SPOT_ADJUSTMENT} = 现货价格`
+            latestPrice: historicalData[historicalData.length - 1]?.close
           });
           
           resolve(historicalData);
@@ -180,12 +167,12 @@ const handler = async (event, _context) => {
       };
     }
 
-    // 直接使用 Yahoo Finance 黄金期货 (GC=F) 获取真实历史数据
-    console.log('🌐 使用 Yahoo Finance 黄金期货 (GC=F) 获取真实数据');
-    const historicalData = await fetchYahooGoldFutures(range);
+    // 直接使用 Yahoo Finance 黄金现货 (XAUUSD=X) 获取真实历史数据
+    console.log('🌐 使用 Yahoo Finance 黄金现货 (XAUUSD=X) 获取真实数据');
+    const historicalData = await fetchYahooGoldSpot(range);
     
     if (!historicalData || historicalData.length === 0) {
-      console.error('❌ Yahoo Finance 黄金期货数据不可用');
+      console.error('❌ Yahoo Finance 黄金现货数据不可用');
       return {
         statusCode: 503,
         headers: {
@@ -194,7 +181,7 @@ const handler = async (event, _context) => {
         },
         body: JSON.stringify({
           error: 'Historical data temporarily unavailable',
-          message: 'Gold futures data is currently unavailable. Please try again later.',
+          message: 'Gold spot data is currently unavailable. Please try again later.',
           timestamp: new Date().toISOString()
         })
       };
@@ -208,25 +195,23 @@ const handler = async (event, _context) => {
       originalSymbol: 'gold',
       meta: {
         currency: 'USD',
-        exchangeName: 'COMEX',
+        exchangeName: 'FOREX',
         instrumentType: 'SPOT',
         timezone: 'America/New_York',
-        source: 'Spot gold price adjusted from Yahoo Finance futures (GC=F)',
+        source: 'Yahoo Finance spot gold (XAUUSD=X)',
         lastUpdated: new Date().toISOString(),
-        note: 'Futures price adjusted to spot price (0.27% discount)',
+        note: 'Direct spot gold price from Yahoo Finance',
         dataPoints: validatedData.length,
-        isRealData: true,
-        priceAdjustment: `Futures × ${FUTURES_TO_SPOT_ADJUSTMENT}`
+        isRealData: true
       },
       priceData: validatedData
     };
 
-    console.log('✅ 返回调整后的现货黄金价格数据:', {
-      symbol: 'XAUUSD (adjusted from GC=F)',
+    console.log('✅ 返回现货黄金价格数据:', {
+      symbol: 'XAUUSD (spot)',
       dataPoints: validatedData.length,
       latestPrice: validatedData[validatedData.length - 1]?.close,
-      source: 'Yahoo Finance Gold Futures (adjusted to spot)',
-      adjustment: `${FUTURES_TO_SPOT_ADJUSTMENT}x`,
+      source: 'Yahoo Finance Gold Spot (XAUUSD=X)',
       dateRange: {
         from: validatedData[0]?.date,
         to: validatedData[validatedData.length - 1]?.date
