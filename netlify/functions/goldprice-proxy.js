@@ -59,22 +59,15 @@ async function fetchGoldPriceOrg() {
   });
 }
 
-// 生成模拟的历史数据（基于当前价格）
+// 生成保守的历史数据（基于当前价格，使用更小的波动）
 function generateHistoricalData(currentPrice, previousClose, days = 5) {
   const historicalData = [];
   const today = new Date();
   
-  // 使用真实的当前价格和昨日收盘价
-  const prices = [previousClose, currentPrice];
+  // 使用线性插值生成历史价格，确保价格在合理范围内
+  // 假设过去5天的价格在 previousClose ±1% 范围内波动
+  const priceRange = previousClose * 0.01; // 1% 的波动范围
   
-  // 为其他天生成合理的价格（基于真实价格的小幅波动）
-  for (let i = 2; i < days; i++) {
-    const basePrice = previousClose;
-    const variation = (Math.random() - 0.5) * 100; // ±50 的波动
-    prices.unshift(basePrice + variation);
-  }
-  
-  // 生成 OHLCV 数据
   for (let i = 0; i < days; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - (days - 1 - i));
@@ -84,11 +77,25 @@ function generateHistoricalData(currentPrice, previousClose, days = 5) {
       date.setDate(date.getDate() - 1);
     }
     
-    const close = prices[i];
-    const variation = close * 0.01; // 1% 的日内波动
-    const open = close + (Math.random() - 0.5) * variation;
-    const high = Math.max(open, close) + Math.random() * variation * 0.5;
-    const low = Math.min(open, close) - Math.random() * variation * 0.5;
+    // 最后一天使用当前价格，其他天使用昨日收盘价附近的小幅波动
+    let close;
+    if (i === days - 1) {
+      // 今天使用当前价格
+      close = currentPrice;
+    } else if (i === days - 2) {
+      // 昨天使用昨日收盘价
+      close = previousClose;
+    } else {
+      // 更早的天数使用昨日收盘价附近的小幅波动（±0.5%）
+      const smallVariation = (Math.random() - 0.5) * priceRange * 0.5;
+      close = previousClose + smallVariation;
+    }
+    
+    // 生成 OHLC 数据，确保 high >= max(open, close) 且 low <= min(open, close)
+    const dailyVariation = close * 0.005; // 0.5% 的日内波动
+    const open = close + (Math.random() - 0.5) * dailyVariation;
+    const high = Math.max(open, close) + Math.random() * dailyVariation * 0.3;
+    const low = Math.min(open, close) - Math.random() * dailyVariation * 0.3;
     
     historicalData.push({
       date: date.toISOString().split('T')[0],
