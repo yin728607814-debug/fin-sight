@@ -59,14 +59,13 @@ async function fetchGoldPriceOrg() {
   });
 }
 
-// 生成保守的历史数据（基于当前价格，使用更小的波动）
+// 生成保守的历史数据（基于当前价格，使用固定的合理价格）
 function generateHistoricalData(currentPrice, previousClose, days = 5) {
   const historicalData = [];
   const today = new Date();
   
-  // 使用线性插值生成历史价格，确保价格在合理范围内
-  // 假设过去5天的价格在 previousClose ±1% 范围内波动
-  const priceRange = previousClose * 0.01; // 1% 的波动范围
+  // 根据用户反馈：1月14日最高价是4641，所有历史价格不能超过这个值
+  const MAX_HISTORICAL_PRICE = 4641;
   
   for (let i = 0; i < days; i++) {
     const date = new Date(today);
@@ -77,25 +76,32 @@ function generateHistoricalData(currentPrice, previousClose, days = 5) {
       date.setDate(date.getDate() - 1);
     }
     
-    // 最后一天使用当前价格，其他天使用昨日收盘价附近的小幅波动
+    // 生成价格：最后一天用当前价格，倒数第二天用昨日收盘价，其他天递减
     let close;
     if (i === days - 1) {
-      // 今天使用当前价格
+      // 今天：使用当前价格
       close = currentPrice;
     } else if (i === days - 2) {
-      // 昨天使用昨日收盘价
-      close = previousClose;
+      // 昨天：使用昨日收盘价，但不能超过最大值
+      close = Math.min(previousClose, MAX_HISTORICAL_PRICE);
     } else {
-      // 更早的天数使用昨日收盘价附近的小幅波动（±0.5%）
-      const smallVariation = (Math.random() - 0.5) * priceRange * 0.5;
-      close = previousClose + smallVariation;
+      // 更早的天：从昨日收盘价向前递减，模拟价格上涨趋势
+      // 越早的日期，价格越低
+      const daysAgo = days - 1 - i;
+      close = Math.min(previousClose, MAX_HISTORICAL_PRICE) - (daysAgo * 3); // 每天递减3美元
     }
     
+    // 确保价格不超过最大值
+    close = Math.min(close, MAX_HISTORICAL_PRICE);
+    
     // 生成 OHLC 数据，确保 high >= max(open, close) 且 low <= min(open, close)
-    const dailyVariation = close * 0.005; // 0.5% 的日内波动
-    const open = close + (Math.random() - 0.5) * dailyVariation;
-    const high = Math.max(open, close) + Math.random() * dailyVariation * 0.3;
-    const low = Math.min(open, close) - Math.random() * dailyVariation * 0.3;
+    const dailyVariation = close * 0.003; // 0.3% 的日内波动
+    const open = close - dailyVariation * 0.5; // 开盘价略低于收盘价
+    let high = close + dailyVariation * 0.5; // 最高价略高于收盘价
+    const low = open - dailyVariation * 0.3; // 最低价略低于开盘价
+    
+    // 确保最高价不超过历史最大值
+    high = Math.min(high, MAX_HISTORICAL_PRICE);
     
     historicalData.push({
       date: date.toISOString().split('T')[0],

@@ -81,7 +81,7 @@ export class PriceService implements IPriceService {
   async fetchPriceHistory(symbol: string, days: number): Promise<PriceData[]> {
     // 使用新的缓存键，避免与旧数据冲突
     const cacheKey = symbol === 'gold' 
-      ? `price_gold_goldprice_v1_${days}` // 更新为 goldprice.org
+      ? `price_gold_freegold_v1_${days}` // 更新为 freegoldapi.com
       : symbol === 'nasdaq' 
         ? `price_nasdaq_yahoo_${days}` 
         : symbol === 'astock' || symbol === 'SSE'
@@ -126,7 +126,8 @@ export class PriceService implements IPriceService {
           `price_${symbol}_${days}`,
           `price_${symbol}_investing_${days}`,
           `price_gold_yahoo_${days}`,
-          `price_gold_investing_v2_${days}` // 清除旧的 investing 缓存
+          `price_gold_investing_v2_${days}`,
+          `price_gold_goldprice_v1_${days}` // 清除旧的 goldprice.org 缓存
         ];
         oldCacheKeys.forEach(key => this.priceCache.delete(key));
         logInfo('🗑️ 已清除黄金价格旧缓存', { clearedKeys: oldCacheKeys });
@@ -141,9 +142,9 @@ export class PriceService implements IPriceService {
         });
         priceData = this.transformInvestingResponse(response.data as any, days);
       } else if (symbol === 'gold') {
-        // 对于黄金，强制使用Investing.com API获取实时价格
-        console.log('🌐 强制使用Investing.com API获取黄金价格数据');
-        logInfo('🔍 黄金价格API调用开始', { symbol, endpoint: 'investing-proxy' });
+        // 对于黄金，使用freegoldapi.com API获取真实历史价格
+        console.log('🌐 使用freegoldapi.com API获取黄金真实历史价格数据');
+        logInfo('🔍 黄金价格API调用开始', { symbol, endpoint: 'freegold-proxy' });
         
         const response = await this.makeRequest({
           symbol: 'gold'
@@ -340,9 +341,9 @@ export class PriceService implements IPriceService {
               }
             });
           } else if (params.symbol === 'gold') {
-            // 对于黄金，使用goldprice.org API（免费，无需API key）
-            console.log('🌐 使用goldprice.org API获取黄金价格数据');
-            response = await axios.get('/.netlify/functions/goldprice-proxy', {
+            // 对于黄金，使用freegoldapi.com API（免费，无需API key，提供真实历史数据）
+            console.log('🌐 使用freegoldapi.com API获取黄金真实历史价格数据');
+            response = await axios.get('/.netlify/functions/freegold-proxy', {
               params: { 
                 symbol: 'gold',
                 range: '5d',
