@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase 连接测试</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      border-left: 4px solid #4CAF50;
+    }
+    .error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    .success {
+      border-left-color: #4CAF50;
+      background: #e8f5e9;
+    }
+    .warning {
+      border-left-color: #ff9800;
+      background: #fff3e0;
+    }
+    pre {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #1976D2;
+    }
+    .info {
+      font-size: 14px;
+      color: #666;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Supabase 连接诊断工具</h1>
+    
+    <div class="test-section">
+      <h3>📋 环境变量检查</h3>
+      <div id="env-check"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>🔗 连接测试</h3>
+      <button onclick="testConnection()">测试 Supabase 连接</button>
+      <div id="connection-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>📊 详细日志</h3>
+      <pre id="logs"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    // 日志函数
+    const logs = [];
+    function log(message, data = null) {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = `[${timestamp}] ${message}`;
+      logs.push(logEntry);
+      if (data) {
+        logs.push(JSON.stringify(data, null, 2));
+      }
+      document.getElementById('logs').textContent = logs.join('\n');
+      console.log(message, data);
+    }
+
+    // 检查环境变量
+    function checkEnv() {
+      const envDiv = document.getElementById('env-check');
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      log('检查环境变量...');
+      
+      let html = '<div class="info">';
+      
+      if (!url) {
+        html += '<p style="color: red;">❌ VITE_SUPABASE_URL 未设置</p>';
+        log('错误: VITE_SUPABASE_URL 未设置');
+      } else {
+        html += `<p style="color: green;">✅ VITE_SUPABASE_URL: ${url}</p>`;
+        log('VITE_SUPABASE_URL 已设置', { url });
+      }
+
+      if (!key) {
+        html += '<p style="color: red;">❌ VITE_SUPABASE_ANON_KEY 未设置</p>';
+        log('错误: VITE_SUPABASE_ANON_KEY 未设置');
+      } else {
+        const keyPreview = key.substring(0, 20) + '...' + key.substring(key.length - 10);
+        html += `<p style="color: green;">✅ VITE_SUPABASE_ANON_KEY: ${keyPreview}</p>`;
+        html += `<p style="color: blue;">📏 Key 长度: ${key.length} 字符</p>`;
+        html += `<p style="color: blue;">🔤 Key 格式: ${key.startsWith('sb_publishable_') ? 'Publishable Key (新格式)' : key.startsWith('eyJ') ? 'JWT Token (旧格式)' : '未知格式'}</p>`;
+        log('VITE_SUPABASE_ANON_KEY 已设置', { 
+          length: key.length,
+          preview: keyPreview,
+          format: key.startsWith('sb_publishable_') ? 'Publishable Key' : 'JWT Token'
+        });
+      }
+
+      html += '</div>';
+      envDiv.innerHTML = html;
+    }
+
+    // 测试连接
+    window.testConnection = async function() {
+      const resultDiv = document.getElementById('connection-result');
+      resultDiv.innerHTML = '<p>⏳ 正在测试连接...</p>';
+      
+      log('开始测试 Supabase 连接...');
+
+      try {
+        const url = import.meta.env.VITE_SUPABASE_URL;
+        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!url || !key) {
+          throw new Error('环境变量未设置');
+        }
+
+        // 动态导入 Supabase 客户端
+        log('导入 Supabase 客户端库...');
+        const { createClient } = await import('@supabase/supabase-js');
+        
+        log('创建 Supabase 客户端...', { url });
+        const supabase = createClient(url, key);
+
+        // 测试简单查询
+        log('执行测试查询...');
+        const { data, error } = await supabase
+          .from('positions')
+          .select('count', { count: 'exact', head: true });
+
+        if (error) {
+          log('查询返回错误', error);
+          
+          // 检查是否是表不存在的错误（这是正常的）
+          if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+            resultDiv.innerHTML = `
+              <div class="success">
+                <p>✅ <strong>连接成功！</strong></p>
+                <p>📝 注意: 'positions' 表不存在，但这是正常的。连接本身是成功的。</p>
+                <p>💡 你需要在 Supabase 控制台创建必要的表。</p>
+              </div>
+            `;
+            log('连接成功（表不存在是正常的）');
+          } else {
+            throw error;
+          }
+        } else {
+          resultDiv.innerHTML = `
+            <div class="success">
+              <p>✅ <strong>连接成功！</strong></p>
+              <p>✅ 数据库表已存在并可访问</p>
+            </div>
+          `;
+          log('连接成功，表存在', data);
+        }
+
+      } catch (error) {
+        log('连接失败', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+
+        resultDiv.innerHTML = `
+          <div class="error">
+            <p>❌ <strong>连接失败</strong></p>
+            <p><strong>错误信息:</strong> ${error.message}</p>
+            ${error.code ? `<p><strong>错误代码:</strong> ${error.code}</p>` : ''}
+            ${error.hint ? `<p><strong>提示:</strong> ${error.hint}</p>` : ''}
+            <p style="margin-top: 15px;"><strong>可能的原因:</strong></p>
+            <ul style="margin-left: 20px;">
+              <li>Supabase URL 或 Key 不正确</li>
+              <li>网络连接问题</li>
+              <li>Supabase 项目未启用或已暂停</li>
+              <li>CSP 策略阻止了连接</li>
+            </ul>
+          </div>
+        `;
+      }
+    };
+
+    // 页面加载时检查环境变量
+    checkEnv();
+    log('诊断工具已加载');
+  </script>
+</body>
+</html>

@@ -7,9 +7,9 @@ const https = require('https');
 
 // 期货到现货价格调整系数
 // 根据实际市场数据对比（Investing.com vs Yahoo Finance）
-// 期货价格通常比现货高约 0.27%
-// 调整系数 = 1 - 0.0027 = 0.9973（精确匹配现货价格）
-const FUTURES_TO_SPOT_ADJUSTMENT = 0.9973;
+// 期货价格通常比现货高约 0.27%，但实际观察发现需要更小的调整
+// 调整系数 = 1.0（不调整，直接使用期货价格作为现货价格参考）
+const FUTURES_TO_SPOT_ADJUSTMENT = 1.0;
 
 // 从 Yahoo Finance 获取黄金期货历史数据 (GC=F)
 async function fetchYahooGoldFutures(range) {

@@ -1,6 +1,6 @@
 // Service Worker for PWA
-const CACHE_NAME = 'portfolio-v1';
-const RUNTIME_CACHE = 'portfolio-runtime';
+const CACHE_NAME = 'portfolio-v3'; // 更新版本号以清除旧缓存
+const RUNTIME_CACHE = 'portfolio-runtime-v3';
 
 // 需要缓存的静态资源
 const STATIC_CACHE_URLS = [
@@ -62,6 +62,28 @@ self.addEventListener('fetch', (event) => {
     return; // 不拦截，让浏览器直接处理
   }
 
+  // JS/CSS 等构建文件使用网络优先策略（确保总是获取最新版本）
+  if (
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.jsx') ||
+    url.pathname.endsWith('.tsx') ||
+    url.pathname.includes('/assets/')
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // 不缓存构建文件，避免旧版本问题
+          return response;
+        })
+        .catch(() => {
+          // 网络失败时尝试从缓存获取（离线支持）
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
   // API请求使用网络优先策略
   if (
     url.pathname.includes('/api/') ||
@@ -93,7 +115,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 静态资源使用缓存优先策略
+  // 其他静态资源（图片、字体等）使用缓存优先策略
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
