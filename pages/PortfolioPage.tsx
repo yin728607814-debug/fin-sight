@@ -379,11 +379,7 @@ export const PortfolioPage: React.FC = () => {
       priceService.clearAllCache();
       console.log('✅ 已清除priceService缓存');
       
-      // 3. 清除浏览器缓存（添加时间戳）
-      const timestamp = Date.now();
-      console.log('🔄 使用时间戳防止缓存:', timestamp);
-      
-      // 4. 重新获取所有价格数据
+      // 3. 重新获取所有价格数据
       console.log('🔄 重新获取黄金和纳斯达克价格数据...');
       const [goldData, nasdaqData] = await Promise.all([
         priceService.fetchFiveDayPriceHistory('gold'),
@@ -392,9 +388,14 @@ export const PortfolioPage: React.FC = () => {
       console.log('✅ 获取到黄金价格数据:', goldData.length, '条');
       console.log('✅ 获取到纳斯达克价格数据:', nasdaqData.length, '条');
       
-      // 5. 强制刷新页面以应用新数据
-      console.log('🔄 刷新页面...');
-      window.location.reload();
+      // 4. 显示数据详情
+      const goldLatest = goldData[goldData.length - 1]?.close || 0;
+      const nasdaqLatest = nasdaqData[nasdaqData.length - 1]?.close || 0;
+      
+      alert(`✅ 价格数据已更新！\n\n黄金最新价格: $${goldLatest}\n纳斯达克最新价格: ${nasdaqLatest.toFixed(2)}\n\n数据点数: ${goldData.length} 条`);
+      
+      // 5. 触发组件重新渲染（不刷新页面）
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('❌ 刷新价格失败:', error);
       alert('刷新失败: ' + (error instanceof Error ? error.message : '未知错误'));

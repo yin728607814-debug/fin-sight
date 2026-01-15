@@ -60,18 +60,21 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
       priceService.clearAllCache();
       console.log('✅ 已清除priceService缓存');
       
-      // 3. 清除浏览器缓存（添加时间戳）
-      const timestamp = Date.now();
-      console.log('🔄 使用时间戳防止缓存:', timestamp);
-      
-      // 4. 重新获取价格数据
+      // 3. 重新获取价格数据
       console.log('🔄 重新获取纳斯达克价格数据...');
       const newPriceData = await priceService.fetchFiveDayPriceHistory('nasdaq');
       console.log('✅ 获取到新的价格数据:', newPriceData.length, '条');
       
-      // 5. 强制刷新页面以应用新数据
-      console.log('🔄 刷新页面...');
-      window.location.reload();
+      // 4. 显示数据详情
+      const latestPrice = newPriceData[newPriceData.length - 1]?.close || 0;
+      const dataDetails = newPriceData.map(d => 
+        `${d.date.toISOString().split('T')[0]}: ${d.close.toFixed(2)}`
+      ).join('\n');
+      
+      alert(`✅ 价格数据已更新！\n\n最新价格: ${latestPrice.toFixed(2)}\n数据点数: ${newPriceData.length}\n\n详细数据:\n${dataDetails}`);
+      
+      // 5. 触发组件重新渲染（不刷新页面）
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('❌ 刷新纳斯达克价格失败:', error);
       alert('刷新失败: ' + (error instanceof Error ? error.message : '未知错误'));
