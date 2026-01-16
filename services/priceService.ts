@@ -81,7 +81,7 @@ export class PriceService implements IPriceService {
   async fetchPriceHistory(symbol: string, days: number): Promise<PriceData[]> {
     // 使用新的缓存键，避免与旧数据冲突
     const cacheKey = symbol === 'gold' 
-      ? `price_gold_accurate_v1_${days}` // 使用准确的手动维护数据
+      ? `price_gold_yahoo_v1_${days}` // 使用Yahoo Finance GC=F
       : symbol === 'nasdaq' 
         ? `price_nasdaq_yahoo_${days}` 
         : symbol === 'astock' || symbol === 'SSE'
@@ -125,10 +125,10 @@ export class PriceService implements IPriceService {
           `price_gold_${days}`,
           `price_${symbol}_${days}`,
           `price_${symbol}_investing_${days}`,
-          `price_gold_yahoo_${days}`,
           `price_gold_investing_v2_${days}`,
           `price_gold_goldprice_v1_${days}`,
-          `price_gold_freegold_v1_${days}` // 清除旧的 freegold 缓存
+          `price_gold_freegold_v1_${days}`,
+          `price_gold_accurate_v1_${days}` // 清除旧的手动数据缓存
         ];
         oldCacheKeys.forEach(key => this.priceCache.delete(key));
         logInfo('🗑️ 已清除黄金价格旧缓存', { clearedKeys: oldCacheKeys });
@@ -143,9 +143,9 @@ export class PriceService implements IPriceService {
         });
         priceData = this.transformInvestingResponse(response.data as any, days);
       } else if (symbol === 'gold') {
-        // 对于黄金，使用准确的手动维护数据（基于 Investing.com）
-        console.log('🌐 使用准确的黄金价格数据（基于 Investing.com）');
-        logInfo('🔍 黄金价格API调用开始', { symbol, endpoint: 'accurate-gold-proxy' });
+        // 对于黄金，使用Yahoo Finance GC=F (Gold Futures)
+        console.log('🌐 使用Yahoo Finance获取黄金价格数据 (GC=F)');
+        logInfo('🔍 黄金价格API调用开始', { symbol, endpoint: 'yahoo-gold-proxy' });
         
         const response = await this.makeRequest({
           symbol: 'gold'
@@ -342,9 +342,9 @@ export class PriceService implements IPriceService {
               }
             });
           } else if (params.symbol === 'gold') {
-            // 对于黄金，使用手动维护的准确数据（基于 Investing.com）
-            console.log('🌐 使用准确的黄金价格数据（基于 Investing.com）');
-            response = await axios.get('/.netlify/functions/accurate-gold-proxy', {
+            // 对于黄金，使用Yahoo Finance GC=F (Gold Futures)
+            console.log('🌐 使用Yahoo Finance获取黄金价格数据 (GC=F)');
+            response = await axios.get('/.netlify/functions/yahoo-gold-proxy', {
               params: { 
                 symbol: 'gold',
                 range: '5d',
