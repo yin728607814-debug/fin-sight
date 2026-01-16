@@ -55,8 +55,8 @@ exports.handler = async (event, _context) => {
     const symbolMap = {
       'nasdaq': '^NDX',  // 纳斯达克100指数
       'NDX': '^NDX',
-      'gold': 'GLD',    // SPDR Gold Trust ETF (可能更准确反映现货黄金价格)
-      'GOLD': 'GLD',
+      'gold': 'GC=F',    // 黄金期货 (Gold Futures) - 更准确反映现货黄金价格
+      'GOLD': 'GC=F',
       'XAUUSD': 'XAUUSD=X',   // 现货黄金 XAU/USD
       'XAUCNY': 'XAUCNY=X'    // 现货黄金 XAU/CNY
     };
