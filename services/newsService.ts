@@ -895,22 +895,33 @@ export class NewsService implements INewsService {
    */
   private async fetchFinnhubGoldNews(limit: number = 50): Promise<NewsItem[]> {
     try {
-      console.log('📡 调用Finnhub Gold Proxy');
+      console.log('📡 调用Finnhub News Proxy获取黄金新闻');
       
-      const response = await axios.get('/.netlify/functions/finnhub-gold-proxy', {
-        timeout: this.config.timeout
-      });
+      // 黄金相关的股票代码
+      const goldTickers = ['GLD', 'GOLD', 'NEM', 'RGLD', 'FNV', 'WPM'];
+      
+      const batchPromises = goldTickers.map(ticker =>
+        axios.get('/.netlify/functions/finnhub-news-proxy', {
+          params: {
+            symbol: ticker,
+            from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            to: new Date().toISOString().split('T')[0]
+          },
+          timeout: this.config.timeout
+        }).catch(error => {
+          console.warn(`⚠️ 获取${ticker}新闻失败:`, error.message);
+          return { data: [] };
+        })
+      );
 
-      console.log('📡 Finnhub Gold Proxy响应', { 
-        status: response.data?.status,
-        totalNews: response.data?.total || 0
-      });
+      const responses = await Promise.all(batchPromises);
+      const allNews = responses.flatMap(response => response.data || []);
 
-      if (!response.data?.articles || response.data.articles.length === 0) {
-        throw new Error('Finnhub Gold Proxy未返回黄金新闻数据');
+      console.log('📡 Finnhub响应', { totalNews: allNews.length });
+
+      if (allNews.length === 0) {
+        throw new Error('Finnhub未返回黄金新闻数据');
       }
-
-      const allNews = response.data.articles;
 
       // 去重（按URL）
       const uniqueNews = Array.from(
