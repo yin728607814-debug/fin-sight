@@ -26,13 +26,14 @@ import { measureAsync, recordError } from '../utils/monitoring';
 /**
  * Gemini 模型列表（按优先级排序）
  * 注意：Gemini 3 系列需要使用 v1beta API
+ * 优先使用配额充足的模型
  */
 const GEMINI_MODELS = [
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大，分析质量最高）
-  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
-  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
-  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
-  { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
+  { model: 'gemini-2.5-pro', version: 'v1' },                // 首选：Gemini 2.5 Pro（配额充足：16/2M TPM）
+  { model: 'gemini-2.0-flash', version: 'v1' },              // 备选1：Gemini 2.0 Flash（配额充足：24/4M TPM）
+  { model: 'gemini-2.0-flash-exp', version: 'v1' },          // 备选2：Gemini 2.0 Flash Exp（配额充足：10.57K TPM）
+  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 备选3：Gemini 3.0 Pro（RPM可能受限）
+  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选4：Gemini 3.0 Flash（TPM已超限）
 ];
 
 /**
