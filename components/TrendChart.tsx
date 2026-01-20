@@ -14,6 +14,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
   ChartOptions,
   TooltipItem
 } from 'chart.js';
@@ -27,7 +28,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 /**
