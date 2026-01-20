@@ -1048,6 +1048,33 @@ ${newsTexts}
   }
 
   /**
+   * 翻译单个文本（使用Gemini AI）- 已废弃，使用批量翻译
+   */
+  private async translateText(text: string): Promise<string> {
+    if (!text || text.length === 0) return text;
+    
+    try {
+      const translatedText = await callGeminiWithFallback(
+        config.apiKeys.gemini,
+        `请将以下英文翻译成中文，只返回翻译结果，不要添加任何解释：\n\n${text}`,
+        0.3,
+        1024,
+        10000
+      );
+      
+      if (translatedText && translatedText.length > 0) {
+        return translatedText.trim();
+      }
+      
+      return text;
+      
+    } catch (error) {
+      console.warn('翻译失败，返回原文', error);
+      return text;
+    }
+  }
+
+  /**
    * 使用新浪财经获取新闻（黄金等）
    */
   private async fetchSinaNews(assetType: AssetType, limit: number): Promise<NewsItem[]> {
@@ -1718,6 +1745,73 @@ ${newsTexts}
            this.config.apiKey.includes('demo') || 
            this.config.apiKey.includes('placeholder') || 
            this.config.apiKey.includes('your_');
+  }
+
+  /**
+   * 翻译新闻为中文
+   */
+  private async translateNews(newsItems: NewsItem[]): Promise<NewsItem[]> {
+    // 在生产环境中，总是尝试翻译（API密钥由Netlify函数处理）
+    const isProduction = typeof window !== 'undefined' && 
+                        window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1';
+    
+    if (!isProduction && !config.apiKeys.gemini) {
+      console.warn('⚠️ 本地开发环境未配置Gemini API密钥，跳过翻译');
+      return newsItems;
+    }
+
+    console.log('🌐 开始翻译新闻为中文...', { 
+      itemCount: newsItems.length,
+      hasGeminiKey: !!config.apiKeys.gemini,
+      geminiKeyPrefix: config.apiKeys.gemini ? config.apiKeys.gemini.substring(0, 10) + '...' : 'none'
+    });
+    
+    const translatedItems: NewsItem[] = [];
+    
+    // 限制翻译数量以避免API限制和超时
+    const itemsToTranslate = newsItems.slice(0, 5);
+    console.log(`🔢 限制翻译数量为 ${itemsToTranslate.length} 条新闻`);
+    
+    for (let i = 0; i < itemsToTranslate.length; i++) {
+      const item = itemsToTranslate[i];
+      try {
+        console.log(`🌐 翻译第 ${i + 1}/${itemsToTranslate.length} 条新闻: ${item.title.substring(0, 50)}...`);
+        
+        const translatedTitle = await this.translateText(item.title);
+        const translatedContent = await this.translateText(item.content.substring(0, 500)); // 限制内容长度
+        
+        translatedItems.push({
+          ...item,
+          title: translatedTitle,
+          content: translatedContent
+        });
+        
+        console.log(`✅ 翻译完成: ${translatedTitle.substring(0, 50)}...`);
+        
+        // 避免API限制，每次翻译后延迟（增加到3秒）
+        if (i < itemsToTranslate.length - 1) {
+          console.log('⏳ 等待3秒避免API速率限制...');
+          await this.sleep(3000);
+        }
+        
+      } catch (error) {
+        console.warn(`❌ 翻译第 ${i + 1} 条新闻失败，保留原文`, { 
+          title: item.title.substring(0, 50), 
+          error: error.message 
+        });
+        translatedItems.push(item);
+      }
+    }
+    
+    // 添加剩余未翻译的新闻
+    if (newsItems.length > 5) {
+      translatedItems.push(...newsItems.slice(5));
+      console.log(`📝 添加剩余 ${newsItems.length - 5} 条未翻译新闻`);
+    }
+    
+    console.log(`🎉 翻译完成，总计 ${translatedItems.length} 条新闻`);
+    return translatedItems;
   }
 
   /**
