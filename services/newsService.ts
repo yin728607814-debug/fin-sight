@@ -26,14 +26,13 @@ import { measureAsync, recordError } from '../utils/monitoring';
 /**
  * Gemini 模型列表（按优先级排序）
  * 注意：Gemini 3 系列需要使用 v1beta API
- * 优先使用配额充足的模型（gemini-3-pro 配额已用完 27/25）
  */
 const GEMINI_MODELS = [
-  { model: 'gemini-2.5-pro', version: 'v1' },                // 首选：Gemini 2.5 Pro（配额充足 2/150）
-  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（配额充足 21/1K）
-  { model: 'gemini-2.0-flash', version: 'v1' },              // 备选2：Gemini 2.0 Flash（配额充足 3/2K）
-  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash（配额充足 2/1K）
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 备选4：Gemini 3.0 Pro（配额已满 27/25，作为最后备选）
+  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大，分析质量最高）
+  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
+  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
+  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
+  { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
 ];
 
 /**
