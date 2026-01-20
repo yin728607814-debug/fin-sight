@@ -164,6 +164,11 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 
       setAnalysis(analysisResults);
       
+      // 在两次API调用之间添加延迟（避免RPM超限）
+      const delayBetweenCalls = 2000; // 2秒延迟
+      console.log(`⏳ 等待${delayBetweenCalls}ms后进行整体市场分析...`);
+      await new Promise(resolve => setTimeout(resolve, delayBetweenCalls));
+      
       // 调用整体市场分析（第二次API调用）
       try {
         const overallAnalysisResult = await analysisService.analyzeOverallMarket(

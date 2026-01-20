@@ -296,13 +296,22 @@ export class AnalysisService implements IAnalysisService {
     
     console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条`);
     
-    // 并发处理所有批次
-    const batchResults = await Promise.all(
-      batches.map((batch, index) => {
-        console.log(`🚀 处理第 ${index + 1}/${batches.length} 批 (${batch.length}条新闻)...`);
-        return this.aiBatchAnalysisSingle(batch, assetType);
-      })
-    );
+    // 串行处理所有批次（避免并发导致429错误）
+    const batchResults: BatchAnalysisResult[] = [];
+    for (let index = 0; index < batches.length; index++) {
+      const batch = batches[index];
+      console.log(`🚀 处理第 ${index + 1}/${batches.length} 批 (${batch.length}条新闻)...`);
+      
+      const result = await this.aiBatchAnalysisSingle(batch, assetType);
+      batchResults.push(result);
+      
+      // 在批次之间添加延迟（避免RPM超限）
+      if (index < batches.length - 1) {
+        const delay = 2000; // 批次间延迟2秒
+        console.log(`⏳ 等待${delay}ms后处理下一批...`);
+        await this.sleep(delay);
+      }
+    }
     
     // 合并结果
     const allAnalyses = batchResults.flatMap((result, batchIndex) => 
