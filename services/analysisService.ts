@@ -42,7 +42,9 @@ async function callGeminiWithFallback(
 ): Promise<string> {
   let lastError: Error | null = null;
 
-  for (const { model, version } of GEMINI_MODELS) {
+  for (let i = 0; i < GEMINI_MODELS.length; i++) {
+    const { model, version } = GEMINI_MODELS[i];
+    
     try {
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`,
@@ -74,6 +76,12 @@ async function callGeminiWithFallback(
       if (status === 503 || status === 429 || isTimeout) {
         const reason = isTimeout ? '超时' : status;
         console.log(`⚠️ ${model} 不可用 (${reason})，尝试下一个模型...`);
+        
+        // 如果不是最后一个模型，等待3秒后再尝试下一个（避免RPM超限）
+        if (i < GEMINI_MODELS.length - 1) {
+          console.log(`⏳ 等待3秒后尝试下一个模型...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
         continue;
       }
       
