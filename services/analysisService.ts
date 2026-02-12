@@ -1341,6 +1341,19 @@ ${newsText}
     
     const assetName = assetNames[assetType] || assetType;
     
+    // 获取当前日期和时间
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('zh-CN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    });
+    const currentTime = now.toLocaleTimeString('zh-CN', { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    });
+    
     // 使用标题+完整内容（最多200字）
     const newsText = newsList.map((news, index) => {
       const shortContent = news.content.length > 200 
@@ -1367,9 +1380,12 @@ ${newsText}
     }
     
     // 详细的prompt，要求深入分析
-    const prompt = `你是专业的金融分析师。请深入分析以下${newsList.length}条关于${assetName}的新闻，提供详细的市场洞察。
+    const prompt = `你是专业的金融分析师。当前时间是 ${currentDate} ${currentTime}。请深入分析以下${newsList.length}条关于${assetName}的新闻，提供详细的市场洞察。
 
-**重要提示：你正在分析的是${assetName}，请确保所有分析、建议和预测都是针对${assetName}的，不要提及其他市场或指数。**${investmentStrategy}
+**重要提示：**
+1. 当前时间是 ${currentDate}，请基于这个时间点进行分析
+2. 你正在分析的是${assetName}，请确保所有分析、建议和预测都是针对${assetName}的，不要提及其他市场或指数
+3. 请使用最新的市场数据和价格水平进行分析${investmentStrategy}
 
 新闻内容：
 ${finalNewsText}
@@ -1383,7 +1399,7 @@ ${finalNewsText}
   "keyFactors": ["关键因素1：具体说明对${assetName}的影响机制", "关键因素2：具体说明对${assetName}的影响机制", "关键因素3：具体说明对${assetName}的影响机制", "关键因素4：具体说明对${assetName}的影响机制"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "趋势预测（150-250字）：预测${assetName}未来价格走势，说明支撑位和阻力位，以及可能的突破方向和时间点"
+  "predictedTrend": "趋势预测（150-250字）：基于${currentDate}的市场情况，预测${assetName}未来价格走势，说明当前价格水平、支撑位和阻力位，以及可能的突破方向和时间点"
 }
 
 分析要求：
@@ -1393,7 +1409,8 @@ ${finalNewsText}
 4. 分析要深入、具体、详细，避免泛泛而谈
 5. keyFactors要具体说明每个因素对${assetName}的影响机制和传导路径
 6. 投资建议要结合用户的投资策略，针对${assetName}，实用、可操作、有针对性
-7. 趋势预测要有${assetName}的具体价格区间和时间预期`;
+7. 趋势预测要基于当前时间（${currentDate}）和最新市场价格水平，提供${assetName}的具体价格区间和时间预期
+8. 请确保你的分析反映了${currentDate}的最新市场情况，而不是过时的数据`;
 
     try {
       // 添加请求前的日志
