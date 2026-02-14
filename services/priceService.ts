@@ -329,7 +329,7 @@ export class PriceService implements IPriceService {
           // 对于纳斯达克指数，使用Yahoo Finance API
           if (params.symbol === 'nasdaq' || params.symbol === 'NDX') {
             console.log('🌐 使用Yahoo Finance API获取纳斯达克100指数数据');
-            response = await axios.get('/api/yahoo-finance-proxy', {
+            response = await axios.get('/yahoo-finance-proxy', {
               params: { 
                 symbol: 'nasdaq',
                 range: '5d',
@@ -345,7 +345,7 @@ export class PriceService implements IPriceService {
           } else if (params.symbol === 'gold') {
             // 对于黄金，使用Yahoo Finance（和纳斯达克一样的代理）
             console.log('🌐 使用Yahoo Finance获取黄金价格数据（和纳斯达克相同的API）');
-            response = await axios.get('/api/yahoo-finance-proxy', {
+            response = await axios.get('/yahoo-finance-proxy', {
               params: { 
                 symbol: 'gold',
                 range: '5d',
