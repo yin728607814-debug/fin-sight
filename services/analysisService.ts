@@ -150,7 +150,7 @@ export class AnalysisService implements IAnalysisService {
     this.config = {
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       apiKey: config?.apiKey || '',
-      model: 'gemini-3-pro-preview', // 使用 Gemini 3.0 Pro 模型
+      model: 'gemini-3-pro-preview', // 使用 Gemini 3 Pro Preview 模型
       timeout: 90000, // 增加到90秒，支持批量分析50条新闻
       maxRetries: 3,
       ...config

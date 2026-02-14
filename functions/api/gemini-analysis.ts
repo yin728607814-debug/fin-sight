@@ -52,8 +52,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
       });
     }
 
-    // 使用 gemini-pro 模型（最稳定）
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    // 使用 gemini-3-pro-preview 模型（Gemini 3 Pro）
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`;
     
     const response = await fetch(geminiUrl, {
       method: 'POST',
