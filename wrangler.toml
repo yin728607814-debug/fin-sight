@@ -1,0 +1,16 @@
+# Cloudflare Pages 配置
+name = "fin-sight"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "."
+
+[build.upload]
+format = "service-worker"
+
+[[build.upload.rules]]
+type = "ESModule"
+globs = ["**/*.js"]
+fallthrough = true

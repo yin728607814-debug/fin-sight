@@ -149,7 +149,7 @@ export class NewsService implements INewsService {
     // 使用新浪财经API（中文新闻，无需翻译）
     const isBrowser = typeof window !== 'undefined';
     const baseURL = isBrowser 
-      ? '/.netlify/functions/sina-news-proxy' // 使用新浪财经代理
+      ? '/api/sina-news-proxy' // Cloudflare Pages Functions
       : 'https://feed.mix.sina.com.cn/api/roll/get'; // 服务器环境直接调用
     
     this.config = {
@@ -828,7 +828,7 @@ export class NewsService implements INewsService {
         const batch = tickers.slice(i, i + 2);
         
         const batchPromises = batch.map(ticker =>
-          axios.get('/.netlify/functions/finnhub-news-proxy', {
+          axios.get('/api/finnhub-news-proxy', {
             params: {
               symbol: ticker,
               from: formatDate(fromDate),
@@ -909,7 +909,7 @@ export class NewsService implements INewsService {
       const goldTickers = ['GLD', 'GOLD', 'NEM', 'RGLD', 'FNV', 'WPM'];
       
       const batchPromises = goldTickers.map(ticker =>
-        axios.get('/.netlify/functions/finnhub-news-proxy', {
+        axios.get('/api/finnhub-news-proxy', {
           params: {
             symbol: ticker,
             from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

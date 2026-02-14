@@ -169,14 +169,14 @@ export class YahooFinanceAdapter implements DataSourceAdapter {
     this.source = {
       name: 'Yahoo Finance',
       type: 'backup',
-      endpoint: '/.netlify/functions/yahoo-finance-proxy',
+      endpoint: '/api/yahoo-finance-proxy',
       rateLimit: 100, // Yahoo Finance限制较宽松
       isHistoricalSupported: true
     };
   }
 
   async fetchHistoricalPrices(symbol: string, range: string): Promise<RawPriceData> {
-    const response = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
+    const response = await axios.get('/api/yahoo-finance-proxy', {
       params: { 
         symbol: this.normalizeSymbol(symbol),
         range: range,
@@ -215,7 +215,7 @@ export class YahooFinanceAdapter implements DataSourceAdapter {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await axios.get('/.netlify/functions/yahoo-finance-proxy', {
+      const response = await axios.get('/api/yahoo-finance-proxy', {
         params: { 
           symbol: 'nasdaq',
           range: '1d',
