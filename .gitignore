@@ -16,6 +16,11 @@ build/
 .env.test.local
 .env.production.local
 NETLIFY_ENV_IMPORT.txt
+.wrangler/
+
+# Cloudflare
+.dev.vars
+wrangler.toml.local
 
 # IDE files
 .vscode/

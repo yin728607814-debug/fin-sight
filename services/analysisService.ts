@@ -19,79 +19,36 @@ import { logInfo, logError } from './logger';
 import { config } from '../config/env';
 
 /**
- * Gemini 模型列表（按优先级排序）
- * 注意：Gemini 3 系列需要使用 v1beta API
- */
-const GEMINI_MODELS = [
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3.0 Pro（最强大，分析质量最高）
-  { model: 'gemini-3-flash-preview', version: 'v1beta' },    // 备选1：Gemini 3.0 Flash（快速）
-  { model: 'gemini-2.5-pro', version: 'v1' },                // 备选2：Gemini 2.5 Pro
-  { model: 'gemini-2.5-flash', version: 'v1' },              // 备选3：Gemini 2.5 Flash
-  { model: 'gemini-2.0-flash', version: 'v1' },              // 备选4：Gemini 2.0 Flash
-];
-
-/**
- * 调用 Gemini API（带自动降级）
+ * 调用 Gemini API（通过后端代理，带自动降级）
  */
 async function callGeminiWithFallback(
-  apiKey: string,
+  apiKey: string, // 保留参数以兼容现有代码，但不再使用
   prompt: string,
   temperature: number = 0.7,
   maxOutputTokens: number = 2048,
   timeout: number = 30000
 ): Promise<string> {
-  let lastError: Error | null = null;
+  try {
+    // 调用后端 API 代理
+    const response = await axios.post(
+      '/api/gemini-analysis',
+      {
+        prompt,
+        temperature,
+        maxOutputTokens
+      },
+      { timeout }
+    );
 
-  for (let i = 0; i < GEMINI_MODELS.length; i++) {
-    const { model, version } = GEMINI_MODELS[i];
-    
-    try {
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`,
-        {
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature,
-            maxOutputTokens
-          }
-        },
-        { timeout }
-      );
-
-      const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (responseText) {
-        if (model !== GEMINI_MODELS[0].model) {
-          console.log(`ℹ️ 使用备用模型: ${model} (${version})`);
-        }
-        return responseText;
-      }
-    } catch (error: any) {
-      lastError = error;
-      const status = error.response?.status;
-      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
-      
-      // 503 (服务过载)、429 (配额限制) 或超时时尝试下一个模型
-      if (status === 503 || status === 429 || isTimeout) {
-        const reason = isTimeout ? '超时' : status;
-        console.log(`⚠️ ${model} 不可用 (${reason})，尝试下一个模型...`);
-        
-        // 如果不是最后一个模型，等待3秒后再尝试下一个（避免RPM超限）
-        if (i < GEMINI_MODELS.length - 1) {
-          console.log(`⏳ 等待3秒后尝试下一个模型...`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-        continue;
-      }
-      
-      // 其他错误直接抛出
-      throw error;
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
     }
-  }
 
-  // 所有模型都失败
-  throw lastError || new Error('所有 Gemini 模型都不可用');
+    throw new Error(response.data?.error || 'Analysis failed');
+  } catch (error: any) {
+    console.error('❌ Gemini API 调用失败:', error);
+    throw error;
+  }
 }
 
 /**
@@ -1661,8 +1618,8 @@ ${finalNewsText}
 }
 
 /**
- * 默认分析服务实例 - 使用 Gemini API
+ * 默认分析服务实例 - 通过后端 API 调用
  */
 export const analysisService = new AnalysisService({
-  apiKey: config.apiKeys.gemini
+  apiKey: '' // 不再需要前端 API 密钥，通过后端代理
 });
