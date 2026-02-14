@@ -417,7 +417,7 @@ export class NewsService implements INewsService {
    */
   private async fetchSinaAStockNews(limit: number): Promise<NewsItem[]> {
     try {
-      const response = await axios.get('/.netlify/functions/sina-news-proxy', {
+      const response = await axios.get('/sina-news-proxy', {
         params: { 
           category: 'finance',
           num: limit
@@ -492,7 +492,7 @@ export class NewsService implements INewsService {
    */
   private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
     try {
-      const response = await axios.get('/.netlify/functions/sina-news-proxy', {
+      const response = await axios.get('/sina-news-proxy', {
         params: { 
           category: 'finance',
           num: limit  // 使用传入的limit参数
@@ -561,7 +561,7 @@ export class NewsService implements INewsService {
    */
   private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
     try {
-      const response = await axios.get('/.netlify/functions/sina-news-proxy', {
+      const response = await axios.get('/sina-news-proxy', {
         params: { 
           category: 'finance',
           num: limit
@@ -621,7 +621,7 @@ export class NewsService implements INewsService {
    */
   private async fetchEastMoneyNews(limit: number): Promise<NewsItem[]> {
     try {
-      const response = await axios.get('/.netlify/functions/eastmoney-news-proxy', {
+      const response = await axios.get('/eastmoney-news-proxy', {
         timeout: this.config.timeout
       });
 
@@ -660,7 +660,7 @@ export class NewsService implements INewsService {
    */
   private async fetchEastMoneyGoldNews(limit: number): Promise<NewsItem[]> {
     try {
-      const response = await axios.get('/.netlify/functions/eastmoney-gold-proxy', {
+      const response = await axios.get('/eastmoney-gold-proxy', {
         timeout: this.config.timeout
       });
 

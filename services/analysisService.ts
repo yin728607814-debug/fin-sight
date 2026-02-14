@@ -31,7 +31,7 @@ async function callGeminiWithFallback(
   try {
     // 调用后端 API 代理
     const response = await axios.post(
-      '/api/gemini-analysis',
+      '/gemini-analysis',
       {
         prompt,
         temperature,
