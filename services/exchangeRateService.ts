@@ -103,18 +103,19 @@ export class ExchangeRateService {
    * 从 ExchangeRate-API 获取汇率
    */
   private async fetchFromExchangeRateAPI(): Promise<number> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
     try {
-      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', {
-        signal: controller.signal,
+      // 使用 Promise.race 实现超时控制
+      const fetchPromise = fetch('https://api.exchangerate-api.com/v4/latest/USD', {
         headers: {
           'Accept': 'application/json'
         }
       });
 
-      clearTimeout(timeoutId);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('ExchangeRate-API 请求超时（5秒）')), 5000);
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -127,9 +128,11 @@ export class ExchangeRateService {
       }
 
       throw new Error('ExchangeRate-API 返回数据格式错误');
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('ExchangeRate-API 未知错误');
     }
   }
 
@@ -137,18 +140,19 @@ export class ExchangeRateService {
    * 从 Frankfurter 获取汇率
    */
   private async fetchFromFrankfurter(): Promise<number> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
     try {
-      const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=CNY', {
-        signal: controller.signal,
+      // 使用 Promise.race 实现超时控制
+      const fetchPromise = fetch('https://api.frankfurter.app/latest?from=USD&to=CNY', {
         headers: {
           'Accept': 'application/json'
         }
       });
 
-      clearTimeout(timeoutId);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Frankfurter 请求超时（5秒）')), 5000);
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -161,9 +165,11 @@ export class ExchangeRateService {
       }
 
       throw new Error('Frankfurter 返回数据格式错误');
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Frankfurter 未知错误');
     }
   }
 

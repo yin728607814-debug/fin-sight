@@ -22,7 +22,7 @@ import { config } from '../config/env';
  * 调用 Gemini API（通过后端代理，带自动降级）
  */
 async function callGeminiWithFallback(
-  apiKey: string, // 保留参数以兼容现有代码，但不再使用
+  _apiKey: string, // 保留参数以兼容现有代码，但不再使用
   prompt: string,
   temperature: number = 0.7,
   maxOutputTokens: number = 2048,
@@ -45,7 +45,7 @@ async function callGeminiWithFallback(
     }
 
     throw new Error(response.data?.error || 'Analysis failed');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Gemini API 调用失败:', error);
     throw error;
   }
@@ -323,7 +323,7 @@ export class AnalysisService implements IAnalysisService {
   /**
    * 解析批量分析响应文本
    */
-  private parseBatchGeminiResponseText(responseText: string, expectedCount: number): BatchAnalysisResult {
+  private parseBatchGeminiResponseText(responseText: string, _expectedCount: number): BatchAnalysisResult {
     try {
       // 移除可能的 markdown 代码块标记
       const cleanedText = responseText
@@ -1214,11 +1214,27 @@ ${newsText}
    * 检查是否应该使用演示数据
    */
   private shouldUseDemoData(): boolean {
-    return !this.config.apiKey || 
-           this.config.apiKey === '' || 
-           this.config.apiKey.includes('demo') || 
-           this.config.apiKey.includes('placeholder') || 
-           this.config.apiKey.includes('your_');
+    // 只检查是否为空或明确的占位符文本
+    // 不检查 'demo' 和 'placeholder'，因为真实密钥可能包含这些字符
+    if (!this.config.apiKey || this.config.apiKey.trim() === '') {
+      return true;
+    }
+    
+    // 只检查明确的占位符模式
+    const placeholderPatterns = [
+      /^your[_-]?api[_-]?key/i,           // your_api_key, your-api-key
+      /^replace[_-]?with/i,                // replace_with, replace-with
+      /^enter[_-]?your/i,                  // enter_your, enter-your
+      /^add[_-]?your/i,                    // add_your, add-your
+      /^paste[_-]?your/i,                  // paste_your, paste-your
+      /^insert[_-]?your/i,                 // insert_your, insert-your
+      /^xxx+$/i,                           // xxx, xxxx, xxxxx
+      /^test[_-]?key$/i,                   // test_key, test-key
+      /^sample[_-]?key$/i,                 // sample_key, sample-key
+      /^example[_-]?key$/i                 // example_key, example-key
+    ];
+    
+    return placeholderPatterns.some(pattern => pattern.test(this.config.apiKey));
   }
 
   /**
