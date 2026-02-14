@@ -3,7 +3,11 @@
  * 获取纳斯达克和黄金价格数据
  */
 
-export async function onRequest(context) {
+interface Env {
+  // 环境变量接口（虽然这个 function 不需要，但保持一致性）
+}
+
+export async function onRequest(context: { request: Request; env: Env }) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',

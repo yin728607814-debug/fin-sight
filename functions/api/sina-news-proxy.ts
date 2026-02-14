@@ -3,7 +3,11 @@
  * 获取中文财经新闻
  */
 
-export async function onRequest(context) {
+interface Env {
+  // 环境变量接口
+}
+
+export async function onRequest(context: { request: Request; env: Env }) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',

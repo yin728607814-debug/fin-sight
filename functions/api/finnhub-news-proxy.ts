@@ -2,7 +2,12 @@
  * Cloudflare Pages Function: Finnhub 新闻代理
  */
 
-export async function onRequest(context) {
+interface Env {
+  VITE_FINNHUB_API_KEY?: string;
+  FINNHUB_API_KEY?: string;
+}
+
+export async function onRequest(context: { request: Request; env: Env }) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
