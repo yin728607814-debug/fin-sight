@@ -361,7 +361,7 @@ export class PriceService implements IPriceService {
           } else if (params.symbol === 'astock' || params.symbol === 'SSE') {
             // 对于A股，使用Sina Finance API
             console.log('🌐 使用Sina Finance API获取上证指数数据');
-            response = await axios.get('/.netlify/functions/sina-stock-proxy', {
+            response = await axios.get('/sina-stock-proxy', {
               params: { 
                 symbol: 'sh000001', // 上证指数代码
                 range: '5d',
@@ -375,8 +375,8 @@ export class PriceService implements IPriceService {
             });
           } else {
             // 其他资产使用Alpha Vantage API
-            console.log('🌐 使用Netlify函数代理调用Alpha Vantage API');
-            response = await axios.get('/.netlify/functions/price-proxy', {
+            console.log('🌐 使用Cloudflare函数代理调用Alpha Vantage API');
+            response = await axios.get('/price-proxy', {
               params: params, // 不包含apiKey，由代理处理
               timeout: this.config.timeout
             });

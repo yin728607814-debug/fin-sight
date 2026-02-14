@@ -247,29 +247,19 @@ export class InvestingAdapter implements DataSourceAdapter {
   private readonly source: DataSource;
 
   constructor() {
+    // Investing.com 在 Cloudflare Pages 上不可用，跳过
     this.source = {
-      name: 'Investing.com',
-      type: 'primary',
-      endpoint: '/.netlify/functions/investing-proxy',
-      rateLimit: 60, // 每分钟60次请求
+      name: 'Yahoo Finance (Fallback)',
+      type: 'fallback',
+      endpoint: '/yahoo-finance-proxy',
+      rateLimit: 60,
       isHistoricalSupported: true
     };
   }
 
   async fetchHistoricalPrices(symbol: string, range: string): Promise<RawPriceData> {
-    const response = await axios.get('/.netlify/functions/investing-proxy', {
-      params: { 
-        symbol: this.normalizeSymbol(symbol),
-        range: range
-      },
-      timeout: 15000
-    });
-
-    if (response.data.error) {
-      throw new Error(`Investing.com API错误: ${response.data.error}`);
-    }
-
-    return response.data;
+    // 直接抛出错误，让系统使用 Yahoo Finance 备选
+    throw new Error('Investing.com not available on Cloudflare Pages');
   }
 
   transformToStandardFormat(rawData: RawPriceData): HistoricalPriceData[] {
@@ -294,10 +284,8 @@ export class InvestingAdapter implements DataSourceAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      const response = await axios.get('/.netlify/functions/investing-proxy', {
-        params: { 
-          symbol: 'gold',
+    // Investing.com 在 Cloudflare Pages 上不可用
+    return false;
           range: '1d'
         },
         timeout: 5000
