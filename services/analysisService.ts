@@ -1214,8 +1214,12 @@ ${newsText}
    * 检查是否应该使用演示数据
    */
   private shouldUseDemoData(): boolean {
-    // 只检查是否为空或明确的占位符文本
-    // 不检查 'demo' 和 'placeholder'，因为真实密钥可能包含这些字符
+    // 如果 API 密钥为空字符串，说明使用后端代理，不应该使用演示数据
+    if (this.config.apiKey === '') {
+      return false;
+    }
+    
+    // 如果没有设置密钥，使用演示数据
     if (!this.config.apiKey || this.config.apiKey.trim() === '') {
       return true;
     }

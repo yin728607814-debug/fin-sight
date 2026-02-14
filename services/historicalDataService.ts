@@ -286,15 +286,6 @@ export class InvestingAdapter implements DataSourceAdapter {
   async isAvailable(): Promise<boolean> {
     // Investing.com 在 Cloudflare Pages 上不可用
     return false;
-          range: '1d'
-        },
-        timeout: 5000
-      });
-      
-      return !response.data.error;
-    } catch {
-      return false;
-    }
   }
 
   private normalizeSymbol(symbol: string): string {
@@ -325,15 +316,15 @@ export class HistoricalDataService implements HistoricalPriceService {
     this.adapters = new Map();
     this.cache = new Map();
 
-    // 初始化适配器
+    // 初始化适配器（按优先级顺序）
+    this.adapters.set('yahoo', new YahooFinanceAdapter());
     if (alphaVantageApiKey) {
       this.adapters.set('alphavantage', new AlphaVantageAdapter(alphaVantageApiKey));
     }
-    this.adapters.set('yahoo', new YahooFinanceAdapter());
     this.adapters.set('investing', new InvestingAdapter());
 
-    // 设置默认适配器
-    this.currentAdapter = this.adapters.get('investing') || this.adapters.get('yahoo')!;
+    // 设置默认适配器为 Yahoo Finance（最可靠）
+    this.currentAdapter = this.adapters.get('yahoo')!;
     
     logInfo('历史数据服务初始化完成', { 
       adapters: Array.from(this.adapters.keys()),
