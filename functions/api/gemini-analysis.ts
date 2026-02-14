@@ -4,7 +4,8 @@
  */
 
 interface Env {
-  GEMINI_API_KEY: string;
+  GEMINI_API_KEY?: string;
+  VITE_GEMINI_API_KEY?: string;
 }
 
 // Gemini 模型列表（按优先级排序）
@@ -116,8 +117,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
   }
 
   try {
-    // 获取 API 密钥
-    const apiKey = context.env.GEMINI_API_KEY;
+    // 获取 API 密钥 - 优先使用 VITE_ 前缀
+    const apiKey = context.env.VITE_GEMINI_API_KEY || context.env.GEMINI_API_KEY;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'API key not configured' }), {
         status: 500,
