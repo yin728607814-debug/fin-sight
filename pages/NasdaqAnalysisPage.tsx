@@ -14,6 +14,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { SentimentIndex } from '../components/SentimentIndex';
+import { DownloadPageButton } from '../components/DownloadPageButton';
 import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
 
@@ -216,6 +217,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
               <div className="relative z-[9998]">
                 <ThemeToggle />
               </div>
+              <DownloadPageButton pageName="纳斯达克100分析" />
               <button
                 onClick={handleRefreshNewsOnly}
                 disabled={isRefreshing || hasAnyLoading}

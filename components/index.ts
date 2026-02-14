@@ -15,6 +15,7 @@ export { SentimentIndex } from './SentimentIndex';
 export { SentimentGauge } from './SentimentGauge';
 export { SentimentTrend } from './SentimentTrend';
 export { SentimentDetails } from './SentimentDetails';
+export { DownloadPageButton } from './DownloadPageButton';
 
 // AI聊天组件
 export { ChatWindow } from './ChatWindow';
