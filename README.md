@@ -1,21 +1,21 @@
-# 🚀 Investment News Analyzer
+# 🚀 FinSight AI
 
-一个现代化的金融新闻分析Web应用，提供AI驱动的市场洞察和实时数据分析。
+一个现代化的金融新闻分析 Web 应用，提供 AI 驱动的市场洞察和实时数据分析。
 
-![Investment News Analyzer](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+![FinSight AI](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
 ## ✨ 功能特性
 
 ### 核心功能
-- 📰 **实时金融新闻**: 聚合来自多个权威源的最新市场新闻
-- 🤖 **AI智能分析**: 使用Google Gemini AI分析新闻情感和市场影响
+- 📰 **实时金融新闻**: 聚合来自东方财富、新浪财经等权威源的最新市场新闻
+- 🤖 **AI 智能分析**: 使用 Google Gemini AI 分析新闻情感和市场影响
 - 📊 **交互式图表**: 实时价格走势和技术指标可视化
-- 📈 **多资产支持**: 黄金、纳斯达克等多种投资标的
+- 📈 **多资产支持**: 黄金、纳斯达克100、A股等多种投资标的
 
 ### 高级功能
 - 🌓 **深色模式**: 支持浅色/深色/跟随系统三种主题模式
-- 📉 **新闻情绪指数**: 基于AI分析的市场情绪量化指标（0-100分）
-- 💬 **AI投资顾问**: 智能问答助手，提供个性化投资建议
+- 📉 **新闻情绪指数**: 基于 AI 分析的市场情绪量化指标（0-100分）
+- 💬 **AI 投资顾问**: 智能问答助手，提供个性化投资建议
 - 💼 **投资组合追踪**: 实时追踪持仓收益和盈亏情况
 - 🎨 **个性化仪表盘**: 可拖拽的自定义布局，一站式查看所有信息
 
@@ -23,8 +23,9 @@
 - 🌐 **响应式设计**: 完美适配桌面和移动设备
 - ⚡ **性能优化**: 路由懒加载、防抖节流、智能缓存
 - 🛡️ **错误处理**: 全局错误边界、友好的错误提示
-- 💾 **数据持久化**: localStorage自动保存用户配置和数据
+- 💾 **数据持久化**: Supabase 云端存储 + localStorage 本地缓存
 - 🔄 **实时更新**: 自动刷新数据，把握市场脉搏
+- 🔐 **API 密钥安全**: 后端代理保护敏感信息
 
 ## 🛠️ 技术栈
 
@@ -34,9 +35,10 @@
 - **布局系统**: react-grid-layout
 - **状态管理**: React Context + Hooks
 - **数据验证**: Zod
-- **HTTP客户端**: Axios
-- **AI服务**: Google Gemini AI
-- **部署平台**: Netlify + Serverless Functions
+- **HTTP 客户端**: Axios
+- **AI 服务**: Google Gemini AI
+- **数据库**: Supabase (PostgreSQL)
+- **部署平台**: Cloudflare Pages + Functions
 
 ## 🚀 快速开始
 
@@ -46,8 +48,8 @@
 
 ### 1. 克隆项目
 ```bash
-git clone https://github.com/your-username/investment-news-analyzer.git
-cd investment-news-analyzer
+git clone https://github.com/yin728607814-debug/fin-sight.git
+cd fin-sight
 ```
 
 ### 2. 安装依赖
@@ -55,17 +57,24 @@ cd investment-news-analyzer
 npm install
 ```
 
-### 3. 配置API密钥
+### 3. 配置环境变量
 
-**方法1: 使用配置向导 (推荐)**
-```bash
-npm run setup
-```
-
-**方法2: 手动配置**
+创建 `.env` 文件：
 ```bash
 cp .env.example .env
-# 编辑 .env 文件，添加你的API密钥
+```
+
+编辑 `.env` 文件，添加必要的 API 密钥：
+```env
+# Gemini AI（用于 AI 分析）
+GEMINI_API_KEY=your_gemini_api_key
+
+# Supabase（用于用户认证和数据存储）
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Finnhub（可选，用于价格数据）
+VITE_FINNHUB_API_KEY=your_finnhub_api_key
 ```
 
 ### 4. 启动开发服务器
@@ -74,162 +83,143 @@ npm run dev
 ```
 
 ### 5. 访问应用
-打开 http://localhost:3001
+打开 http://localhost:5173
 
-## 🔑 API密钥获取
+## 🔑 API 密钥获取
 
 | 服务 | 用途 | 获取地址 | 免费额度 |
 |------|------|----------|----------|
-| News API | 金融新闻 | https://newsapi.org/ | 1000次/天 |
-| Alpha Vantage | 价格数据 | https://www.alphavantage.co/ | 500次/天 |
-| Gemini AI | 智能分析 | https://ai.google.dev/ | 1500次/天 |
+| Gemini AI | AI 分析 | https://ai.google.dev/ | 1500次/天 |
+| Supabase | 数据存储 | https://supabase.com/ | 500MB 数据库 |
+| Finnhub | 价格数据 | https://finnhub.io/ | 60次/分钟 |
 
-## 🌐 部署到Netlify
+## 🌐 部署到 Cloudflare Pages
 
-### 方法1: 拖拽部署 (最简单)
+### 快速部署（推荐）
 
-1. **构建项目**
-   ```bash
-   npm run build
+1. **Fork 项目到你的 GitHub**
+
+2. **登录 Cloudflare Dashboard**
+   - 访问 https://dash.cloudflare.com/
+   - 进入 **Workers & Pages**
+
+3. **创建新项目**
+   - 点击 **Create application**
+   - 选择 **Pages** → **Connect to Git**
+   - 选择你的 GitHub 仓库
+
+4. **配置构建设置**
+   ```
+   Build command: npm run build
+   Build output directory: dist
    ```
 
-2. **部署到Netlify**
-   - 访问 [netlify.com](https://netlify.com)
-   - 拖拽 `dist` 文件夹到部署区域
-
-3. **配置环境变量**
-   在Netlify控制台添加：
+5. **设置环境变量**
+   
+   在 **Environment variables** 中添加：
    ```
-   NEWS_API_KEY=your_news_api_key
-   ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
-   GEMINI_API_KEY=your_gemini_key
+   GEMINI_API_KEY=你的_Gemini_API_密钥
+   VITE_SUPABASE_URL=你的_Supabase_URL
+   VITE_SUPABASE_ANON_KEY=你的_Supabase_匿名密钥
+   VITE_FINNHUB_API_KEY=你的_Finnhub_API_密钥
    ```
 
-### 方法2: Git自动部署
+6. **部署**
+   - 点击 **Save and Deploy**
+   - 等待 1-2 分钟完成部署
 
-1. **推送到GitHub**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
+### 详细部署指南
 
-2. **连接Netlify**
-   - 在Netlify选择"New site from Git"
-   - 连接GitHub仓库
-   - 自动检测构建设置
+查看完整的部署文档：
+- [快速开始指南](./QUICK_START_CLOUDFLARE.md)
+- [详细部署指南](./CLOUDFLARE_DEPLOY_GUIDE.md)
+- [迁移指南](./CLOUDFLARE_MIGRATION.md)
 
 ## 📜 可用脚本
 
 ```bash
-npm run dev          # 启动开发服务器 (localhost:3001)
+npm run dev          # 启动开发服务器
 npm run build        # 构建生产版本
 npm run preview      # 预览生产构建
-npm run setup        # 交互式API密钥配置
-npm run clean        # 清理构建文件
 npm run lint         # 代码检查
-npm run type-check   # TypeScript类型检查
+npm run type-check   # TypeScript 类型检查
 npm run test         # 运行测试
+npm run clean        # 清理构建文件
 ```
 
 ## 🏗️ 项目结构
 
 ```
-investment-news-analyzer/
-├── components/              # React组件
+fin-sight/
+├── components/              # React 组件
 │   ├── NewsAnalyzer.tsx    # 新闻分析组件
 │   ├── TrendChart.tsx      # 价格图表组件
-│   ├── ThemeToggle.tsx     # 主题切换组件
 │   ├── SentimentIndex.tsx  # 情绪指数组件
-│   ├── ChatWindow.tsx      # AI聊天窗口
-│   ├── PortfolioSummary.tsx # 投资组合总览
-│   ├── DashboardGrid.tsx   # 仪表盘网格
-│   ├── ErrorBoundary.tsx   # 错误边界
-│   └── dashboard/          # 仪表盘卡片
-│       ├── NewsListCard.tsx
-│       ├── PriceChartCard.tsx
-│       ├── SentimentCard.tsx
-│       ├── PortfolioCard.tsx
-│       ├── AIChatCard.tsx
-│       └── MarketOverviewCard.tsx
+│   ├── ChatWindow.tsx      # AI 聊天窗口
+│   └── ...
 ├── pages/                  # 页面组件
 │   ├── HomePage.tsx        # 首页
 │   ├── NasdaqAnalysisPage.tsx # 纳斯达克分析页
 │   ├── GoldAnalysisPage.tsx   # 黄金分析页
-│   ├── AIChatPage.tsx      # AI助手页
-│   ├── PortfolioPage.tsx   # 投资组合页
-│   └── DashboardPage.tsx   # 仪表盘页
-├── services/               # API服务
+│   ├── AStockAnalysisPage.tsx # A股分析页
+│   └── ...
+├── services/               # API 服务
 │   ├── newsService.ts      # 新闻服务
 │   ├── priceService.ts     # 价格服务
-│   ├── analysisService.ts  # 分析服务
-│   ├── sentimentService.ts # 情绪服务
-│   ├── chatService.ts      # 聊天服务
-│   ├── portfolioService.ts # 投资组合服务
-│   ├── dashboardService.ts # 仪表盘服务
-│   └── themeService.ts     # 主题服务
+│   ├── analysisService.ts  # AI 分析服务
+│   └── ...
+├── functions/              # Cloudflare Functions
+│   └── api/
+│       └── gemini-analysis.ts # Gemini AI 代理
 ├── utils/                  # 工具函数
 │   ├── context.tsx         # 全局状态管理
-│   ├── ThemeContext.tsx    # 主题上下文
-│   └── performance.ts      # 性能优化工具
-├── netlify/functions/      # Netlify函数
-│   └── news-proxy.js       # 新闻API代理
-├── types.ts               # TypeScript类型
+│   └── ...
+├── types.ts               # TypeScript 类型
 └── dist/                  # 构建输出
 ```
 
+## 🔐 安全特性
+
+### API 密钥保护
+- ✅ Gemini API 密钥只在服务器端使用
+- ✅ 所有 AI 分析请求通过后端代理 (`/api/gemini-analysis`)
+- ✅ 前端代码中不包含任何敏感 API 密钥
+- ✅ 环境变量通过 Cloudflare Dashboard 安全管理
+
+### 数据安全
+- ✅ Supabase Row Level Security (RLS) 保护用户数据
+- ✅ HTTPS 加密传输
+- ✅ 用户认证和授权机制
+
+查看完整的安全审计报告：[SECURITY_AUDIT.md](./SECURITY_AUDIT.md)
+
 ## 🔧 开发说明
 
-### 本地开发 vs 生产环境
+### 环境检测
+应用会自动检测运行环境：
+- **开发环境**: 使用本地配置和演示数据
+- **生产环境**: 使用真实 API 和云端数据
 
-| 环境 | 数据源 | 说明 |
-|------|--------|------|
-| 本地开发 | 演示数据 | 浏览器CORS限制，显示模拟数据 |
-| 生产环境 | 真实API | 通过Netlify函数代理，获取真实数据 |
-
-### API代理机制
-- 浏览器无法直接调用News API（CORS限制）
-- 使用Netlify Functions作为代理服务器
-- 自动检测环境并选择合适的数据源
-
-## 🐛 故障排除
-
-### 常见问题
-
-**Q: 为什么本地显示"演示数据"？**
-A: 这是正常现象。浏览器安全限制导致无法直接调用News API，部署后会自动使用真实数据。
-
-**Q: API调用失败怎么办？**
-A: 检查以下几点：
-- API密钥是否正确配置
-- 是否超出免费限制
-- 网络连接是否正常
-
-**Q: 构建失败怎么办？**
-A: 尝试以下解决方案：
-```bash
-# 清理依赖重新安装
-rm -rf node_modules package-lock.json
-npm install
-
-# 检查Node.js版本
-node --version  # 需要18+
-```
+### API 代理机制
+- Gemini AI 调用通过 Cloudflare Functions 代理
+- 新闻数据通过服务器端函数获取
+- 确保 API 密钥安全，避免暴露到前端
 
 ## 📊 功能演示
 
-### 1. 深色模式
-- 三种主题模式：浅色、深色、跟随系统
-- 全站适配，所有组件支持
-- localStorage持久化，记住用户偏好
+### 1. AI 市场分析
+- 实时分析最新金融新闻
+- 评估市场情绪和影响
+- 提供投资建议和趋势预测
+- 支持黄金、纳斯达克100、A股等多个市场
 
 ### 2. 新闻情绪指数
-- 基于AI分析的市场情绪量化（0-100分）
+- 基于 AI 分析的市场情绪量化（0-100分）
 - 圆形仪表盘可视化
 - 7天历史趋势图
-- 情绪分布和关键影响因素分析
+- 情绪分布和关键影响因素
 
-### 3. AI投资顾问
+### 3. AI 投资顾问
 - 智能问答，结合最新新闻和价格数据
 - 多轮对话上下文管理
 - 快速问题建议
@@ -240,39 +230,49 @@ node --version  # 需要18+
 - 实时价格更新和盈亏计算
 - 资产分布饼图
 - 30天收益曲线图
-- 投资组合统计信息
-- 导出功能（JSON格式）
 
 ### 5. 个性化仪表盘
 - 可拖拽的网格布局
-- 6种卡片类型：新闻列表、价格图表、情绪指数、投资组合、AI助手、市场概览
-- 多布局管理（最多5个自定义布局）
-- 布局持久化和重置功能
+- 多种卡片类型
+- 多布局管理
+- 布局持久化
 
-### 6. 新闻分析
-- 实时获取金融新闻
-- AI情感分析（积极/消极/中性）
-- 影响预测和置信度评分
+## 🐛 故障排除
 
-### 7. 价格图表
-- 5天价格走势
-- 技术指标显示
-- 交互式图表操作
+### 常见问题
 
-### 8. 智能洞察
-- 市场趋势分析
-- 新闻事件影响评估
-- 投资建议生成
+**Q: AI 分析不工作？**
+A: 检查以下几点：
+- Cloudflare Dashboard 中是否正确设置了 `GEMINI_API_KEY`
+- 查看 Functions 日志是否有错误
+- 确认 API 密钥有效且未超出配额
+
+**Q: 用户登录失败？**
+A: 检查 Supabase 配置：
+- `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY` 是否正确
+- Supabase 项目是否正常运行
+- 检查浏览器控制台错误信息
+
+**Q: 构建失败？**
+A: 尝试以下解决方案：
+```bash
+# 清理依赖重新安装
+rm -rf node_modules package-lock.json
+npm install
+
+# 检查 Node.js 版本
+node --version  # 需要 18+
+```
 
 ## 🤝 贡献指南
 
-欢迎提交Issue和Pull Request！
+欢迎提交 Issue 和 Pull Request！
 
-1. Fork项目
+1. Fork 项目
 2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+5. 开启 Pull Request
 
 ## 📄 许可证
 
@@ -280,13 +280,14 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 🌟 致谢
 
-- [News API](https://newsapi.org/) - 新闻数据源
-- [Alpha Vantage](https://www.alphavantage.co/) - 金融数据API
-- [Google Gemini](https://ai.google.dev/) - AI分析服务
-- [Netlify](https://netlify.com/) - 部署平台
+- [Google Gemini](https://ai.google.dev/) - AI 分析服务
+- [Supabase](https://supabase.com/) - 数据库和认证
+- [Cloudflare Pages](https://pages.cloudflare.com/) - 部署平台
+- [东方财富](https://www.eastmoney.com/) - 新闻数据源
+- [新浪财经](https://finance.sina.com.cn/) - 新闻数据源
 
 ---
 
-**🌟 如果这个项目对你有帮助，请给个Star支持一下！**
+**🌟 如果这个项目对你有帮助，请给个 Star 支持一下！**
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/your-username/investment-news-analyzer)
+[![Deploy to Cloudflare Pages](https://deploy.workers.cloudflare.com/button)](https://dash.cloudflare.com/)
