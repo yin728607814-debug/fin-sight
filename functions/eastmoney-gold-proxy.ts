@@ -1,0 +1,107 @@
+/**
+ * Cloudflare Pages Function: 东方财富黄金新闻代理
+ */
+
+interface Env {
+  // 可以在这里定义环境变量
+}
+
+export async function onRequest(context: { request: Request; env: Env }) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  if (context.request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  try {
+    console.log('📡 开始获取东方财富黄金新闻');
+
+    const url = 'https://gold.eastmoney.com/';
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Referer': 'https://gold.eastmoney.com/'
+      }
+    });
+
+    const html = await response.text();
+    
+    // 简单的HTML解析 - 查找新闻链接
+    const articles: any[] = [];
+    const linkRegex = /<a[^>]*href=["']([^"']*(?:gold\.eastmoney\.com|finance\.eastmoney\.com\/a\/)[^"']*)["'][^>]*(?:title=["']([^"']*)["'])?[^>]*>([^<]*)<\/a>/gi;
+    
+    let match;
+    while ((match = linkRegex.exec(html)) !== null && articles.length < 50) {
+      let href = match[1];
+      const titleAttr = match[2];
+      const linkText = match[3]?.trim();
+      const title = titleAttr || linkText || '';
+      
+      // 处理相对路径
+      if (href.startsWith('//')) {
+        href = 'https:' + href;
+      } else if (href.startsWith('/')) {
+        href = 'https://gold.eastmoney.com' + href;
+      }
+      
+      // 过滤有效新闻
+      if (title.length > 10 && href && (href.includes('gold.eastmoney.com') || href.includes('finance.eastmoney.com'))) {
+        // 提取日期
+        let publishedAt = new Date().toISOString();
+        const urlDateMatch = href.match(/\/a\/(\d{8})\d+\.html/);
+        if (urlDateMatch) {
+          const dateStr = urlDateMatch[1];
+          const year = dateStr.substring(0, 4);
+          const month = dateStr.substring(4, 6);
+          const day = dateStr.substring(6, 8);
+          publishedAt = `${year}-${month}-${day}T00:00:00.000Z`;
+        }
+        
+        articles.push({
+          title,
+          description: title,
+          url: href,
+          publishedAt,
+          source: '东方财富',
+          image: ''
+        });
+      }
+    }
+    
+    // 去重
+    const uniqueArticles = Array.from(
+      new Map(articles.map(item => [item.url, item])).values()
+    );
+
+    console.log('📰 解析后的黄金新闻数量:', uniqueArticles.length);
+
+    return new Response(JSON.stringify({
+      status: 'ok',
+      totalResults: uniqueArticles.length,
+      articles: uniqueArticles.slice(0, 50)
+    }), {
+      status: 200,
+      headers: corsHeaders
+    });
+
+  } catch (error: any) {
+    console.error('❌ 东方财富黄金新闻获取失败:', error.message);
+    
+    return new Response(JSON.stringify({
+      status: 'error',
+      message: error.message,
+      articles: []
+    }), {
+      status: 200,
+      headers: corsHeaders
+    });
+  }
+}

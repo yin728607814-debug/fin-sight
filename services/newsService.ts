@@ -272,7 +272,7 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富获取失败:`, error.message);
     }
     
-    // 第二优先级：新浪财经补充（获取足够多的新闻用于过滤）
+    // 第二优先级：新浪财经补充
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足，获取新浪财经新闻`);
       
