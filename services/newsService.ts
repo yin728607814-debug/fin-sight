@@ -1197,7 +1197,7 @@ ${newsTexts}
           const category = 'finance';
           console.log('📊 使用财经要闻获取新闻');
           
-          response = await axios.get('/.netlify/functions/sina-news-proxy', {
+          response = await axios.get('/sina-news-proxy', {
             params: { 
               category: category,
               num: 500  // 获取500条新闻用于过滤
