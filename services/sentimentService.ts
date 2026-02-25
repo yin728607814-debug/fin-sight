@@ -4,6 +4,7 @@
  */
 
 import { NewsAnalysis, AssetType, ImpactType } from '../types';
+import { sentimentHistoryService } from './sentimentHistoryService';
 
 /**
  * 情绪等级
@@ -203,14 +204,30 @@ export class SentimentService {
   }
 
   /**
-   * 保存情绪快照到历史记录
+   * 保存情绪快照到历史记录（使用数据库）
    */
-  saveSentimentSnapshot(assetType: AssetType, data: SentimentData): void {
+  async saveSentimentSnapshot(assetType: AssetType, data: SentimentData): Promise<void> {
+    try {
+      // 保存到数据库
+      await sentimentHistoryService.saveSentimentSnapshot(assetType, data);
+      
+      // 同时保存到 localStorage 作为备份（可选）
+      this.saveToLocalStorage(assetType, data);
+    } catch (error) {
+      console.error('保存情绪快照失败:', error);
+      // 如果数据库保存失败，至少保存到 localStorage
+      this.saveToLocalStorage(assetType, data);
+    }
+  }
+
+  /**
+   * 保存到 localStorage（备份）
+   */
+  private saveToLocalStorage(assetType: AssetType, data: SentimentData): void {
     try {
       const history = this.loadHistory();
       const today = new Date().toISOString().split('T')[0];
 
-      // 创建快照
       const snapshot: SentimentSnapshot = {
         date: today,
         score: data.score,
@@ -218,65 +235,86 @@ export class SentimentService {
         timestamp: Date.now(),
       };
 
-      // 获取或创建资产的历史记录
       if (!history[assetType]) {
         history[assetType] = [];
       }
 
-      // 检查今天是否已有记录
       const existingIndex = history[assetType].findIndex(
         (s) => s.date === today
       );
 
       if (existingIndex >= 0) {
-        // 更新今天的记录
         history[assetType][existingIndex] = snapshot;
       } else {
-        // 添加新记录
         history[assetType].push(snapshot);
       }
 
-      // 只保留最近N天的记录
       history[assetType] = history[assetType]
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, MAX_HISTORY_DAYS);
 
-      // 保存到 localStorage
       localStorage.setItem(SENTIMENT_STORAGE_KEY, JSON.stringify(history));
     } catch (error) {
-      console.error('保存情绪快照失败:', error);
+      console.error('保存到 localStorage 失败:', error);
     }
   }
 
   /**
-   * 获取情绪历史记录
+   * 获取情绪历史记录（优先从数据库）
    */
-  getSentimentHistory(assetType: AssetType, days: number = 7): SentimentHistory {
+  async getSentimentHistory(assetType: AssetType, days: number = 7): Promise<SentimentHistory> {
+    try {
+      // 先尝试从数据库获取
+      const dbRecords = await sentimentHistoryService.getSentimentHistory(assetType, days);
+      
+      if (dbRecords && dbRecords.length > 0) {
+        return {
+          assetType,
+          data: dbRecords.map((record) => ({
+            date: record.date,
+            score: record.score,
+            level: record.level,
+          })),
+        };
+      }
+
+      // 如果数据库没有数据，尝试从 localStorage 获取
+      const localHistory = this.getLocalStorageHistory(assetType, days);
+      
+      // 如果 localStorage 有数据，迁移到数据库
+      if (localHistory.data.length > 0) {
+        console.log('检测到 localStorage 数据，准备迁移...');
+        await sentimentHistoryService.migrateFromLocalStorage();
+      }
+      
+      return localHistory;
+    } catch (error) {
+      console.error('获取情绪历史失败:', error);
+      // 降级到 localStorage
+      return this.getLocalStorageHistory(assetType, days);
+    }
+  }
+
+  /**
+   * 从 localStorage 获取历史记录（备份方案）
+   */
+  private getLocalStorageHistory(assetType: AssetType, days: number): SentimentHistory {
     try {
       const history = this.loadHistory();
       const assetHistory = history[assetType] || [];
 
-      // 按日期排序（从旧到新）
       const sortedHistory = assetHistory
         .sort((a, b) => a.timestamp - b.timestamp)
         .slice(-days);
 
-      const result = {
+      return {
         assetType,
         data: sortedHistory.map((snapshot) => {
-          // 确保 date 是字符串格式
           let dateStr: string;
           if (typeof snapshot.date === 'string') {
             dateStr = snapshot.date;
           } else if (snapshot.date instanceof Date) {
             dateStr = snapshot.date.toISOString().split('T')[0];
-          } else if (snapshot.date && typeof snapshot.date === 'object' && 'getTime' in snapshot.date) {
-            try {
-              const d = new Date((snapshot.date as any).getTime());
-              dateStr = d.toISOString().split('T')[0];
-            } catch {
-              dateStr = new Date().toISOString().split('T')[0];
-            }
           } else {
             dateStr = new Date().toISOString().split('T')[0];
           }
@@ -288,10 +326,8 @@ export class SentimentService {
           };
         }),
       };
-      
-      return result;
     } catch (error) {
-      console.error('获取情绪历史失败:', error);
+      console.error('从 localStorage 获取历史失败:', error);
       return {
         assetType,
         data: [],
@@ -392,10 +428,14 @@ export class SentimentService {
   }
 
   /**
-   * 清除历史记录
+   * 清除历史记录（数据库和 localStorage）
    */
-  clearHistory(assetType?: AssetType): void {
+  async clearHistory(assetType?: AssetType): Promise<void> {
     try {
+      // 清除数据库
+      await sentimentHistoryService.clearHistory(assetType);
+      
+      // 清除 localStorage
       if (assetType) {
         const history = this.loadHistory();
         delete history[assetType];

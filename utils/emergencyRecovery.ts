@@ -10,11 +10,21 @@ export function emergencyCleanup(): void {
   try {
     console.log('🚨 执行紧急清理...');
     
-    // 清除所有 localStorage
+    // 需要保留的关键数据
+    const keysToKeep = [
+      'sentiment-history',  // 情绪历史数据
+      'theme',              // 主题设置
+      'dashboard_layouts',  // 仪表板布局
+      'dashboard_current_layout',
+      'portfolio_positions', // 投资组合
+      'fund_config'         // 基金配置
+    ];
+    
+    // 清除其他 localStorage
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key) {
+      if (key && !keysToKeep.includes(key)) {
         keysToRemove.push(key);
       }
     }
@@ -37,6 +47,7 @@ export function emergencyCleanup(): void {
     }
     
     console.log('✅ 紧急清理完成');
+    console.log(`📊 保留了 ${keysToKeep.length} 个关键数据`);
   } catch (error) {
     console.error('❌ 紧急清理失败:', error);
   }
@@ -129,7 +140,29 @@ export function safeSetLocalStorage(key: string, value: any): boolean {
 if (typeof window !== 'undefined') {
   (window as any).emergencyCleanup = emergencyCleanup;
   (window as any).checkAndRepairData = checkAndRepairData;
+  (window as any).checkSentimentHistory = () => {
+    const data = localStorage.getItem('sentiment-history');
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        console.log('📊 情绪历史数据:', parsed);
+        for (const assetType in parsed) {
+          console.log(`  ${assetType}: ${parsed[assetType].length} 条记录`);
+        }
+        return parsed;
+      } catch (e) {
+        console.error('❌ 情绪历史数据损坏:', e);
+        return null;
+      }
+    } else {
+      console.log('⚠️ 没有情绪历史数据');
+      return null;
+    }
+  };
   
   console.log('🔧 紧急恢复工具已加载');
-  console.log('💡 如果遇到问题，可以在控制台运行: emergencyCleanup()');
+  console.log('💡 可用命令:');
+  console.log('  - emergencyCleanup() - 清除缓存（保留重要数据）');
+  console.log('  - checkAndRepairData() - 检查并修复损坏的数据');
+  console.log('  - checkSentimentHistory() - 查看情绪历史数据');
 }

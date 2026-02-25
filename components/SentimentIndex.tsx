@@ -47,20 +47,24 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
     }
   }, [analyses, assetType, autoSave]);
 
-  // 加载历史记录
+  // 加载历史记录（异步）
   useEffect(() => {
-    try {
-      const historyData = sentimentService.getSentimentHistory(assetType, 7);
-      // 确保返回的数据有效
-      if (historyData && historyData.data && Array.isArray(historyData.data)) {
-        setHistory(historyData);
-      } else {
+    const loadHistory = async () => {
+      try {
+        const historyData = await sentimentService.getSentimentHistory(assetType, 7);
+        // 确保返回的数据有效
+        if (historyData && historyData.data && Array.isArray(historyData.data)) {
+          setHistory(historyData);
+        } else {
+          setHistory(null);
+        }
+      } catch (error) {
+        console.error('加载情绪历史失败:', error);
         setHistory(null);
       }
-    } catch (error) {
-      console.error('加载情绪历史失败:', error);
-      setHistory(null);
-    }
+    };
+
+    loadHistory();
   }, [assetType, sentimentData]); // 当情绪数据更新时，重新加载历史
 
   if (!sentimentData) {
