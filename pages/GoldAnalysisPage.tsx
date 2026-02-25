@@ -39,10 +39,16 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNewsOnly, setRefreshNewsOnly] = useState(false);
   const [refreshingPrice, setRefreshingPrice] = useState(false);
+  const [criticalError, setCriticalError] = useState<string | null>(null);
 
-  // 设置当前资产类型
+  // 设置当前资产类型，带错误处理
   useEffect(() => {
-    setCurrentAsset('gold');
+    try {
+      setCurrentAsset('gold');
+    } catch (error) {
+      console.error('设置资产类型失败:', error);
+      setCriticalError('页面初始化失败');
+    }
   }, [setCurrentAsset]);
 
   // 刷新价格数据
@@ -118,6 +124,57 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   const hasAnyError = newsError || analysisError || pricesError || 
                      errors.news || errors.analysis || errors.prices;
 
+  // 如果有严重错误，显示错误页面
+  if (criticalError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 max-w-md w-full">
+          <div className="flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center mb-2">
+            页面加载失败
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+            {criticalError}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                setCriticalError(null);
+                window.location.reload();
+              }}
+              className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+            >
+              重新加载
+            </button>
+            <button
+              onClick={() => {
+                // 清除黄金相关的缓存
+                try {
+                  const keys = Object.keys(localStorage);
+                  keys.forEach(key => {
+                    if (key.includes('gold') || key.includes('market-analysis')) {
+                      localStorage.removeItem(key);
+                    }
+                  });
+                } catch (e) {
+                  console.error('清除缓存失败:', e);
+                }
+                window.location.href = '/';
+              }}
+              className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+            >
+              清除缓存并返回首页
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* 装饰性背景 */}
@@ -158,7 +215,10 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
               <div className="relative z-[9998]">
                 <ThemeToggle />
               </div>
-              <DownloadPageButton pageName="现货黄金分析" />
+              <DownloadPageButton 
+                pageName="现货黄金分析" 
+                targetId="overall-analysis-gold"
+              />
               <button
                 onClick={handleRefreshNewsOnly}
                 disabled={isRefreshing || hasAnyLoading}
@@ -223,10 +283,12 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
 
             {/* 整体市场分析 */}
             {overallAnalysis && (
-              <OverallAnalysisCard 
-                analysis={overallAnalysis}
-                loading={analysisLoading || loading.analysis}
-              />
+              <div id="overall-analysis-gold">
+                <OverallAnalysisCard 
+                  analysis={overallAnalysis}
+                  loading={analysisLoading || loading.analysis}
+                />
+              </div>
             )}
 
             {/* 新闻列表 */}

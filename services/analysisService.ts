@@ -19,7 +19,7 @@ import { logInfo, logError } from './logger';
 import { config } from '../config/env';
 
 /**
- * 调用 Gemini API（通过后端代理，带自动降级）
+ * 调用 Gemini API（通过后端代理，带自动降级和重试）
  */
 async function callGeminiWithFallback(
   _apiKey: string, // 保留参数以兼容现有代码，但不再使用
@@ -28,27 +28,72 @@ async function callGeminiWithFallback(
   maxOutputTokens: number = 2048,
   timeout: number = 30000
 ): Promise<string> {
-  try {
-    // 调用后端 API 代理
-    const response = await axios.post(
-      '/gemini-analysis',
-      {
-        prompt,
-        temperature,
-        maxOutputTokens
-      },
-      { timeout }
-    );
+  const maxRetries = 2;
+  let lastError: unknown;
 
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`🔄 重试 Gemini API 调用 (${attempt}/${maxRetries})...`);
+        // 等待一段时间再重试
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+
+      // 调用后端 API 代理
+      const response = await axios.post(
+        '/gemini-analysis',
+        {
+          prompt,
+          temperature,
+          maxOutputTokens
+        },
+        { 
+          timeout,
+          // 添加重试配置
+          validateStatus: (status) => status < 500 // 只有 5xx 错误才会抛出异常
+        }
+      );
+
+      if (response.data?.success && response.data?.data) {
+        if (attempt > 0) {
+          console.log(`✅ 重试成功！`);
+        }
+        return response.data.data;
+      }
+
+      // 如果是 4xx 错误，不重试
+      if (response.status >= 400 && response.status < 500) {
+        throw new Error(response.data?.error || `API 错误: ${response.status}`);
+      }
+
+      throw new Error(response.data?.error || 'Analysis failed');
+    } catch (error: unknown) {
+      lastError = error;
+      
+      // 检查是否是网络错误
+      const isNetworkError = 
+        (error as any).code === 'ECONNABORTED' ||
+        (error as any).code === 'ERR_NETWORK' ||
+        (error as any).message?.includes('Network Error') ||
+        (error as any).message?.includes('timeout');
+
+      // 如果是网络错误且还有重试次数，继续重试
+      if (isNetworkError && attempt < maxRetries) {
+        console.warn(`⚠️ 网络错误，将在 ${1000 * (attempt + 1)}ms 后重试...`);
+        continue;
+      }
+
+      // 如果是最后一次尝试或非网络错误，抛出异常
+      if (attempt === maxRetries) {
+        console.error('❌ Gemini API 调用失败（已达最大重试次数）:', error);
+        throw error;
+      }
     }
-
-    throw new Error(response.data?.error || 'Analysis failed');
-  } catch (error: unknown) {
-    console.error('❌ Gemini API 调用失败:', error);
-    throw error;
   }
+
+  // 如果所有重试都失败了
+  console.error('❌ Gemini API 调用失败:', lastError);
+  throw lastError;
 }
 
 /**

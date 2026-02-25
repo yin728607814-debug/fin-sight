@@ -1,6 +1,6 @@
 /**
  * 下载页面截图按钮组件
- * 用于将整个页面截图并下载为图片
+ * 用于将指定区域截图并下载为图片
  */
 
 import React, { useState } from 'react';
@@ -9,11 +9,13 @@ import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
 interface DownloadPageButtonProps {
   pageName: string; // 页面名称，用于文件名
+  targetId?: string; // 目标元素的 ID，如果不提供则截取整个页面
   className?: string;
 }
 
 export const DownloadPageButton: React.FC<DownloadPageButtonProps> = ({ 
   pageName,
+  targetId,
   className = ''
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -22,8 +24,14 @@ export const DownloadPageButton: React.FC<DownloadPageButtonProps> = ({
     setIsDownloading(true);
     
     try {
-      // 获取整个页面的根元素
-      const element = document.body;
+      // 获取目标元素
+      const element = targetId 
+        ? document.getElementById(targetId)
+        : document.body;
+      
+      if (!element) {
+        throw new Error('未找到目标元素');
+      }
       
       // 显示提示
       const toast = document.createElement('div');
@@ -36,15 +44,13 @@ export const DownloadPageButton: React.FC<DownloadPageButtonProps> = ({
       
       // 生成截图
       const canvas = await html2canvas(element, {
-        backgroundColor: null,
+        backgroundColor: '#ffffff',
         scale: 2, // 提高清晰度
         useCORS: true, // 允许跨域图片
         logging: false,
+        allowTaint: true,
         windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
-        scrollY: -window.scrollY,
-        scrollX: -window.scrollX,
-        allowTaint: true
+        windowHeight: element.scrollHeight
       });
       
       // 更新提示
@@ -93,7 +99,7 @@ export const DownloadPageButton: React.FC<DownloadPageButtonProps> = ({
       onClick={handleDownload}
       disabled={isDownloading}
       className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-      title="下载整个页面为图片"
+      title={targetId ? "下载整体市场分析为图片" : "下载整个页面为图片"}
     >
       <ArrowDownTrayIcon className={`h-5 w-5 ${isDownloading ? 'animate-bounce' : ''}`} />
       <span>{isDownloading ? '生成中...' : '下载图片'}</span>

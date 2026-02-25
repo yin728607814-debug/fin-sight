@@ -4,6 +4,8 @@ import App from './App';
 import './styles/globals.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import './utils/emergencyRecovery'; // 加载紧急恢复工具
+import './utils/emergencyRecovery'; // 加载紧急恢复工具
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
