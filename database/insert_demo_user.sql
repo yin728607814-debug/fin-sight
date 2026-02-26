@@ -178,20 +178,23 @@ BEGIN
   );
 
   -- ============================================================================
-  -- 黄金持仓（60万）- 使用华安黄金ETF联接C
+  -- 黄金持仓（60万）- 现货黄金（按克计算）
   -- ============================================================================
   
   RAISE NOTICE '创建黄金持仓（60万）...';
   
-  -- 华安黄金ETF联接C (60万)
+  -- 现货黄金 (60万 ÷ 979.31元/克 ≈ 612.7克)
+  -- 模拟持仓金额: 600,000元
+  -- 持仓克数: 612.7660克
+  -- 持仓均价: 979.31元/克
   INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
   VALUES (
     demo_user_id,
     'gold',
-    '华安黄金ETF联接C',
-    400000.00,
-    1.48,
-    1.50,
+    '现货黄金',
+    612.7660,
+    979.31,
+    979.31,
     '2023-11-20'
   );
 
@@ -332,10 +335,8 @@ BEGIN
     (demo_user_id, 'nasdaq', '华宝纳斯达克精选股票发起式(QDII) A', true),
     (demo_user_id, 'nasdaq', '景顺长城纳斯达克科技ETF联接A', true);
 
-  -- 黄金基金配置
-  INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
-  VALUES 
-    (demo_user_id, 'gold', '华安黄金ETF联接C', true);
+  -- 黄金基金配置（现货黄金不需要fund_configs）
+  -- 现货黄金直接在positions表中记录
 
   -- A股基金配置
   INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
@@ -392,7 +393,7 @@ BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '总资产配置：';
   RAISE NOTICE '  - 纳斯达克：80万（13个基金）';
-  RAISE NOTICE '  - 黄金：60万（1个基金）';
+  RAISE NOTICE '  - 黄金：60万（现货黄金 612.77克）';
   RAISE NOTICE '  - A股：10万（9个基金）';
   RAISE NOTICE '  - 总计：150万';
   RAISE NOTICE '';
