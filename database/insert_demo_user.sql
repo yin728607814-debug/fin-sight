@@ -1,171 +1,312 @@
 -- ============================================================================
--- 创建演示用户的推荐方法
+-- 创建演示账号数据
+-- 基于真实基金配置，按照150万总资产分配
 -- ============================================================================
 
--- 方法1：使用 Supabase Dashboard（推荐）
--- ============================================
--- 1. 登录 Supabase Dashboard: https://app.supabase.com
--- 2. 选择你的项目
--- 3. 进入 Authentication > Users
--- 4. 点击 "Add user" > "Create new user"
--- 5. 填写信息：
---    Email: demo@finsight.com
---    Password: Demo123456!
---    Auto Confirm User: ✅ (勾选这个，用户可以直接登录)
--- 6. 点击 "Create user"
--- 7. 复制新创建用户的 UUID（在用户列表中显示）
--- 8. 将 UUID 粘贴到下面的脚本中替换 'PASTE_UUID_HERE'
+-- 演示账号 UUID: 29113055-18d5-4094-8786-5e603b04c876
+-- Email: demo@finsight.com
+-- Password: Demo123456!
 
--- ============================================================================
--- 创建演示用户后，执行以下脚本创建持仓数据
--- ============================================================================
-
--- 设置演示用户的 UUID（从 Dashboard 复制）
 DO $$
 DECLARE
-  demo_user_id TEXT := 'PASTE_UUID_HERE'; -- 👈 替换为实际的 UUID
+  demo_user_id TEXT := '29113055-18d5-4094-8786-5e603b04c876';
 BEGIN
 
-  -- 验证 UUID 格式
-  IF demo_user_id = 'PASTE_UUID_HERE' THEN
-    RAISE EXCEPTION '请先将 demo_user_id 替换为实际的 UUID！';
-  END IF;
-
-  RAISE NOTICE '开始为用户 % 创建演示数据...', demo_user_id;
+  RAISE NOTICE '开始为演示账号创建数据...';
+  RAISE NOTICE '用户 ID: %', demo_user_id;
 
   -- ============================================================================
-  -- 纳斯达克持仓（80万）
+  -- 纳斯达克持仓（80万）- 基于真实基金配置
   -- ============================================================================
   
-  RAISE NOTICE '创建纳斯达克持仓...';
+  RAISE NOTICE '创建纳斯达克持仓（80万）...';
   
-  -- QQQ - 纳斯达克100 ETF (40万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
+  -- 摩根纳斯达克100指数(QDII)人民币A (15万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
   VALUES (
     demo_user_id,
     'nasdaq',
-    'QQQ',
-    'Invesco QQQ Trust',
-    2000.00,
-    200.00,
-    210.50,
+    '摩根纳斯达克100指数(QDII)人民币A',
+    10000.00,
+    14.50,
+    15.00,
     '2024-01-15'
   );
 
-  -- TQQQ - 纳斯达克100三倍做多 ETF (20万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
+  -- 建信纳斯达克100指数QDII A (12万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
   VALUES (
     demo_user_id,
     'nasdaq',
-    'TQQQ',
-    'ProShares UltraPro QQQ',
-    3500.00,
-    57.14,
-    60.20,
-    '2024-02-20'
+    '建信纳斯达克100指数QDII A',
+    8000.00,
+    14.80,
+    15.00,
+    '2024-01-20'
   );
 
-  -- QQQM - 纳斯达克100 ETF (小额版) (20万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
+  -- 南方纳斯达克100指数发起(QDII) A (10万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
   VALUES (
     demo_user_id,
     'nasdaq',
-    'QQQM',
-    'Invesco NASDAQ 100 ETF',
-    1200.00,
-    166.67,
-    175.30,
-    '2024-03-10'
-  );
-
-  -- ============================================================================
-  -- 黄金持仓（60万）
-  -- ============================================================================
-  
-  RAISE NOTICE '创建黄金持仓...';
-  
-  -- GLD - SPDR黄金ETF (30万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'gold',
-    'GLD',
-    'SPDR Gold Shares',
-    1500.00,
-    200.00,
-    208.50,
-    '2023-11-20'
-  );
-
-  -- IAU - iShares黄金ETF (20万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'gold',
-    'IAU',
-    'iShares Gold Trust',
-    4000.00,
-    50.00,
-    52.30,
-    '2023-12-05'
-  );
-
-  -- GLDM - SPDR黄金迷你ETF (10万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'gold',
-    'GLDM',
-    'SPDR Gold MiniShares Trust',
-    2000.00,
-    50.00,
-    52.10,
-    '2024-01-08'
-  );
-
-  -- ============================================================================
-  -- A股持仓（10万）
-  -- ============================================================================
-  
-  RAISE NOTICE '创建A股持仓...';
-  
-  -- 510300 - 沪深300ETF (5万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '510300',
-    '华泰柏瑞沪深300ETF',
-    12000.00,
-    4.17,
-    4.35,
+    '南方纳斯达克100指数发起(QDII) A',
+    6500.00,
+    15.20,
+    15.38,
     '2024-02-01'
   );
 
-  -- 159915 - 创业板ETF (3万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
+  -- 易方达全球成长精选混合人民币A类 (8万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
   VALUES (
     demo_user_id,
-    'astock',
-    '159915',
-    '易方达创业板ETF',
-    15000.00,
-    2.00,
-    2.08,
+    'nasdaq',
+    '易方达全球成长精选混合人民币A类',
+    5000.00,
+    15.80,
+    16.00,
+    '2024-02-10'
+  );
+
+  -- 易方达全球成长精选混合人民币C类 (7万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '易方达全球成长精选混合人民币C类',
+    4400.00,
+    15.70,
+    15.91,
     '2024-02-15'
   );
 
-  -- 510500 - 中证500ETF (2万)
-  INSERT INTO positions (user_id, asset_type, fund_code, fund_name, shares, cost_basis, current_price, purchase_date)
+  -- 华安纳斯达克100ETF联接(QDII) A (6万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '华安纳斯达克100ETF联接(QDII) A',
+    4000.00,
+    14.90,
+    15.00,
+    '2024-02-20'
+  );
+
+  -- 华安纳斯达克100ETF联接(QDII) C (5万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '华安纳斯达克100ETF联接(QDII) C',
+    3300.00,
+    15.00,
+    15.15,
+    '2024-02-25'
+  );
+
+  -- 嘉实纳斯达克100联接(QDII)C人民币 (4万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '嘉实纳斯达克100联接(QDII)C人民币',
+    2700.00,
+    14.60,
+    14.81,
+    '2024-03-01'
+  );
+
+  -- 广发纳斯达克100ETF联接(QDII) A (4万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '广发纳斯达克100ETF联接(QDII) A',
+    2600.00,
+    15.20,
+    15.38,
+    '2024-03-05'
+  );
+
+  -- 南方纳斯达克100指数发起(QDII) C (3万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '南方纳斯达克100指数发起(QDII) C',
+    2000.00,
+    14.90,
+    15.00,
+    '2024-03-10'
+  );
+
+  -- 大成纳斯达克100ETF联接(QDII)A (2万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '大成纳斯达克100ETF联接(QDII)A',
+    1300.00,
+    15.20,
+    15.38,
+    '2024-03-15'
+  );
+
+  -- 华宝纳斯达克精选股票发起式(QDII) A (2万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '华宝纳斯达克精选股票发起式(QDII) A',
+    1400.00,
+    14.10,
+    14.29,
+    '2024-03-20'
+  );
+
+  -- 景顺长城纳斯达克科技ETF联接A (2万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'nasdaq',
+    '景顺长城纳斯达克科技ETF联接A',
+    1300.00,
+    15.20,
+    15.38,
+    '2024-03-25'
+  );
+
+  -- ============================================================================
+  -- 黄金持仓（60万）- 使用华安黄金ETF联接C
+  -- ============================================================================
+  
+  RAISE NOTICE '创建黄金持仓（60万）...';
+  
+  -- 华安黄金ETF联接C (60万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'gold',
+    '华安黄金ETF联接C',
+    400000.00,
+    1.48,
+    1.50,
+    '2023-11-20'
+  );
+
+  -- ============================================================================
+  -- A股持仓（10万）- 基于真实基金配置
+  -- ============================================================================
+  
+  RAISE NOTICE '创建A股持仓（10万）...';
+  
+  -- 前海开源嘉鑫灵活配置混合C (2.5万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
   VALUES (
     demo_user_id,
     'astock',
-    '510500',
-    '南方中证500ETF',
+    '前海开源嘉鑫灵活配置混合C',
+    20000.00,
+    1.22,
+    1.25,
+    '2024-01-10'
+  );
+
+  -- 长城久嘉创新成长灵活配置混合C (1.5万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '长城久嘉创新成长灵活配置混合C',
+    12000.00,
+    1.23,
+    1.25,
+    '2024-01-15'
+  );
+
+  -- 汇添富中证电池主题ETF联接C (1.5万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '汇添富中证电池主题ETF联接C',
+    15000.00,
+    0.98,
+    1.00,
+    '2024-01-20'
+  );
+
+  -- 永赢高端设备智选混合C (1.2万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '永赢高端设备智选混合C',
+    10000.00,
+    1.18,
+    1.20,
+    '2024-02-01'
+  );
+
+  -- 永赢科技智选混合C (1万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '永赢科技智选混合C',
+    8500.00,
+    1.16,
+    1.18,
+    '2024-02-05'
+  );
+
+  -- 永赢半导体产业智选混合C (1万)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '永赢半导体产业智选混合C',
+    8300.00,
+    1.19,
+    1.20,
+    '2024-02-10'
+  );
+
+  -- 天弘中证光伏产业指数C (8000)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '天弘中证光伏产业指数C',
+    10000.00,
+    0.78,
+    0.80,
+    '2024-02-15'
+  );
+
+  -- 华夏有色金属ETF联接C (5000)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '华夏有色金属ETF联接C',
+    5000.00,
+    0.98,
+    1.00,
+    '2024-02-20'
+  );
+
+  -- 国投瑞银白银期货(LOF)C (3000)
+  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
+  VALUES (
+    demo_user_id,
+    'astock',
+    '国投瑞银白银期货(LOF)C',
     3000.00,
-    6.67,
-    6.95,
-    '2024-03-01'
+    0.98,
+    1.00,
+    '2024-02-25'
   );
 
   -- ============================================================================
@@ -175,25 +316,39 @@ BEGIN
   RAISE NOTICE '创建基金配置...';
   
   -- 纳斯达克基金配置
-  INSERT INTO fund_configs (user_id, asset_type, fund_code, fund_name, is_active)
+  INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
   VALUES 
-    (demo_user_id, 'nasdaq', 'QQQ', 'Invesco QQQ Trust', true),
-    (demo_user_id, 'nasdaq', 'TQQQ', 'ProShares UltraPro QQQ', true),
-    (demo_user_id, 'nasdaq', 'QQQM', 'Invesco NASDAQ 100 ETF', true);
+    (demo_user_id, 'nasdaq', '摩根纳斯达克100指数(QDII)人民币A', true),
+    (demo_user_id, 'nasdaq', '建信纳斯达克100指数QDII A', true),
+    (demo_user_id, 'nasdaq', '南方纳斯达克100指数发起(QDII) A', true),
+    (demo_user_id, 'nasdaq', '易方达全球成长精选混合人民币A类', true),
+    (demo_user_id, 'nasdaq', '易方达全球成长精选混合人民币C类', true),
+    (demo_user_id, 'nasdaq', '华安纳斯达克100ETF联接(QDII) A', true),
+    (demo_user_id, 'nasdaq', '华安纳斯达克100ETF联接(QDII) C', true),
+    (demo_user_id, 'nasdaq', '嘉实纳斯达克100联接(QDII)C人民币', true),
+    (demo_user_id, 'nasdaq', '广发纳斯达克100ETF联接(QDII) A', true),
+    (demo_user_id, 'nasdaq', '南方纳斯达克100指数发起(QDII) C', true),
+    (demo_user_id, 'nasdaq', '大成纳斯达克100ETF联接(QDII)A', true),
+    (demo_user_id, 'nasdaq', '华宝纳斯达克精选股票发起式(QDII) A', true),
+    (demo_user_id, 'nasdaq', '景顺长城纳斯达克科技ETF联接A', true);
 
   -- 黄金基金配置
-  INSERT INTO fund_configs (user_id, asset_type, fund_code, fund_name, is_active)
+  INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
   VALUES 
-    (demo_user_id, 'gold', 'GLD', 'SPDR Gold Shares', true),
-    (demo_user_id, 'gold', 'IAU', 'iShares Gold Trust', true),
-    (demo_user_id, 'gold', 'GLDM', 'SPDR Gold MiniShares Trust', true);
+    (demo_user_id, 'gold', '华安黄金ETF联接C', true);
 
   -- A股基金配置
-  INSERT INTO fund_configs (user_id, asset_type, fund_code, fund_name, is_active)
+  INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
   VALUES 
-    (demo_user_id, 'astock', '510300', '华泰柏瑞沪深300ETF', true),
-    (demo_user_id, 'astock', '159915', '易方达创业板ETF', true),
-    (demo_user_id, 'astock', '510500', '南方中证500ETF', true);
+    (demo_user_id, 'astock', '前海开源嘉鑫灵活配置混合C', true),
+    (demo_user_id, 'astock', '长城久嘉创新成长灵活配置混合C', true),
+    (demo_user_id, 'astock', '汇添富中证电池主题ETF联接C', true),
+    (demo_user_id, 'astock', '永赢高端设备智选混合C', true),
+    (demo_user_id, 'astock', '永赢科技智选混合C', true),
+    (demo_user_id, 'astock', '永赢半导体产业智选混合C', true),
+    (demo_user_id, 'astock', '天弘中证光伏产业指数C', true),
+    (demo_user_id, 'astock', '华夏有色金属ETF联接C', true),
+    (demo_user_id, 'astock', '国投瑞银白银期货(LOF)C', true);
 
   -- ============================================================================
   -- 定投计划（可选）
@@ -209,7 +364,7 @@ BEGIN
   VALUES (
     demo_user_id,
     'nasdaq',
-    'Invesco QQQ Trust',
+    '南方纳斯达克100指数发起(QDIQ) A',
     5000.00,
     'monthly',
     1,
@@ -225,7 +380,7 @@ BEGIN
   VALUES (
     demo_user_id,
     'astock',
-    '华泰柏瑞沪深300ETF',
+    '前海开源嘉鑫灵活配置混合C',
     2000.00,
     'monthly',
     15,
@@ -234,14 +389,45 @@ BEGIN
   );
 
   RAISE NOTICE '✅ 演示账号数据创建完成！';
+  RAISE NOTICE '';
   RAISE NOTICE '总资产配置：';
-  RAISE NOTICE '  - 纳斯达克：80万';
-  RAISE NOTICE '  - 黄金：60万';
-  RAISE NOTICE '  - A股：10万';
+  RAISE NOTICE '  - 纳斯达克：80万（13个基金）';
+  RAISE NOTICE '  - 黄金：60万（1个基金）';
+  RAISE NOTICE '  - A股：10万（9个基金）';
   RAISE NOTICE '  - 总计：150万';
   RAISE NOTICE '';
-  RAISE NOTICE '现在可以使用以下账号登录：';
+  RAISE NOTICE '登录信息：';
   RAISE NOTICE '  Email: demo@finsight.com';
   RAISE NOTICE '  Password: Demo123456!';
 
 END $$;
+
+-- ============================================================================
+-- 验证数据
+-- ============================================================================
+
+-- 查询演示账号的持仓汇总
+SELECT 
+  asset_type,
+  COUNT(*) as position_count,
+  SUM(shares * current_price) as total_value
+FROM positions
+WHERE user_id = '29113055-18d5-4094-8786-5e603b04c876'
+GROUP BY asset_type
+ORDER BY asset_type;
+
+-- 查询演示账号的所有持仓明细
+SELECT 
+  asset_type,
+  fund_name,
+  shares,
+  cost_basis,
+  current_price,
+  (shares * current_price) as market_value,
+  ((current_price - cost_basis) / cost_basis * 100) as return_pct,
+  purchase_date
+FROM positions
+WHERE user_id = '29113055-18d5-4094-8786-5e603b04c876'
+ORDER BY asset_type, (shares * current_price) DESC;
+
+-- 完成！
