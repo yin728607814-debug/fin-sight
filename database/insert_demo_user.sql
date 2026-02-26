@@ -136,37 +136,37 @@ BEGIN
   RAISE NOTICE '创建基金配置...';
   
   -- 纳斯达克基金配置
-  INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
+  INSERT INTO fund_configs (user_id, name, fund_type)
   VALUES 
-    (demo_user_id, 'nasdaq', '摩根纳斯达克100指数(QDII)人民币A', true),
-    (demo_user_id, 'nasdaq', '建信纳斯达克100指数QDII A', true),
-    (demo_user_id, 'nasdaq', '南方纳斯达克100指数发起(QDII) A', true),
-    (demo_user_id, 'nasdaq', '易方达全球成长精选混合人民币A类', true),
-    (demo_user_id, 'nasdaq', '易方达全球成长精选混合人民币C类', true),
-    (demo_user_id, 'nasdaq', '华安纳斯达克100ETF联接(QDII) A', true),
-    (demo_user_id, 'nasdaq', '华安纳斯达克100ETF联接(QDII) C', true),
-    (demo_user_id, 'nasdaq', '嘉实纳斯达克100联接(QDII)C人民币', true),
-    (demo_user_id, 'nasdaq', '广发纳斯达克100ETF联接(QDII) A', true),
-    (demo_user_id, 'nasdaq', '南方纳斯达克100指数发起(QDII) C', true),
-    (demo_user_id, 'nasdaq', '大成纳斯达克100ETF联接(QDII)A', true),
-    (demo_user_id, 'nasdaq', '华宝纳斯达克精选股票发起式(QDII) A', true),
-    (demo_user_id, 'nasdaq', '景顺长城纳斯达克科技ETF联接A', true);
+    (demo_user_id, '摩根纳斯达克100指数(QDII)人民币A', 'nasdaq'),
+    (demo_user_id, '建信纳斯达克100指数QDII A', 'nasdaq'),
+    (demo_user_id, '南方纳斯达克100指数发起(QDII) A', 'nasdaq'),
+    (demo_user_id, '易方达全球成长精选混合人民币A类', 'nasdaq'),
+    (demo_user_id, '易方达全球成长精选混合人民币C类', 'nasdaq'),
+    (demo_user_id, '华安纳斯达克100ETF联接(QDII) A', 'nasdaq'),
+    (demo_user_id, '华安纳斯达克100ETF联接(QDII) C', 'nasdaq'),
+    (demo_user_id, '嘉实纳斯达克100联接(QDII)C人民币', 'nasdaq'),
+    (demo_user_id, '广发纳斯达克100ETF联接(QDII) A', 'nasdaq'),
+    (demo_user_id, '南方纳斯达克100指数发起(QDII) C', 'nasdaq'),
+    (demo_user_id, '大成纳斯达克100ETF联接(QDII)A', 'nasdaq'),
+    (demo_user_id, '华宝纳斯达克精选股票发起式(QDII) A', 'nasdaq'),
+    (demo_user_id, '景顺长城纳斯达克科技ETF联接A', 'nasdaq');
 
   -- 黄金基金配置（现货黄金不需要fund_configs）
   -- 现货黄金直接在positions表中记录
 
   -- A股基金配置
-  INSERT INTO fund_configs (user_id, asset_type, fund_name, is_active)
+  INSERT INTO fund_configs (user_id, name, fund_type)
   VALUES 
-    (demo_user_id, 'astock', '前海开源嘉鑫灵活配置混合C', true),
-    (demo_user_id, 'astock', '长城久嘉创新成长灵活配置混合C', true),
-    (demo_user_id, 'astock', '汇添富中证电池主题ETF联接C', true),
-    (demo_user_id, 'astock', '永赢高端设备智选混合C', true),
-    (demo_user_id, 'astock', '永赢科技智选混合C', true),
-    (demo_user_id, 'astock', '永赢半导体产业智选混合C', true),
-    (demo_user_id, 'astock', '天弘中证光伏产业指数C', true),
-    (demo_user_id, 'astock', '华夏有色金属ETF联接C', true),
-    (demo_user_id, 'astock', '国投瑞银白银期货(LOF)C', true);
+    (demo_user_id, '前海开源嘉鑫灵活配置混合C', 'astock'),
+    (demo_user_id, '长城久嘉创新成长灵活配置混合C', 'astock'),
+    (demo_user_id, '汇添富中证电池主题ETF联接C', 'astock'),
+    (demo_user_id, '永赢高端设备智选混合C', 'astock'),
+    (demo_user_id, '永赢科技智选混合C', 'astock'),
+    (demo_user_id, '永赢半导体产业智选混合C', 'astock'),
+    (demo_user_id, '天弘中证光伏产业指数C', 'astock'),
+    (demo_user_id, '华夏有色金属ETF联接C', 'astock'),
+    (demo_user_id, '国投瑞银白银期货(LOF)C', 'astock');
 
   -- ============================================================================
   -- 定投计划（可选）
