@@ -210,31 +210,11 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
               </div>
             </div>
             
-            {/* 第二行：更新时间和刷新按钮 */}
+            {/* 第二行：更新时间 */}
             <div className="flex items-center justify-between space-x-2">
               <div className="text-xs text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-2 py-1 rounded-lg truncate flex-1">
                 {formatUpdateTime(lastUpdated)}
               </div>
-              <button
-                onClick={handleRefreshNewsOnly}
-                disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
-              >
-                <svg className={`h-3 w-3 mr-1 ${isRefreshing && refreshNewsOnly ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {isRefreshing && refreshNewsOnly ? '刷新中' : '刷新'}
-              </button>
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
-              >
-                <svg className={`h-3 w-3 mr-1 ${isRefreshing && !refreshNewsOnly ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {isRefreshing && !refreshNewsOnly ? '分析中' : '分析'}
-              </button>
             </div>
             
             {/* 过期警告 */}
@@ -278,28 +258,6 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
                 pageName="纳斯达克100分析" 
                 targetId="overall-analysis-nasdaq"
               />
-              <button
-                onClick={handleRefreshNewsOnly}
-                disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-white/40 dark:border-gray-700/40 rounded-lg hover:bg-white/80 dark:hover:bg-gray-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                title="只刷新新闻，不进行 AI 分析"
-              >
-                <svg className={`h-4 w-4 mr-2 ${isRefreshing && refreshNewsOnly ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {isRefreshing && refreshNewsOnly ? '刷新中...' : '刷新新闻'}
-              </button>
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing || hasAnyLoading}
-                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 backdrop-blur-sm border border-blue-700 dark:border-blue-600 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                title="刷新新闻并重新进行 AI 分析"
-              >
-                <svg className={`h-4 w-4 mr-2 ${isRefreshing && !refreshNewsOnly ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {isRefreshing && !refreshNewsOnly ? '分析中...' : '分析新闻'}
-              </button>
             </div>
           </div>
         </div>
