@@ -1422,6 +1422,9 @@ ${newsText}
 1. 当前时间是 ${currentDate}，请基于这个时间点进行分析
 2. 你正在分析的是${assetName}，请确保所有分析、建议和预测都是针对${assetName}的，不要提及其他市场或指数
 3. 请使用最新的市场数据和价格水平进行分析${investmentStrategy}
+4. **严格要求：只基于提供的新闻内容进行分析，不要编造或推测未在新闻中明确提及的数据（如具体涨跌幅度、价格变动等）**
+5. **如果新闻中没有提到具体的价格变动数据，不要在分析中提及具体的涨跌数字**
+6. **区分新闻报道的事实和你的分析推测，在分析中明确标注哪些是新闻事实，哪些是你的专业判断**
 
 新闻内容：
 ${finalNewsText}
@@ -1430,12 +1433,12 @@ ${finalNewsText}
 {
   "impact": "positive/negative/neutral",
   "confidence": 0.75,
-  "summary": "综合市场分析（250-350字）：深入分析${assetName}当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对${assetName}的综合影响",
+  "summary": "综合市场分析（250-350字）：深入分析${assetName}当前市场状况、主要驱动因素、价格走势特征，以及各类新闻对${assetName}的综合影响。注意：只基于新闻中的实际信息，不要编造具体数据",
   "investmentAdvice": "投资建议（200-300字）：基于当前分析和用户的投资策略，提供针对${assetName}的具体投资策略建议，包括建仓时机、仓位控制、风险管理等实用建议",
   "keyFactors": ["关键因素1：具体说明对${assetName}的影响机制", "关键因素2：具体说明对${assetName}的影响机制", "关键因素3：具体说明对${assetName}的影响机制", "关键因素4：具体说明对${assetName}的影响机制"],
   "riskLevel": "low/medium/high",
   "timeHorizon": "short/medium/long",
-  "predictedTrend": "趋势预测（150-250字）：基于${currentDate}的市场情况，预测${assetName}未来价格走势，说明当前价格水平、支撑位和阻力位，以及可能的突破方向和时间点"
+  "predictedTrend": "趋势预测（150-250字）：基于${currentDate}的市场情况和新闻内容，预测${assetName}未来价格走势。注意：只基于新闻中的实际信息进行趋势判断，避免编造具体的价格数据"
 }
 
 分析要求：
@@ -1445,8 +1448,9 @@ ${finalNewsText}
 4. 分析要深入、具体、详细，避免泛泛而谈
 5. keyFactors要具体说明每个因素对${assetName}的影响机制和传导路径
 6. 投资建议要结合用户的投资策略，针对${assetName}，实用、可操作、有针对性
-7. 趋势预测要基于当前时间（${currentDate}）和最新市场价格水平，提供${assetName}的具体价格区间和时间预期
-8. 请确保你的分析反映了${currentDate}的最新市场情况，而不是过时的数据`;
+7. 趋势预测要基于当前时间（${currentDate}）和新闻内容，提供${assetName}的趋势判断
+8. **严格禁止：不要在分析中编造或推测新闻中未明确提及的具体价格变动数据**
+9. **如果新闻内容不足以支持某个结论，请明确说明"根据现有新闻信息"或"基于市场常规判断"**`;
 
     try {
       // 添加请求前的日志
@@ -1457,7 +1461,7 @@ ${finalNewsText}
       const responseText = await callGeminiWithFallback(
         this.config.apiKey,
         prompt,
-        0.4,
+        0.2,  // 降低temperature，减少AI的创造性和幻觉
         8192,  // 最大输出 tokens
         120000  // 120秒超时（Pro 模型较慢，给足够时间）
       );
