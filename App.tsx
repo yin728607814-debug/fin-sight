@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './utils/context';
 import { ThemeProvider } from './utils/ThemeContext';
 import { AuthProvider } from './utils/AuthContext';
-import { DebugPanel } from './components/DebugPanel';
 import { PageLoading } from './components/LoadingSpinner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -112,7 +111,6 @@ const App: React.FC = () => {
                   <Route path="/import-data" element={<ProtectedRoute><ImportDataPage /></ProtectedRoute>} />
                 </Routes>
               </Suspense>
-              <DebugPanel />
               <PWAInstallPrompt />
             </Router>
           </AppProvider>
