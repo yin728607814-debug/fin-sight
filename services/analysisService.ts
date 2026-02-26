@@ -279,10 +279,11 @@ export class AnalysisService implements IAnalysisService {
 
   /**
    * AI批量分析方法 - 使用 Gemini API，为每条新闻返回单独分析
-   * 如果新闻数量超过 20 条，自动分批处理以避免超时
+   * 如果新闻数量超过 20 条，自动分批并行处理以提升速度
    */
   private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
     const BATCH_SIZE = 20; // 每批最多 20 条新闻
+    const MAX_PARALLEL_BATCHES = 3; // 最多并行处理3个批次（付费版API限制充足）
     
     // 如果新闻数量较少，直接处理
     if (newsList.length <= BATCH_SIZE) {
@@ -290,27 +291,40 @@ export class AnalysisService implements IAnalysisService {
     }
     
     // 分批处理
-    console.log(`📊 新闻数量较多 (${newsList.length}条)，分批处理以避免超时...`);
+    console.log(`📊 新闻数量较多 (${newsList.length}条)，分批并行处理以提升速度...`);
     const batches: Array<{ title: string; content: string }[]> = [];
     for (let i = 0; i < newsList.length; i += BATCH_SIZE) {
       batches.push(newsList.slice(i, i + BATCH_SIZE));
     }
     
-    console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条`);
+    console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条，最多 ${MAX_PARALLEL_BATCHES} 批并行处理`);
     
-    // 串行处理所有批次（避免并发导致429错误）
+    // 并行处理批次（每次最多处理 MAX_PARALLEL_BATCHES 个批次）
     const batchResults: BatchAnalysisResult[] = [];
-    for (let index = 0; index < batches.length; index++) {
-      const batch = batches[index];
-      console.log(`🚀 处理第 ${index + 1}/${batches.length} 批 (${batch.length}条新闻)...`);
+    
+    for (let i = 0; i < batches.length; i += MAX_PARALLEL_BATCHES) {
+      const currentBatches = batches.slice(i, i + MAX_PARALLEL_BATCHES);
+      const batchIndices = currentBatches.map((_, idx) => i + idx);
       
-      const result = await this.aiBatchAnalysisSingle(batch, assetType);
-      batchResults.push(result);
+      console.log(`🚀 并行处理第 ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} 批 (共${currentBatches.length}个批次)...`);
       
-      // 在批次之间添加延迟（避免RPM超限）
-      if (index < batches.length - 1) {
-        const delay = 2000; // 批次间延迟2秒
-        console.log(`⏳ 等待${delay}ms后处理下一批...`);
+      // 并行处理当前这组批次
+      const promises = currentBatches.map((batch, idx) => {
+        const batchNum = i + idx + 1;
+        console.log(`  📝 批次 ${batchNum}/${batches.length}: ${batch.length}条新闻`);
+        return this.aiBatchAnalysisSingle(batch, assetType);
+      });
+      
+      // 等待所有并行批次完成
+      const results = await Promise.all(promises);
+      batchResults.push(...results);
+      
+      console.log(`✅ 第 ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} 批处理完成`);
+      
+      // 如果还有更多批次，稍微延迟一下（避免瞬间请求过多）
+      if (i + MAX_PARALLEL_BATCHES < batches.length) {
+        const delay = 500; // 批次组之间延迟500ms
+        console.log(`⏳ 等待${delay}ms后处理下一组批次...`);
         await this.sleep(delay);
       }
     }
