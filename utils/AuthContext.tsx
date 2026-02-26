@@ -90,12 +90,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await authService.logout();
-    setUser(null);
-    UserService.clearUserId();
-    // 清空服务的用户ID
-    positionService.setUserId('');
-    fundConfigService.setUserId('');
+    try {
+      const { error } = await authService.logout();
+      if (error) {
+        console.error('登出失败:', error);
+        // 即使登出失败，也清除本地状态
+      }
+      
+      // 清除用户状态
+      setUser(null);
+      UserService.clearUserId();
+      
+      // 清空服务的用户ID
+      positionService.setUserId('');
+      fundConfigService.setUserId('');
+      
+      // 清除本地存储的所有缓存
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.error('清除缓存失败:', e);
+      }
+    } catch (error) {
+      console.error('登出异常:', error);
+      // 即使出错也要清除本地状态
+      setUser(null);
+      UserService.clearUserId();
+      positionService.setUserId('');
+      fundConfigService.setUserId('');
+    }
   };
 
   const value: AuthContextType = {
