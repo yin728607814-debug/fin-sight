@@ -25,26 +25,34 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
   const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
   const [history, setHistory] = useState<SentimentHistory | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [refreshHistory, setRefreshHistory] = useState(0); // 用于触发历史数据刷新
 
   // 计算情绪指数
   useEffect(() => {
-    try {
-      if (analyses && Array.isArray(analyses) && analyses.length > 0) {
-        const data = sentimentService.calculateSentiment(analyses);
-        setSentimentData(data);
+    const calculateAndSave = async () => {
+      try {
+        if (analyses && Array.isArray(analyses) && analyses.length > 0) {
+          const data = sentimentService.calculateSentiment(analyses);
+          setSentimentData(data);
 
-        // 自动保存到历史记录
-        if (autoSave) {
-          sentimentService.saveSentimentSnapshot(assetType, data);
+          // 自动保存到历史记录（异步）
+          if (autoSave) {
+            await sentimentService.saveSentimentSnapshot(assetType, data);
+            console.log('✅ 情绪数据已保存到数据库');
+            // 触发历史数据刷新
+            setRefreshHistory(prev => prev + 1);
+          }
+        } else {
+          // 如果没有分析数据，设置为null
+          setSentimentData(null);
         }
-      } else {
-        // 如果没有分析数据，设置为null
+      } catch (error) {
+        console.error('计算情绪指数失败:', error);
         setSentimentData(null);
       }
-    } catch (error) {
-      console.error('计算情绪指数失败:', error);
-      setSentimentData(null);
-    }
+    };
+
+    calculateAndSave();
   }, [analyses, assetType, autoSave]);
 
   // 加载历史记录（异步）
@@ -55,6 +63,7 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
         // 确保返回的数据有效
         if (historyData && historyData.data && Array.isArray(historyData.data)) {
           setHistory(historyData);
+          console.log(`📊 加载了 ${historyData.data.length} 天的情绪历史`);
         } else {
           setHistory(null);
         }
@@ -65,7 +74,7 @@ export const SentimentIndex: React.FC<SentimentIndexProps> = ({
     };
 
     loadHistory();
-  }, [assetType, sentimentData]); // 当情绪数据更新时，重新加载历史
+  }, [assetType, refreshHistory]); // 当 refreshHistory 变化时重新加载
 
   if (!sentimentData) {
     return (
