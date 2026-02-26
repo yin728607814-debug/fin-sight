@@ -4,8 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { portfolioService, Portfolio } from '../../services/portfolioService';
-import { usePriceData } from '../../utils/context';
+import { positionService } from '../../services/positionService';
 import { DashboardCard } from '../DashboardCard';
 
 interface PortfolioCardProps {
@@ -13,46 +12,68 @@ interface PortfolioCardProps {
 }
 
 export const PortfolioCard: React.FC<PortfolioCardProps> = ({ onRemove }) => {
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const { priceData: nasdaqPrices } = usePriceData('nasdaq');
-  const { priceData: goldPrices } = usePriceData('gold');
+  const [loading, setLoading] = useState(true);
+  const [totalInvestment, setTotalInvestment] = useState(0);
+  const [totalValue, setTotalValue] = useState(0);
+  const [totalProfitLoss, setTotalProfitLoss] = useState(0);
+  const [positionCount, setPositionCount] = useState(0);
 
   useEffect(() => {
-    const positions = portfolioService.getPositions();
-    
-    if (positions.length === 0) {
-      setPortfolio(null);
-      return;
-    }
-    
-    const prices = new Map();
-    if (nasdaqPrices.length > 0) {
-      prices.set('nasdaq', nasdaqPrices[nasdaqPrices.length - 1].close);
-    }
-    if (goldPrices.length > 0) {
-      prices.set('gold', goldPrices[goldPrices.length - 1].close);
-    }
+    loadPortfolioData();
+  }, []);
 
-    const calculatedPortfolio = portfolioService.calculatePortfolio(positions, prices);
-    setPortfolio(calculatedPortfolio);
-  }, [nasdaqPrices, goldPrices]);
+  const loadPortfolioData = async () => {
+    try {
+      setLoading(true);
+      const positions = await positionService.getPositions();
+      
+      if (positions.length === 0) {
+        setPositionCount(0);
+        setLoading(false);
+        return;
+      }
+
+      // 计算总投资、当前价值和收益
+      const investment = positions.reduce((sum, p) => sum + p.investment_amount, 0);
+      const profitLoss = positions.reduce((sum, p) => sum + p.profit_loss, 0);
+      const value = investment + profitLoss;
+
+      setTotalInvestment(investment);
+      setTotalValue(value);
+      setTotalProfitLoss(profitLoss);
+      setPositionCount(positions.length);
+    } catch (error) {
+      console.error('加载投资组合数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const profitLossPercent = totalInvestment > 0 
+    ? (totalProfitLoss / totalInvestment) * 100 
+    : 0;
 
   return (
     <DashboardCard title="投资组合" onRemove={onRemove}>
-      {portfolio && portfolio.positions.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">加载中...</p>
+        </div>
+      ) : positionCount > 0 ? (
         <div className="space-y-4">
           {/* 总览 */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-white/50 dark:bg-gray-700/50 rounded-lg">
               <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">总投资</div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                ${(portfolio.totalInvestment || 0).toLocaleString()}
+                ¥{totalInvestment.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="p-3 bg-white/50 dark:bg-gray-700/50 rounded-lg">
               <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">当前价值</div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                ${(portfolio.currentValue || 0).toLocaleString()}
+                ¥{totalValue.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}
               </div>
             </div>
           </div>
@@ -62,20 +83,25 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ onRemove }) => {
             <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">总收益</div>
             <div className="flex items-baseline gap-2">
               <span className={`text-2xl font-bold ${
-                (portfolio.totalProfitLoss || 0) >= 0
+                totalProfitLoss >= 0
                   ? 'text-red-600 dark:text-red-400'
                   : 'text-green-600 dark:text-green-400'
               }`}>
-                {(portfolio.totalProfitLoss || 0) >= 0 ? '+' : ''}${(portfolio.totalProfitLoss || 0).toLocaleString()}
+                {totalProfitLoss >= 0 ? '+' : ''}¥{Math.abs(totalProfitLoss).toLocaleString('zh-CN', { maximumFractionDigits: 2 })}
               </span>
               <span className={`text-sm ${
-                (portfolio.totalProfitLossPercent || 0) >= 0
+                profitLossPercent >= 0
                   ? 'text-red-600 dark:text-red-400'
                   : 'text-green-600 dark:text-green-400'
               }`}>
-                ({(portfolio.totalProfitLossPercent || 0) >= 0 ? '+' : ''}{(portfolio.totalProfitLossPercent || 0).toFixed(2)}%)
+                ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(2)}%)
               </span>
             </div>
+          </div>
+
+          {/* 持仓数量 */}
+          <div className="text-xs text-gray-600 dark:text-gray-400 text-center">
+            共 {positionCount} 个持仓
           </div>
 
           <Link
