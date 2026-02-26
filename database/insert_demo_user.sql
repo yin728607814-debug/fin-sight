@@ -21,161 +21,57 @@ BEGIN
   
   RAISE NOTICE '创建纳斯达克持仓（80万）...';
   
-  -- 摩根纳斯达克100指数(QDII)人民币A (15万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '摩根纳斯达克100指数(QDII)人民币A',
-    10000.00,
-    14.50,
-    15.00,
-    '2024-01-15'
-  );
+  -- 摩根纳斯达克100指数(QDII)人民币A (15万，盈利3%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '摩根纳斯达克100指数(QDII)人民币A', 150000.00, 4500.00);
 
-  -- 建信纳斯达克100指数QDII A (12万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '建信纳斯达克100指数QDII A',
-    8000.00,
-    14.80,
-    15.00,
-    '2024-01-20'
-  );
+  -- 建信纳斯达克100指数QDII A (12万，盈利2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '建信纳斯达克100指数QDII A', 120000.00, 2400.00);
 
-  -- 南方纳斯达克100指数发起(QDII) A (10万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '南方纳斯达克100指数发起(QDII) A',
-    6500.00,
-    15.20,
-    15.38,
-    '2024-02-01'
-  );
+  -- 南方纳斯达克100指数发起(QDII) A (10万，盈利1.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '南方纳斯达克100指数发起(QDII) A', 100000.00, 1500.00);
 
-  -- 易方达全球成长精选混合人民币A类 (8万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '易方达全球成长精选混合人民币A类',
-    5000.00,
-    15.80,
-    16.00,
-    '2024-02-10'
-  );
+  -- 易方达全球成长精选混合人民币A类 (8万，盈利2.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '易方达全球成长精选混合人民币A类', 80000.00, 2000.00);
 
-  -- 易方达全球成长精选混合人民币C类 (7万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '易方达全球成长精选混合人民币C类',
-    4400.00,
-    15.70,
-    15.91,
-    '2024-02-15'
-  );
+  -- 易方达全球成长精选混合人民币C类 (7万，盈利1.8%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '易方达全球成长精选混合人民币C类', 70000.00, 1260.00);
 
-  -- 华安纳斯达克100ETF联接(QDII) A (6万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '华安纳斯达克100ETF联接(QDII) A',
-    4000.00,
-    14.90,
-    15.00,
-    '2024-02-20'
-  );
+  -- 华安纳斯达克100ETF联接(QDII) A (6万，盈利1%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '华安纳斯达克100ETF联接(QDII) A', 60000.00, 600.00);
 
-  -- 华安纳斯达克100ETF联接(QDII) C (5万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '华安纳斯达克100ETF联接(QDII) C',
-    3300.00,
-    15.00,
-    15.15,
-    '2024-02-25'
-  );
+  -- 华安纳斯达克100ETF联接(QDII) C (5万，盈利1.2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '华安纳斯达克100ETF联接(QDII) C', 50000.00, 600.00);
 
-  -- 嘉实纳斯达克100联接(QDII)C人民币 (4万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '嘉实纳斯达克100联接(QDII)C人民币',
-    2700.00,
-    14.60,
-    14.81,
-    '2024-03-01'
-  );
+  -- 嘉实纳斯达克100联接(QDII)C人民币 (4万，盈利0.8%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '嘉实纳斯达克100联接(QDII)C人民币', 40000.00, 320.00);
 
-  -- 广发纳斯达克100ETF联接(QDII) A (4万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '广发纳斯达克100ETF联接(QDII) A',
-    2600.00,
-    15.20,
-    15.38,
-    '2024-03-05'
-  );
+  -- 广发纳斯达克100ETF联接(QDII) A (4万，盈利1.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '广发纳斯达克100ETF联接(QDII) A', 40000.00, 600.00);
 
-  -- 南方纳斯达克100指数发起(QDII) C (3万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '南方纳斯达克100指数发起(QDII) C',
-    2000.00,
-    14.90,
-    15.00,
-    '2024-03-10'
-  );
+  -- 南方纳斯达克100指数发起(QDII) C (3万，盈利1%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '南方纳斯达克100指数发起(QDII) C', 30000.00, 300.00);
 
-  -- 大成纳斯达克100ETF联接(QDII)A (2万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '大成纳斯达克100ETF联接(QDII)A',
-    1300.00,
-    15.20,
-    15.38,
-    '2024-03-15'
-  );
+  -- 大成纳斯达克100ETF联接(QDII)A (2万，盈利1.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '大成纳斯达克100ETF联接(QDII)A', 20000.00, 300.00);
 
-  -- 华宝纳斯达克精选股票发起式(QDII) A (2万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '华宝纳斯达克精选股票发起式(QDII) A',
-    1400.00,
-    14.10,
-    14.29,
-    '2024-03-20'
-  );
+  -- 华宝纳斯达克精选股票发起式(QDII) A (2万，盈利0.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '华宝纳斯达克精选股票发起式(QDII) A', 20000.00, 100.00);
 
-  -- 景顺长城纳斯达克科技ETF联接A (2万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'nasdaq',
-    '景顺长城纳斯达克科技ETF联接A',
-    1300.00,
-    15.20,
-    15.38,
-    '2024-03-25'
-  );
+  -- 景顺长城纳斯达克科技ETF联接A (2万，盈利1.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'nasdaq', '景顺长城纳斯达克科技ETF联接A', 20000.00, 300.00);
 
   -- ============================================================================
   -- 黄金持仓（60万）- 现货黄金（按克计算）
@@ -183,20 +79,13 @@ BEGIN
   
   RAISE NOTICE '创建黄金持仓（60万）...';
   
-  -- 现货黄金 (60万 ÷ 979.31元/克 ≈ 612.7克)
-  -- 模拟持仓金额: 600,000元
-  -- 持仓克数: 612.7660克
+  -- 现货黄金 (60万 ÷ 979.31元/克 ≈ 612.77克)
+  -- 持仓金额: 600,000元
+  -- 持仓克数: 612.77克
   -- 持仓均价: 979.31元/克
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'gold',
-    '现货黄金',
-    612.7660,
-    979.31,
-    979.31,
-    '2023-11-20'
-  );
+  -- 盈亏: 0元（持平）
+  INSERT INTO positions (user_id, asset_type, fund_name, quantity, average_buy_price, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'gold', '现货黄金', 612.77, 979.31, 600000.00, 0.00);
 
   -- ============================================================================
   -- A股持仓（10万）- 基于真实基金配置
@@ -204,113 +93,41 @@ BEGIN
   
   RAISE NOTICE '创建A股持仓（10万）...';
   
-  -- 前海开源嘉鑫灵活配置混合C (2.5万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '前海开源嘉鑫灵活配置混合C',
-    20000.00,
-    1.22,
-    1.25,
-    '2024-01-10'
-  );
+  -- 前海开源嘉鑫灵活配置混合C (2.5万，盈利2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '前海开源嘉鑫灵活配置混合C', 25000.00, 500.00);
 
-  -- 长城久嘉创新成长灵活配置混合C (1.5万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '长城久嘉创新成长灵活配置混合C',
-    12000.00,
-    1.23,
-    1.25,
-    '2024-01-15'
-  );
+  -- 长城久嘉创新成长灵活配置混合C (1.5万，盈利1.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '长城久嘉创新成长灵活配置混合C', 15000.00, 225.00);
 
-  -- 汇添富中证电池主题ETF联接C (1.5万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '汇添富中证电池主题ETF联接C',
-    15000.00,
-    0.98,
-    1.00,
-    '2024-01-20'
-  );
+  -- 汇添富中证电池主题ETF联接C (1.5万，盈利2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '汇添富中证电池主题ETF联接C', 15000.00, 300.00);
 
-  -- 永赢高端设备智选混合C (1.2万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '永赢高端设备智选混合C',
-    10000.00,
-    1.18,
-    1.20,
-    '2024-02-01'
-  );
+  -- 永赢高端设备智选混合C (1.2万，盈利1.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '永赢高端设备智选混合C', 12000.00, 180.00);
 
-  -- 永赢科技智选混合C (1万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '永赢科技智选混合C',
-    8500.00,
-    1.16,
-    1.18,
-    '2024-02-05'
-  );
+  -- 永赢科技智选混合C (1万，盈利1.2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '永赢科技智选混合C', 10000.00, 120.00);
 
-  -- 永赢半导体产业智选混合C (1万)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '永赢半导体产业智选混合C',
-    8300.00,
-    1.19,
-    1.20,
-    '2024-02-10'
-  );
+  -- 永赢半导体产业智选混合C (1万，盈利0.8%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '永赢半导体产业智选混合C', 10000.00, 80.00);
 
-  -- 天弘中证光伏产业指数C (8000)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '天弘中证光伏产业指数C',
-    10000.00,
-    0.78,
-    0.80,
-    '2024-02-15'
-  );
+  -- 天弘中证光伏产业指数C (8000，盈利2.5%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '天弘中证光伏产业指数C', 8000.00, 200.00);
 
-  -- 华夏有色金属ETF联接C (5000)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '华夏有色金属ETF联接C',
-    5000.00,
-    0.98,
-    1.00,
-    '2024-02-20'
-  );
+  -- 华夏有色金属ETF联接C (5000，盈利2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '华夏有色金属ETF联接C', 5000.00, 100.00);
 
-  -- 国投瑞银白银期货(LOF)C (3000)
-  INSERT INTO positions (user_id, asset_type, fund_name, shares, cost_basis, current_price, purchase_date)
-  VALUES (
-    demo_user_id,
-    'astock',
-    '国投瑞银白银期货(LOF)C',
-    3000.00,
-    0.98,
-    1.00,
-    '2024-02-25'
-  );
+  -- 国投瑞银白银期货(LOF)C (3000，盈利2%)
+  INSERT INTO positions (user_id, asset_type, fund_name, investment_amount, profit_loss)
+  VALUES (demo_user_id, 'astock', '国投瑞银白银期货(LOF)C', 3000.00, 60.00);
 
   -- ============================================================================
   -- 基金配置数据
@@ -365,7 +182,7 @@ BEGIN
   VALUES (
     demo_user_id,
     'nasdaq',
-    '南方纳斯达克100指数发起(QDIQ) A',
+    '南方纳斯达克100指数发起(QDII) A',
     5000.00,
     'monthly',
     1,
@@ -411,7 +228,8 @@ END $$;
 SELECT 
   asset_type,
   COUNT(*) as position_count,
-  SUM(shares * current_price) as total_value
+  SUM(investment_amount) as total_investment,
+  SUM(profit_loss) as total_profit
 FROM positions
 WHERE user_id = '29113055-18d5-4094-8786-5e603b04c876'
 GROUP BY asset_type
@@ -421,14 +239,16 @@ ORDER BY asset_type;
 SELECT 
   asset_type,
   fund_name,
-  shares,
-  cost_basis,
-  current_price,
-  (shares * current_price) as market_value,
-  ((current_price - cost_basis) / cost_basis * 100) as return_pct,
-  purchase_date
+  investment_amount,
+  profit_loss,
+  CASE 
+    WHEN investment_amount > 0 THEN ROUND((profit_loss / investment_amount * 100)::numeric, 2)
+    ELSE 0
+  END as return_pct,
+  quantity,
+  average_buy_price
 FROM positions
 WHERE user_id = '29113055-18d5-4094-8786-5e603b04c876'
-ORDER BY asset_type, (shares * current_price) DESC;
+ORDER BY asset_type, investment_amount DESC;
 
 -- 完成！
