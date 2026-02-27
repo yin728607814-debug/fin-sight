@@ -1,9 +1,11 @@
 /**
  * 聊天服务模块
  * 负责管理AI助手的对话历史和消息处理
+ * 支持按资产类型分离存储，使用 Supabase 数据库
  */
 
 import { AssetType } from '../types';
+import { supabase } from './supabaseClient';
 
 /**
  * 消息角色类型
@@ -50,9 +52,8 @@ export interface ChatContext {
  */
 export class ChatService {
   private static instance: ChatService;
-  private readonly STORAGE_KEY = 'chat_history';
-  private readonly MAX_HISTORY_SIZE = 10; // 最多保存10条对话
-  private readonly HISTORY_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7天过期
+  private readonly MAX_HISTORY_SIZE = 50; // 最多保存50条对话
+  private readonly HISTORY_EXPIRATION = 30 * 24 * 60 * 60 * 1000; // 30天过期
 
   /**
    * 获取单例实例
@@ -68,29 +69,66 @@ export class ChatService {
    * 私有构造函数
    */
   private constructor() {
-    // 清理过期的历史记录
-    this.cleanExpiredHistory();
+    // 初始化时清理过期记录
+    this.cleanExpiredHistory().catch(err => {
+      console.error('清理过期聊天记录失败:', err);
+    });
   }
 
   /**
-   * 获取对话历史
+   * 获取当前用户ID
    */
-  public getChatHistory(): ChatHistory {
+  private async getCurrentUserId(): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  }
+
+  /**
+   * 获取对话历史（按资产类型）
+   */
+  public async getChatHistory(assetType: AssetType): Promise<ChatHistory> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (!stored) {
+      const userId = await this.getCurrentUserId();
+      
+      if (!userId) {
+        console.warn('用户未登录，返回空历史');
         return {
           messages: [],
           lastUpdated: new Date().toISOString()
         };
       }
 
-      const parsed = JSON.parse(stored);
-      
-      // 数据已经是正确格式（ISO字符串），直接返回
+      // 从 Supabase 获取聊天记录
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('asset_type', assetType)
+        .order('created_at', { ascending: true })
+        .limit(this.MAX_HISTORY_SIZE);
+
+      if (error) {
+        console.error('获取聊天历史失败:', error);
+        return {
+          messages: [],
+          lastUpdated: new Date().toISOString()
+        };
+      }
+
+      // 转换为 ChatMessage 格式
+      const messages: ChatMessage[] = (data || []).map(row => ({
+        id: row.id,
+        role: row.role as MessageRole,
+        content: row.content,
+        timestamp: row.created_at,
+        context: row.context || undefined
+      }));
+
       return {
-        messages: parsed.messages || [],
-        lastUpdated: parsed.lastUpdated || new Date().toISOString()
+        messages,
+        lastUpdated: messages.length > 0 
+          ? messages[messages.length - 1].timestamp 
+          : new Date().toISOString()
       };
     } catch (error) {
       console.error('获取对话历史失败:', error);
@@ -102,46 +140,59 @@ export class ChatService {
   }
 
   /**
-   * 保存对话历史
+   * 添加消息到历史（按资产类型）
    */
-  public saveChatHistory(history: ChatHistory): void {
+  public async addMessage(message: ChatMessage, assetType: AssetType): Promise<void> {
     try {
-      // 限制历史记录数量
-      const limitedMessages = history.messages.slice(-this.MAX_HISTORY_SIZE);
+      const userId = await this.getCurrentUserId();
       
-      const toSave = {
-        messages: limitedMessages,
-        lastUpdated: new Date().toISOString()
-      };
-
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(toSave));
-    } catch (error) {
-      console.error('保存对话历史失败:', error);
-      
-      // 如果是存储空间不足，尝试清理旧数据
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        this.clearChatHistory();
-        console.warn('存储空间不足，已清空对话历史');
+      if (!userId) {
+        console.warn('用户未登录，无法保存消息');
+        return;
       }
+
+      // 插入到 Supabase
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          id: message.id,
+          user_id: userId,
+          asset_type: assetType,
+          role: message.role,
+          content: message.content,
+          context: message.context || null,
+          created_at: message.timestamp
+        });
+
+      if (error) {
+        console.error('保存消息失败:', error);
+      }
+    } catch (error) {
+      console.error('添加消息失败:', error);
     }
   }
 
   /**
-   * 添加消息到历史
+   * 清空对话历史（按资产类型）
    */
-  public addMessage(message: ChatMessage): void {
-    const history = this.getChatHistory();
-    history.messages.push(message);
-    history.lastUpdated = new Date().toISOString(); // 使用 ISO 字符串
-    this.saveChatHistory(history);
-  }
-
-  /**
-   * 清空对话历史
-   */
-  public clearChatHistory(): void {
+  public async clearChatHistory(assetType: AssetType): Promise<void> {
     try {
-      localStorage.removeItem(this.STORAGE_KEY);
+      const userId = await this.getCurrentUserId();
+      
+      if (!userId) {
+        console.warn('用户未登录，无法清空历史');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('user_id', userId)
+        .eq('asset_type', assetType);
+
+      if (error) {
+        console.error('清空对话历史失败:', error);
+      }
     } catch (error) {
       console.error('清空对话历史失败:', error);
     }
@@ -150,23 +201,27 @@ export class ChatService {
   /**
    * 清理过期的历史记录
    */
-  private cleanExpiredHistory(): void {
-    const history = this.getChatHistory();
-    const now = Date.now();
-    
-    // 过滤掉过期的消息
-    const validMessages = history.messages.filter(msg => {
-      const msgTimestamp = new Date(msg.timestamp).getTime();
-      const messageAge = now - msgTimestamp;
-      return messageAge < this.HISTORY_EXPIRATION;
-    });
+  private async cleanExpiredHistory(): Promise<void> {
+    try {
+      const userId = await this.getCurrentUserId();
+      
+      if (!userId) {
+        return;
+      }
 
-    // 如果有消息被清理，保存更新后的历史
-    if (validMessages.length < history.messages.length) {
-      this.saveChatHistory({
-        messages: validMessages,
-        lastUpdated: new Date().toISOString() // 使用 ISO 字符串
-      });
+      const expirationDate = new Date(Date.now() - this.HISTORY_EXPIRATION);
+
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('user_id', userId)
+        .lt('created_at', expirationDate.toISOString());
+
+      if (error) {
+        console.error('清理过期记录失败:', error);
+      }
+    } catch (error) {
+      console.error('清理过期记录失败:', error);
     }
   }
 
@@ -174,7 +229,7 @@ export class ChatService {
    * 生成消息ID
    */
   public generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `${crypto.randomUUID()}`;
   }
 
   /**
@@ -185,7 +240,7 @@ export class ChatService {
       id: this.generateMessageId(),
       role: 'user',
       content,
-      timestamp: new Date().toISOString(), // 使用 ISO 字符串
+      timestamp: new Date().toISOString(),
       context: context ? {
         assetType: context.assetType,
         newsCount: context.recentNews?.length,
@@ -203,7 +258,7 @@ export class ChatService {
       id: this.generateMessageId(),
       role: 'assistant',
       content,
-      timestamp: new Date().toISOString(), // 使用 ISO 字符串
+      timestamp: new Date().toISOString(),
       context: context ? {
         assetType: context.assetType,
         newsCount: context.recentNews?.length,
@@ -216,22 +271,22 @@ export class ChatService {
   /**
    * 获取对话上下文（用于AI prompt）
    */
-  public getConversationContext(maxMessages: number = 5): ChatMessage[] {
-    const history = this.getChatHistory();
+  public async getConversationContext(assetType: AssetType, maxMessages: number = 5): Promise<ChatMessage[]> {
+    const history = await this.getChatHistory(assetType);
     return history.messages.slice(-maxMessages);
   }
 
   /**
    * 获取历史统计信息
    */
-  public getHistoryStats(): {
+  public async getHistoryStats(assetType: AssetType): Promise<{
     totalMessages: number;
     userMessages: number;
     assistantMessages: number;
     oldestMessage?: string;
     newestMessage?: string;
-  } {
-    const history = this.getChatHistory();
+  }> {
+    const history = await this.getChatHistory(assetType);
     const messages = history.messages;
 
     if (messages.length === 0) {

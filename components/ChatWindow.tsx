@@ -32,9 +32,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
    * 加载历史消息
    */
   useEffect(() => {
-    const history = chatService.getChatHistory();
-    setMessages(history.messages);
-  }, []);
+    const loadHistory = async () => {
+      if (context.assetType) {
+        const history = await chatService.getChatHistory(context.assetType);
+        setMessages(history.messages);
+      }
+    };
+    loadHistory();
+  }, [context.assetType]); // 当资产类型变化时重新加载
 
   /**
    * 自动滚动到底部
@@ -47,19 +52,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
    * 发送消息
    */
   const handleSendMessage = async (content: string) => {
+    if (!context.assetType) {
+      console.error('资产类型未设置');
+      return;
+    }
+
     // 创建用户消息
     const userMessage = chatService.createUserMessage(content, context);
     
     // 添加到消息列表
     setMessages(prev => [...prev, userMessage]);
-    chatService.addMessage(userMessage);
+    await chatService.addMessage(userMessage, context.assetType);
 
     // 开始加载
     setIsLoading(true);
 
     try {
       // 获取对话历史
-      const conversationHistory = chatService.getConversationContext(5);
+      const conversationHistory = await chatService.getConversationContext(context.assetType, 5);
       
       // 构建提示词
       const prompt = AIPromptBuilder.buildChatPrompt(
@@ -100,7 +110,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
       
       // 添加到消息列表
       setMessages(prev => [...prev, assistantMessage]);
-      chatService.addMessage(assistantMessage);
+      await chatService.addMessage(assistantMessage, context.assetType!);
 
       // 检查是否需要显示免责声明
       if (AIPromptBuilder.shouldShowDisclaimer(parsedResponse)) {
@@ -132,7 +142,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
       );
       
       setMessages(prev => [...prev, errorMessage]);
-      chatService.addMessage(errorMessage);
+      if (context.assetType) {
+        await chatService.addMessage(errorMessage, context.assetType);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +153,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
   /**
    * 清空对话历史
    */
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
+    if (!context.assetType) {
+      return;
+    }
+
     if (window.confirm('确定要清空所有对话历史吗？此操作不可撤销。')) {
-      chatService.clearChatHistory();
+      await chatService.clearChatHistory(context.assetType);
       setMessages([]);
       setShowDisclaimer(true);
     }
