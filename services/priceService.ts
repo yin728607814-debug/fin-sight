@@ -54,8 +54,8 @@ export class PriceService implements IPriceService {
 
   constructor(apiConfig?: Partial<PriceAPIConfig>) {
     this.config = {
-      baseURL: 'https://www.alphavantage.co/query',
-      apiKey: config.apiKeys.alphaVantage,
+      baseURL: '/yahoo-finance-proxy', // 使用代理，不需要 API 密钥
+      apiKey: '', // 不再需要
       timeout: 15000,
       maxRetries: 3,
       ...apiConfig
@@ -93,12 +93,6 @@ export class PriceService implements IPriceService {
     if (cached) {
       logInfo('返回缓存的价格数据', { symbol, days, count: cached.length });
       return cached;
-    }
-
-    // 如果API密钥明确是占位符，提示用户配置真实密钥
-    if (this.shouldUseDemoData()) {
-      logInfo('⚠️ 检测到占位符API密钥，请配置真实的Alpha Vantage API密钥以获取真实价格数据');
-      console.warn('请访问 https://www.alphavantage.co/ 获取真实的Alpha Vantage API密钥');
     }
 
     try {
@@ -255,12 +249,6 @@ export class PriceService implements IPriceService {
     if (cached) {
       logInfo('返回缓存的资产信息', { symbol });
       return cached;
-    }
-
-    // 如果API密钥明确是占位符，提示用户配置真实密钥
-    if (this.shouldUseDemoData()) {
-      logInfo('⚠️ 检测到占位符API密钥，请配置真实的Alpha Vantage API密钥以获取真实资产信息');
-      console.warn('请访问 https://www.alphavantage.co/ 获取真实的Alpha Vantage API密钥');
     }
 
     try {
@@ -759,27 +747,6 @@ export class PriceService implements IPriceService {
       priceCache: this.priceCache.size,
       assetCache: this.assetCache.size
     };
-  }
-
-  /**
-   * 检查是否应该使用演示数据
-   */
-  private shouldUseDemoData(): boolean {
-    // 在生产环境中，API密钥由Netlify函数处理，不需要检查
-    const isProduction = typeof window !== 'undefined' && 
-                        window.location.hostname !== 'localhost' && 
-                        window.location.hostname !== '127.0.0.1';
-    
-    if (isProduction) {
-      return false; // 生产环境总是尝试真实API
-    }
-    
-    return !this.config.apiKey || 
-           this.config.apiKey === 'demo' ||
-           this.config.apiKey === '' || 
-           this.config.apiKey.includes('demo') || 
-           this.config.apiKey.includes('placeholder') || 
-           this.config.apiKey.includes('your_');
   }
 
   /**
