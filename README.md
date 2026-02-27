@@ -91,7 +91,7 @@ npm run dev
 ```
 
 ### 5. 访问应用
-打开 http://localhost:5173
+打开 http://localhost:3000
 
 ## 🔑 API 密钥获取
 
@@ -150,9 +150,9 @@ npm run dev
 ### 详细部署指南
 
 查看完整的部署文档：
-- [快速开始指南](./QUICK_START_CLOUDFLARE.md)
-- [详细部署指南](./CLOUDFLARE_DEPLOY_GUIDE.md)
-- [迁移指南](./CLOUDFLARE_MIGRATION.md)
+- [快速开始指南](./docs/deployment/QUICK_START_CLOUDFLARE.md)
+- [详细部署指南](./docs/deployment/CLOUDFLARE_DEPLOY_GUIDE.md)
+- [迁移指南](./docs/deployment/CLOUDFLARE_MIGRATION.md)
 
 ## 📜 可用脚本
 
