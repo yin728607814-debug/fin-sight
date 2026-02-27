@@ -4,14 +4,14 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/solid';
-import { SparklesIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, XMarkIcon, DocumentIcon } from '@heroicons/react/24/solid';
+import { SparklesIcon, PaperClipIcon } from '@heroicons/react/24/outline';
 
 /**
  * 聊天输入框组件Props
  */
 interface ChatInputProps {
-  onSend: (message: string, images?: string[]) => void;
+  onSend: (message: string, files?: string[]) => void;
   disabled?: boolean;
   placeholder?: string;
   quickQuestions?: string[];
@@ -28,7 +28,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [showQuickQuestions, setShowQuickQuestions] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [files, setFiles] = useState<Array<{ name: string; data: string; type: string }>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,39 +38,37 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [message]);
 
   /**
-   * 处理图片上传
+   * 处理文件上传
    */
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = e.target.files;
+    if (!uploadedFiles || uploadedFiles.length === 0) return;
 
-    // 限制最多上传3张图片
-    const remainingSlots = 3 - images.length;
-    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    // 限制最多上传5个文件
+    const remainingSlots = 5 - files.length;
+    const filesToProcess = Array.from(uploadedFiles).slice(0, remainingSlots);
 
     filesToProcess.forEach(file => {
-      // 检查文件类型
-      if (!file.type.startsWith('image/')) {
-        alert('请上传图片文件');
+      // 检查文件大小（最大10MB）
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`文件 ${file.name} 大小不能超过10MB`);
         return;
       }
 
-      // 检查文件大小（最大5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        alert('图片大小不能超过5MB');
-        return;
-      }
-
-      // 读取图片并转换为base64
+      // 读取文件并转换为base64
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        setImages(prev => [...prev, base64]);
+        setFiles(prev => [...prev, {
+          name: file.name,
+          data: base64,
+          type: file.type
+        }]);
       };
       reader.readAsDataURL(file);
     });
@@ -82,10 +80,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   /**
-   * 删除图片
+   * 删除文件
    */
-  const handleRemoveImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /**
+   * 获取文件图标
+   */
+  const getFileIcon = (type: string) => {
+    if (type.startsWith('image/')) {
+      return '🖼️';
+    } else if (type.includes('pdf')) {
+      return '📄';
+    } else if (type.includes('word') || type.includes('document')) {
+      return '📝';
+    } else if (type.includes('excel') || type.includes('spreadsheet')) {
+      return '📊';
+    } else if (type.includes('zip') || type.includes('rar')) {
+      return '📦';
+    }
+    return '📎';
   };
 
   /**
@@ -93,10 +109,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
    */
   const handleSend = () => {
     const trimmedMessage = message.trim();
-    if ((trimmedMessage || images.length > 0) && !disabled) {
-      onSend(trimmedMessage || '请分析这张图片', images.length > 0 ? images : undefined);
+    if ((trimmedMessage || files.length > 0) && !disabled) {
+      const fileData = files.map(f => f.data);
+      onSend(trimmedMessage || '请分析这个文件', fileData.length > 0 ? fileData : undefined);
       setMessage('');
-      setImages([]);
+      setFiles([]);
       setShowQuickQuestions(false);
       
       // 重置文本框高度
@@ -151,22 +168,30 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      {/* 图片预览 */}
-      {images.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {images.map((image, index) => (
-            <div key={index} className="relative group">
-              <img
-                src={image}
-                alt={`上传图片 ${index + 1}`}
-                className="w-20 h-20 object-cover rounded-lg border-2 border-gray-300 dark:border-gray-600"
-              />
+      {/* 文件预览 */}
+      {files.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {files.map((file, index) => (
+            <div key={index} className="relative group flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 pr-8 max-w-xs">
+              <span className="text-2xl mr-2">{getFileIcon(file.type)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {file.name}
+                </p>
+                {file.type.startsWith('image/') && (
+                  <img
+                    src={file.data}
+                    alt={file.name}
+                    className="mt-2 w-full h-20 object-cover rounded"
+                  />
+                )}
+              </div>
               <button
-                onClick={() => handleRemoveImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                title="删除图片"
+                onClick={() => handleRemoveFile(index)}
+                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                title="删除文件"
               >
-                <XMarkIcon className="h-4 w-4" />
+                <XMarkIcon className="h-3 w-3" />
               </button>
             </div>
           ))}
@@ -174,34 +199,33 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       {/* 输入框容器 */}
-      <div className="flex items-end space-x-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 focus-within:border-blue-500 dark:focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/20 dark:focus-within:ring-blue-400/20 transition-all shadow-sm">
+      <div className="flex items-end space-x-2 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-300 dark:border-gray-600 focus-within:border-blue-500 dark:focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 dark:focus-within:ring-blue-400/10 transition-all shadow-sm hover:shadow-md">
         {/* 快速问题按钮 */}
         {quickQuestions.length > 0 && (
           <button
             onClick={() => setShowQuickQuestions(!showQuickQuestions)}
             disabled={disabled}
-            className="flex-shrink-0 p-3 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-shrink-0 p-3 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             title="快速问题"
           >
-            <SparklesIcon className="h-5 w-5" />
+            <SparklesIcon className="h-6 w-6" />
           </button>
         )}
 
-        {/* 图片上传按钮 */}
+        {/* 文件上传按钮 */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || images.length >= 3}
-          className="flex-shrink-0 p-3 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title={images.length >= 3 ? '最多上传3张图片' : '上传图片'}
+          disabled={disabled || files.length >= 5}
+          className="flex-shrink-0 p-3 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          title={files.length >= 5 ? '最多上传5个文件' : '上传文件'}
         >
-          <PhotoIcon className="h-5 w-5" />
+          <PaperClipIcon className="h-6 w-6" />
         </button>
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
           multiple
-          onChange={handleImageUpload}
+          onChange={handleFileUpload}
           className="hidden"
         />
 
@@ -214,24 +238,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           disabled={disabled}
           placeholder={placeholder}
           rows={1}
-          className="flex-1 px-4 py-3 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ maxHeight: '120px' }}
+          className="flex-1 px-4 py-4 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+          style={{ maxHeight: '200px', minHeight: '56px' }}
         />
 
         {/* 发送按钮 */}
         <button
           onClick={handleSend}
-          disabled={disabled || (!message.trim() && images.length === 0)}
-          className="flex-shrink-0 m-2 p-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md disabled:hover:shadow-sm"
+          disabled={disabled || (!message.trim() && files.length === 0)}
+          className="flex-shrink-0 m-2 p-3 bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-400 transition-all shadow-md hover:shadow-lg disabled:hover:shadow-md transform hover:scale-105 disabled:hover:scale-100 active:scale-95"
           title="发送消息 (Enter)"
         >
-          <PaperAirplaneIcon className="h-5 w-5" />
+          <PaperAirplaneIcon className="h-5 w-5 transform rotate-0" />
         </button>
       </div>
 
       {/* 提示文本 */}
       <div className="mt-2 px-2 text-xs text-gray-500 dark:text-gray-400">
-        按 Enter 发送，Shift + Enter 换行 {images.length > 0 && `· 已选择 ${images.length}/3 张图片`}
+        按 Enter 发送，Shift + Enter 换行 {files.length > 0 && `· 已选择 ${files.length}/5 个文件`}
       </div>
     </div>
   );
