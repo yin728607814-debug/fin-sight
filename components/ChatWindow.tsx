@@ -10,7 +10,6 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { analysisService } from '../services/analysisService';
 
 /**
  * 聊天窗口组件Props
@@ -69,30 +68,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
         conversationHistory
       );
 
-      // 调用AI服务
-      const response = await analysisService.makeGeminiRequest({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
+      // 调用AI服务（通过Cloudflare Functions代理）
+      const response = await fetch('/gemini-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
           temperature: 0.7,
           maxOutputTokens: 2048
-        }
+        })
       });
 
-      // 解析响应
-      const candidate = response.data.candidates?.[0];
-      if (!candidate || !candidate.content?.parts?.[0]?.text) {
-        throw new Error('AI响应为空');
+      if (!response.ok) {
+        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
       }
 
-      const aiResponseText = candidate.content.parts[0].text;
+      const result = await response.json();
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'AI响应为空');
+      }
+
+      const aiResponseText = result.data;
       const parsedResponse = AIPromptBuilder.parseAIResponse(aiResponseText);
       const formattedResponse = AIPromptBuilder.formatResponse(parsedResponse);
 
