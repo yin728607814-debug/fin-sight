@@ -6,9 +6,11 @@
 export interface AppConfig {
   apiKeys: {
     gemini: string;
-    news: string;
-    alphaVantage: string;
     finnhub: string;
+  };
+  supabase: {
+    url: string;
+    anonKey: string;
   };
   app: {
     title: string;
@@ -54,20 +56,22 @@ function getEnvVar(key: string, defaultValue: string = ''): string {
  */
 export const config: AppConfig = {
   apiKeys: {
-    gemini: getEnvVar('VITE_GEMINI_API_KEY') || getEnvVar('GEMINI_API_KEY'),
-    news: getEnvVar('VITE_NEWS_API_KEY') || getEnvVar('NEWS_API_KEY'),
-    alphaVantage: getEnvVar('VITE_ALPHA_VANTAGE_API_KEY') || getEnvVar('ALPHA_VANTAGE_API_KEY'),
+    gemini: getEnvVar('GEMINI_API_KEY') || getEnvVar('VITE_GEMINI_API_KEY'),
     finnhub: getEnvVar('VITE_FINNHUB_API_KEY') || getEnvVar('FINNHUB_API_KEY'),
   },
+  supabase: {
+    url: getEnvVar('VITE_SUPABASE_URL'),
+    anonKey: getEnvVar('VITE_SUPABASE_ANON_KEY'),
+  },
   app: {
-    title: getEnvVar('VITE_APP_TITLE', 'Investment News Analyzer'),
+    title: getEnvVar('VITE_APP_TITLE', 'FinSight AI'),
     version: getEnvVar('VITE_APP_VERSION', '1.0.0'),
     environment: (getEnvVar('NODE_ENV', 'development') as 'development' | 'production' | 'preview') || 'development',
   },
   api: {
-    timeout: parseInt(getEnvVar('VITE_API_TIMEOUT', '30000'), 10), // 增加到30秒
+    timeout: parseInt(getEnvVar('VITE_API_TIMEOUT', '30000'), 10),
     retryAttempts: parseInt(getEnvVar('VITE_API_RETRY_ATTEMPTS', '3'), 10),
-    cacheTimeout: parseInt(getEnvVar('VITE_CACHE_TIMEOUT', '300000'), 10), // 5分钟
+    cacheTimeout: parseInt(getEnvVar('VITE_CACHE_TIMEOUT', '300000'), 10),
   },
 };
 
@@ -77,9 +81,8 @@ export const config: AppConfig = {
 export function validateConfig(): { isValid: boolean; missingKeys: string[] } {
   const requiredKeys = [
     { key: 'GEMINI_API_KEY', value: config.apiKeys.gemini },
-    { key: 'NEWS_API_KEY', value: config.apiKeys.news },
-    { key: 'ALPHA_VANTAGE_API_KEY', value: config.apiKeys.alphaVantage },
-    { key: 'FINNHUB_API_KEY', value: config.apiKeys.finnhub },
+    { key: 'VITE_SUPABASE_URL', value: config.supabase.url },
+    { key: 'VITE_SUPABASE_ANON_KEY', value: config.supabase.anonKey },
   ];
 
   const missingKeys = requiredKeys
@@ -100,8 +103,8 @@ const isProduction = typeof window !== 'undefined' &&
                     window.location.hostname !== '127.0.0.1';
 
 if (isProduction) {
-  // 生产环境中，API密钥由Netlify函数处理，前端不需要访问
-  console.log('🌐 生产环境：API密钥由服务器端Netlify函数处理');
+  // 生产环境中，API密钥由Cloudflare Functions处理，前端不需要访问
+  console.log('🌐 生产环境：API密钥由服务器端Cloudflare Functions处理');
 } else if (config.app.environment === 'development') {
   // 开发环境下的配置检查
   const validation = validateConfig();
