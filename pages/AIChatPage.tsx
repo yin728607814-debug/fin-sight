@@ -33,15 +33,15 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
   /**
    * 构建聊天上下文
    */
-  const buildChatContext = (): ChatContext => {
+  const buildChatContext = async (): Promise<ChatContext> => {
     // 获取当前价格和变化
     const latestPrice = priceData.length > 0 ? priceData[priceData.length - 1] : null;
     
     // 获取情绪分数
     let sentimentScore: number | undefined;
     try {
-      const history = sentimentService.getSentimentHistory(assetType, 1);
-      if (history.data.length > 0) {
+      const history = await sentimentService.getSentimentHistory(assetType, 1);
+      if (history?.data && history.data.length > 0) {
         sentimentScore = history.data[0].score;
       }
     } catch (error) {
@@ -60,14 +60,23 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
     };
   };
 
-  const [chatContext, setChatContext] = useState<ChatContext>(buildChatContext());
+  const [chatContext, setChatContext] = useState<ChatContext>({
+    assetType,
+    recentNews: [],
+    currentPrice: undefined,
+    priceChange: undefined,
+    sentimentScore: undefined
+  });
 
   /**
    * 当资产类型或数据变化时更新上下文
    */
   useEffect(() => {
-    const newContext = buildChatContext();
-    setChatContext(newContext);
+    const updateContext = async () => {
+      const newContext = await buildChatContext();
+      setChatContext(newContext);
+    };
+    updateContext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetType, news, priceData]);
 
