@@ -51,7 +51,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
   /**
    * 发送消息
    */
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, images?: string[]) => {
     if (!context.assetType) {
       console.error('资产类型未设置');
       return;
@@ -72,23 +72,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context, onContextUpdate
       const conversationHistory = await chatService.getConversationContext(context.assetType, 5);
       
       // 构建提示词
-      const prompt = AIPromptBuilder.buildChatPrompt(
+      let prompt = AIPromptBuilder.buildChatPrompt(
         content,
         context,
         conversationHistory
       );
 
+      // 如果有图片，添加图片分析提示
+      if (images && images.length > 0) {
+        prompt += `\n\n用户上传了${images.length}张图片，请分析图片内容并结合市场情况给出专业建议。`;
+      }
+
       // 调用AI服务（通过Cloudflare Functions代理）
+      const requestBody: any = {
+        prompt,
+        temperature: 0.7,
+        maxOutputTokens: 2048
+      };
+
+      // 如果有图片，添加到请求中
+      if (images && images.length > 0) {
+        requestBody.images = images;
+      }
+
       const response = await fetch('/gemini-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          prompt,
-          temperature: 0.7,
-          maxOutputTokens: 2048
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
