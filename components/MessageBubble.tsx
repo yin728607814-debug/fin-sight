@@ -24,8 +24,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   /**
    * 格式化时间
    */
-  const formatTime = (date: Date): string => {
+  const formatTime = (timestamp: Date | string): string => {
     const now = new Date();
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
     const diff = now.getTime() - date.getTime();
     
     // 小于1分钟
