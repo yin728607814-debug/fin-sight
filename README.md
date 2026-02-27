@@ -7,10 +7,11 @@
 ## ✨ 功能特性
 
 ### 核心功能
-- 📰 **实时金融新闻**: 聚合来自东方财富、新浪财经等权威源的最新市场新闻
+- 📰 **实时金融新闻**: 聚合来自东方财富、新浪财经、Finnhub 等权威源的最新市场新闻
 - 🤖 **AI 智能分析**: 使用 Google Gemini AI 分析新闻情感和市场影响
 - 📊 **交互式图表**: 实时价格走势和技术指标可视化
 - 📈 **多资产支持**: 黄金、纳斯达克100、A股等多种投资标的
+- 🌐 **混合新闻策略**: 优先使用中文新闻源，必要时补充英文新闻并自动翻译
 
 ### 高级功能
 - 🌓 **深色模式**: 支持浅色/深色/跟随系统三种主题模式
@@ -66,16 +67,23 @@ cp .env.example .env
 
 编辑 `.env` 文件，添加必要的 API 密钥：
 ```env
-# Gemini AI（用于 AI 分析）
+# Gemini AI（必需，用于 AI 分析）
 GEMINI_API_KEY=your_gemini_api_key
 
-# Supabase（用于用户认证和数据存储）
+# Supabase（必需，用于用户认证和数据存储）
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Finnhub（可选，用于价格数据）
+# Finnhub（可选，用于英文新闻补充）
 VITE_FINNHUB_API_KEY=your_finnhub_api_key
 ```
+
+**新闻数据源说明**：
+- **新浪财经**：通过 Cloudflare Functions 代理访问，无需 API 密钥
+- **东方财富**：通过 Cloudflare Functions 代理访问，无需 API 密钥
+- **Finnhub**：可选，用于补充英文新闻（需要 API 密钥）
+
+应用会优先使用中文新闻源（新浪财经、东方财富），仅在需要时使用 Finnhub 补充英文新闻。
 
 ### 4. 启动开发服务器
 ```bash
@@ -87,11 +95,17 @@ npm run dev
 
 ## 🔑 API 密钥获取
 
-| 服务 | 用途 | 获取地址 | 免费额度 |
-|------|------|----------|----------|
-| Gemini AI | AI 分析 | https://ai.google.dev/ | 1500次/天 |
-| Supabase | 数据存储 | https://supabase.com/ | 500MB 数据库 |
-| Finnhub | 价格数据 | https://finnhub.io/ | 60次/分钟 |
+| 服务 | 用途 | 是否必需 | 获取地址 | 免费额度 |
+|------|------|----------|----------|----------|
+| Gemini AI | AI 分析 | ✅ 必需 | https://ai.google.dev/ | 1500次/天 |
+| Supabase | 数据存储和认证 | ✅ 必需 | https://supabase.com/ | 500MB 数据库 |
+| Finnhub | 英文新闻补充 | ⭕ 可选 | https://finnhub.io/ | 60次/分钟 |
+| 新浪财经 | 中文新闻 | ❌ 无需密钥 | 通过代理访问 | - |
+| 东方财富 | 中文新闻 | ❌ 无需密钥 | 通过代理访问 | - |
+
+**说明**：
+- 新浪财经和东方财富的新闻数据通过 Cloudflare Functions 代理访问，无需申请 API 密钥
+- Finnhub 仅在中文新闻源不足时用于补充英文新闻（会自动翻译），可选配置
 
 ## 🌐 部署到 Cloudflare Pages
 
@@ -121,8 +135,13 @@ npm run dev
    GEMINI_API_KEY=你的_Gemini_API_密钥
    VITE_SUPABASE_URL=你的_Supabase_URL
    VITE_SUPABASE_ANON_KEY=你的_Supabase_匿名密钥
-   VITE_FINNHUB_API_KEY=你的_Finnhub_API_密钥
+   VITE_FINNHUB_API_KEY=你的_Finnhub_API_密钥（可选）
    ```
+   
+   **注意**：
+   - `GEMINI_API_KEY` 和 Supabase 配置是必需的
+   - `VITE_FINNHUB_API_KEY` 是可选的，仅用于补充英文新闻
+   - 新浪财经和东方财富无需配置，通过 Functions 代理访问
 
 6. **部署**
    - 点击 **Save and Deploy**
@@ -201,8 +220,12 @@ fin-sight/
 - **生产环境**: 使用真实 API 和云端数据
 
 ### API 代理机制
-- Gemini AI 调用通过 Cloudflare Functions 代理
-- 新闻数据通过服务器端函数获取
+- Gemini AI 调用通过 Cloudflare Functions 代理，保护 API 密钥
+- 新闻数据通过以下代理获取：
+  - `/sina-news-proxy`: 新浪财经新闻（中文）
+  - `/eastmoney-news-proxy`: 东方财富美股新闻（中文）
+  - `/eastmoney-gold-proxy`: 东方财富黄金新闻（中文）
+  - `/api/finnhub-news-proxy`: Finnhub 新闻（英文，可选）
 - 确保 API 密钥安全，避免暴露到前端
 
 ## 📊 功能演示
