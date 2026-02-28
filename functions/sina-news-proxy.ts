@@ -63,7 +63,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
     const allArticles = [];
     const perPage = 50;
-    const pages = Math.min(Math.ceil(num / perPage), 3); // 最多3页，避免请求过多
+    const pages = Math.ceil(num / perPage); // 恢复原来的逻辑，不限制页数
 
     for (let page = 1; page <= pages; page++) {
       const apiUrl = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${perPage}&page=${page}`;
@@ -106,7 +106,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
         // 延迟避免请求过快
         if (page < pages) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 200)); // 恢复200ms延迟
         }
       } catch (error) {
         console.error(`❌ 第${page}页错误:`, error.message);
