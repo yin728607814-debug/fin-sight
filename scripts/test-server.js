@@ -1,14 +1,19 @@
 /**
- * Cloudflare Pages Function: 新浪财经新闻代理
- * 获取中文财经新闻
+ * 本地测试服务器 - 模拟 Cloudflare Functions
+ * 使用方法：node scripts/test-server.js
  */
 
-interface Env {
-  // 环境变量接口
-}
+import express from 'express';
+import cors from 'cors';
 
-// 简化的重试函数 - 只重试一次，减少等待时间
-async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+// 简化的重试函数
+async function fetchWithRetry(url, options) {
   try {
     const response = await fetch(url, options);
     if (response.ok) {
@@ -24,22 +29,11 @@ async function fetchWithRetry(url: string, options: RequestInit): Promise<Respon
   }
 }
 
-export async function onRequest(context: { request: Request; env: Env }) {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-
-  if (context.request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
+// 新浪新闻代理
+app.get('/sina-news-proxy', async (req, res) => {
   try {
-    const url = new URL(context.request.url);
-    const category = url.searchParams.get('category') || 'finance';
-    const num = parseInt(url.searchParams.get('num') || '50');
+    const category = req.query.category || 'finance';
+    const num = parseInt(req.query.num || '50');
 
     const categoryConfig = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
@@ -51,15 +45,17 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
     const config = categoryConfig[category] || categoryConfig['finance'];
 
-    console.log('📰 新浪财经新闻:', { category, num, config: config.name });
+    console.log(`📰 新浪财经新闻: ${config.name}, 请求 ${num} 条`);
 
     const allArticles = [];
     const perPage = 50;
     const pages = Math.ceil(num / perPage);
 
-    // 并行请求前3页，后续页面串行请求
+    // 并行请求前3页
     const firstBatchPages = Math.min(pages, 3);
     const firstBatchPromises = [];
+
+    console.log(`⚡ 并行请求前 ${firstBatchPages} 页...`);
 
     for (let page = 1; page <= firstBatchPages; page++) {
       const apiUrl = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${perPage}&page=${page}`;
@@ -95,12 +91,15 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
       const pageArticles = data.result?.data || [];
       if (pageArticles.length > 0) {
+        console.log(`✅ 第${result.page}页: ${pageArticles.length} 条`);
         allArticles.push(...pageArticles);
       }
     }
 
     // 如果还需要更多页面，串行请求
     if (pages > firstBatchPages && allArticles.length < num) {
+      console.log(`🔄 串行请求剩余 ${pages - firstBatchPages} 页...`);
+      
       for (let page = firstBatchPages + 1; page <= pages; page++) {
         const apiUrl = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${perPage}&page=${page}`;
 
@@ -125,6 +124,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
             break;
           }
 
+          console.log(`✅ 第${page}页: ${pageArticles.length} 条`);
           allArticles.push(...pageArticles);
 
           if (allArticles.length >= num) break;
@@ -144,7 +144,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
       throw new Error('未获取到任何新闻数据');
     }
 
-    console.log(`✅ 总计获取 ${allArticles.length} 条新闻`);
+    console.log(`✅ 总计获取 ${allArticles.length} 条新闻\n`);
 
     const articles = allArticles.map(item => ({
       title: item.title,
@@ -161,28 +161,25 @@ export async function onRequest(context: { request: Request; env: Env }) {
       image: item.img || item.thumb || null
     }));
 
-    return new Response(JSON.stringify({
+    res.json({
       status: 'ok',
       totalResults: articles.length,
       articles
-    }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Cache-Control': 'public, max-age=180'
-      }
     });
 
   } catch (error) {
     console.error('❌ 新浪财经错误:', error);
 
-    return new Response(JSON.stringify({
+    res.json({
       status: 'error',
       message: error.message || '获取新闻失败',
       articles: []
-    }), {
-      status: 200,
-      headers: corsHeaders
     });
   }
-}
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 测试服务器运行在 http://localhost:${PORT}`);
+  console.log(`📡 新浪新闻代理: http://localhost:${PORT}/sina-news-proxy?num=50`);
+  console.log('\n按 Ctrl+C 停止服务器\n');
+});
