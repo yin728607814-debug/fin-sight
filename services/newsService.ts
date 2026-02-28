@@ -417,12 +417,15 @@ export class NewsService implements INewsService {
    */
   private async fetchSinaAStockNews(limit: number): Promise<NewsItem[]> {
     try {
+      // 对于大量新闻请求，增加超时时间
+      const timeout = limit > 100 ? 60000 : this.config.timeout;
+      
       const response = await axios.get('/sina-news-proxy', {
         params: { 
           category: 'finance',
           num: limit
         },
-        timeout: this.config.timeout
+        timeout
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
@@ -492,12 +495,15 @@ export class NewsService implements INewsService {
    */
   private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
     try {
+      // 对于大量新闻请求，增加超时时间
+      const timeout = limit > 100 ? 60000 : this.config.timeout;
+      
       const response = await axios.get('/sina-news-proxy', {
         params: { 
           category: 'finance',
           num: limit  // 使用传入的limit参数
         },
-        timeout: this.config.timeout
+        timeout
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
@@ -561,12 +567,15 @@ export class NewsService implements INewsService {
    */
   private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
     try {
+      // 对于大量新闻请求，增加超时时间
+      const timeout = limit > 100 ? 60000 : this.config.timeout;
+      
       const response = await axios.get('/sina-news-proxy', {
         params: { 
           category: 'finance',
           num: limit
         },
-        timeout: this.config.timeout
+        timeout
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
