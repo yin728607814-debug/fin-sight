@@ -214,9 +214,9 @@ export class NewsService implements INewsService {
             console.log('🚀 使用混合策略获取黄金新闻');
             newsItems = await this.fetchGoldNewsHybrid(limit);
           } else if (assetType === 'astock') {
-            // A股：使用新浪财经A股新闻
-            console.log('🚀 使用新浪财经获取A股新闻');
-            newsItems = await this.fetchSinaAStockNews(limit);
+            // A股：使用混合策略（东方财富 + 新浪财经）
+            console.log('🚀 使用混合策略获取A股新闻');
+            newsItems = await this.fetchAStockNewsHybrid(limit);
           } else {
             // 其他资产：使用新浪财经
             console.log('🚀 使用新浪财经获取新闻');
@@ -265,24 +265,30 @@ export class NewsService implements INewsService {
     
     // 第一优先级：东方财富美股专页
     try {
-      const eastmoneyNews = await this.fetchEastMoneyNews(limit);
+      const eastmoneyNews = await this.fetchEastMoneyNews(limit * 2); // 获取更多以确保足够
       console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
       allNews.push(...eastmoneyNews);
     } catch (error) {
       console.warn(`⚠️ 东方财富获取失败:`, error.message);
     }
     
-    // 第二优先级：新浪财经补充
+    // 第二优先级：新浪财经补充（快速超时）
     if (allNews.length < limit) {
-      console.log(`📊 东方财富不足，获取新浪财经新闻`);
+      console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
-        // 获取500条新闻用于过滤（因为需要过滤出美股相关的）
-        const sinaNews = await this.fetchSinaUSStockNews(500);
+        // 使用 Promise.race 设置快速超时（20秒）
+        const sinaPromise = this.fetchSinaUSStockNews(300); // 减少请求量
+        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
+          setTimeout(() => reject(new Error('新浪新闻获取超时(20秒)')), 20000)
+        );
+        
+        const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error) {
-        console.warn(`⚠️ 新浪财经获取失败:`, error.message);
+        console.warn(`⚠️ 新浪财经获取失败或超时:`, error.message);
+        // 新浪失败不影响整体流程
       }
     }
     
@@ -344,24 +350,30 @@ export class NewsService implements INewsService {
     
     // 第一优先级：东方财富黄金频道
     try {
-      const eastmoneyGoldNews = await this.fetchEastMoneyGoldNews(limit);
+      const eastmoneyGoldNews = await this.fetchEastMoneyGoldNews(limit * 2); // 获取更多以确保足够
       console.log(`✅ 东方财富黄金频道获取成功: ${eastmoneyGoldNews.length}条`);
       allNews.push(...eastmoneyGoldNews);
     } catch (error) {
       console.warn(`⚠️ 东方财富黄金频道获取失败:`, error.message);
     }
     
-    // 第二优先级：新浪财经黄金新闻补充
+    // 第二优先级：新浪财经黄金新闻补充（设置较短超时，快速失败）
     if (allNews.length < limit) {
-      console.log(`📊 东方财富不足，获取新浪财经黄金新闻`);
+      console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
-        // 获取500条新闻用于过滤（因为需要过滤出黄金相关的）
-        const sinaNews = await this.fetchSinaGoldNews(500);
+        // 使用 Promise.race 设置快速超时（20秒）
+        const sinaPromise = this.fetchSinaGoldNews(300); // 减少请求量，加快速度
+        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
+          setTimeout(() => reject(new Error('新浪新闻获取超时(20秒)')), 20000)
+        );
+        
+        const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error) {
-        console.warn(`⚠️ 新浪财经获取失败:`, error.message);
+        console.warn(`⚠️ 新浪财经获取失败或超时:`, error.message);
+        // 新浪失败不影响整体流程，继续使用已有的新闻
       }
     }
     
@@ -408,6 +420,74 @@ export class NewsService implements INewsService {
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条`);
     console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经补充`);
+    
+    return finalNews;
+  }
+
+  /**
+   * 混合策略获取A股新闻（东方财富 + 新浪财经）
+   */
+  private async fetchAStockNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
+    console.log(`\n🔍 开始混合策略获取A股新闻 (目标: ${limit}条)`);
+    
+    const allNews: NewsItem[] = [];
+    
+    // 1. 优先使用东方财富A股新闻（更可靠）
+    console.log(`📰 [1/2] 获取东方财富A股新闻 (请求: ${limit * 2}条)`);
+    try {
+      const eastmoneyNews = await this.fetchEastmoneyAStockNews(limit * 2);
+      console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
+      allNews.push(...eastmoneyNews);
+    } catch (error) {
+      console.error(`❌ 东方财富A股新闻获取失败:`, error);
+    }
+    
+    // 2. 新浪财经作为补充（带超时保护）
+    if (allNews.length < limit) {
+      const needed = Math.min(300, limit * 2); // 最多请求300条，避免超时
+      console.log(`📰 [2/2] 获取新浪财经A股新闻 (请求: ${needed}条)`);
+      
+      try {
+        // 20秒超时保护
+        const sinaNewsPromise = this.fetchSinaAStockNews(needed);
+        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
+          setTimeout(() => reject(new Error('新浪新闻请求超时(20秒)')), 20000)
+        );
+        
+        const sinaNews = await Promise.race([sinaNewsPromise, timeoutPromise]);
+        console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
+        allNews.push(...sinaNews);
+      } catch (error) {
+        console.warn(`⚠️ 新浪财经A股新闻获取失败（非致命错误）:`, error);
+        // 新浪失败不影响整体流程，继续使用已有的东方财富数据
+      }
+    } else {
+      console.log(`✅ 东方财富数据充足（${allNews.length}条），跳过新浪财经`);
+    }
+    
+    console.log(`📊 合并前总数: ${allNews.length}条`);
+    
+    // 去重（按URL）
+    const uniqueNews = this.deduplicateNews(allNews);
+    console.log(`🔄 去重后: ${uniqueNews.length}条`);
+    
+    // 计算相关性评分
+    const scoredNews = uniqueNews.map(news => ({
+      ...news,
+      relevanceScore: this.calculateAStockRelevanceScore(news)
+    }));
+    
+    // 按相关性排序
+    scoredNews.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    
+    // 降低过滤阈值，保留更多新闻（阈值10分，更宽松）
+    const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
+    console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
+    
+    // 返回前N条
+    const finalNews = filteredNews.slice(0, limit);
+    console.log(`🎯 最终返回: ${finalNews.length}条`);
+    console.log(`📊 来源: 东方财富A股频道优先 + 新浪财经补充`);
     
     return finalNews;
   }
@@ -704,6 +784,46 @@ export class NewsService implements INewsService {
   }
 
   /**
+   * 获取东方财富A股新闻
+   */
+  private async fetchEastmoneyAStockNews(limit: number): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/eastmoney-news-proxy', {
+        params: { category: 'astock' },
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        console.warn('东方财富A股新闻返回数据格式错误');
+        return [];
+      }
+
+      return response.data.articles
+        .slice(0, limit)
+        .map((article: any, index: number) => {
+          // 使用 URL 或标题生成稳定的 ID（不使用时间戳）
+          const stableId = article.url 
+            ? `eastmoney_astock_${this.hashString(article.url)}`
+            : `eastmoney_astock_${this.hashString(article.title)}_${index}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '东方财富',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.5,
+            image: article.image
+          };
+        });
+    } catch (error) {
+      console.error('东方财富A股新闻获取失败:', error);
+      return [];
+    }
+  }
+
+  /**
    * 计算纳斯达克相关性评分（0-1）- 优化版
    */
   private calculateNasdaqRelevanceScore(news: NewsItem): number {
@@ -786,6 +906,49 @@ export class NewsService implements INewsService {
     // 4. 通用财经关键词 (10分)
     const generalKeywords = ['美元', '利率', '通胀', '经济', '投资', '市场', '交易'];
     if (generalKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
+      score += 0.10;
+    }
+    
+    return Math.min(score, 1.0);
+  }
+
+  /**
+   * 计算A股相关性评分（0-1）
+   */
+  private calculateAStockRelevanceScore(news: NewsItem): number {
+    let score = 0;
+    const title = news.title.toLowerCase();
+    const content = news.content.toLowerCase();
+    const url = news.url.toLowerCase();
+    const source = news.source.toLowerCase();
+    
+    // 1. 来源加分 (40分)
+    if (source.includes('东方财富') || url.includes('eastmoney.com')) {
+      score += 0.40;
+    } else if (url.includes('/stock/') && !url.includes('/usstock/') && !url.includes('/hkstock/')) {
+      score += 0.40;
+    } else if (source.includes('新浪') || source.includes('sina') || source.includes('财经')) {
+      score += 0.30;
+    }
+    
+    // 2. 标题核心关键词 (30分)
+    const highPriorityKeywords = ['a股', 'A股', '沪指', '深指', '上证', '深证', 
+                                  '上证指数', '深证成指', '创业板', '科创板'];
+    if (highPriorityKeywords.some(kw => title.includes(kw))) {
+      score += 0.30;
+    }
+    
+    // 3. 行业和板块 (20分)
+    const sectors = ['白酒', '新能源', '半导体', '医药', '地产', '银行', '保险', 
+                    '券商', '基金', '芯片', '锂电', '光伏', '军工'];
+    if (sectors.some(kw => title.includes(kw) || content.includes(kw))) {
+      score += 0.20;
+    }
+    
+    // 4. 市场相关词 (10分)
+    const marketTerms = ['股市', '股票', '股价', '大盘', '指数', '涨跌', '行情', 
+                        '交易', '成交', '北向资金', '外资', '机构'];
+    if (marketTerms.some(kw => title.includes(kw) || content.includes(kw))) {
       score += 0.10;
     }
     

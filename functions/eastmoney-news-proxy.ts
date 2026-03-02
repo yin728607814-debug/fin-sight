@@ -1,5 +1,5 @@
 /**
- * Cloudflare Pages Function: 东方财富美股新闻代理
+ * Cloudflare Pages Function: 东方财富新闻代理（支持美股和A股）
  */
 
 interface Env {
@@ -19,11 +19,18 @@ export async function onRequest(context: { request: Request; env: Env }) {
   }
 
   try {
-    console.log('📡 开始获取东方财富美股新闻');
-
-    const url = 'https://finance.eastmoney.com/a/cgjjj.html';
+    // 从URL参数获取类别
+    const url = new URL(context.request.url);
+    const category = url.searchParams.get('category') || 'usstock';
     
-    const response = await fetch(url, {
+    console.log(`📡 开始获取东方财富${category === 'astock' ? 'A股' : '美股'}新闻`);
+
+    // 根据类别选择不同的URL
+    const targetUrl = category === 'astock' 
+      ? 'https://finance.eastmoney.com/a/cagub.html'  // A股新闻
+      : 'https://finance.eastmoney.com/a/cgjjj.html'; // 美股新闻
+    
+    const response = await fetch(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -77,7 +84,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
       new Map(articles.map(item => [item.url, item])).values()
     );
 
-    console.log('📰 解析后的美股新闻数量:', uniqueArticles.length);
+    console.log(`📰 解析后的${category === 'astock' ? 'A股' : '美股'}新闻数量:`, uniqueArticles.length);
 
     return new Response(JSON.stringify({
       status: 'ok',
@@ -89,7 +96,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
     });
 
   } catch (error: any) {
-    console.error('❌ 东方财富美股新闻获取失败:', error.message);
+    console.error('❌ 东方财富新闻获取失败:', error.message);
     
     return new Response(JSON.stringify({
       status: 'error',
