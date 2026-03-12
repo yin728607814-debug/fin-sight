@@ -413,26 +413,54 @@ export class AnalysisService implements IAnalysisService {
           overallConfidence: parsed.overallConfidence || 0.5,
           overallSummary: parsed.overallSummary || '分析完成'
         };
-      } catch (parseError) {
+      } catch (parseError: any) {
         console.warn('首次JSON解析失败，尝试修复...', parseError);
         
-        // 2. 尝试修复常见问题
-        // 修复未转义的换行符
-        jsonText = jsonText.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        // 打印错误位置附近的内容以便调试
+        if (parseError.message && parseError.message.includes('position')) {
+          const posMatch = parseError.message.match(/position (\d+)/);
+          if (posMatch) {
+            const pos = parseInt(posMatch[1]);
+            const start = Math.max(0, pos - 100);
+            const end = Math.min(jsonText.length, pos + 100);
+            console.log('❌ 错误位置附近的内容:');
+            console.log(jsonText.substring(start, end));
+            console.log(' '.repeat(Math.min(100, pos - start)) + '^');
+          }
+        }
         
-        // 修复未转义的引号（在字符串内部）
-        // 这个比较复杂，先尝试简单的替换
-        jsonText = jsonText.replace(/([^\\])"/g, (match, p1) => {
-          // 如果前面不是反斜杠，可能需要转义
-          return p1 + '\\"';
+        // 2. 智能修复策略
+        let fixedJson = jsonText;
+        
+        // 修复策略1: 移除数组/对象末尾多余的逗号
+        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, '$1');
+        
+        // 修复策略2: 修复字符串中未转义的换行符（但保留JSON结构中的换行）
+        // 使用更智能的方式：只在字符串值内部替换换行符
+        fixedJson = fixedJson.replace(/"([^"]*?)"/g, (match, content) => {
+          // 在字符串内容中转义换行符和回车符
+          const escaped = content
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+          return `"${escaped}"`;
         });
         
-        // 修复数组末尾多余的逗号
-        jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+        // 修复策略3: 尝试修复截断的JSON（如果最后一个字符不是}或]）
+        fixedJson = fixedJson.trim();
+        if (!fixedJson.endsWith('}') && !fixedJson.endsWith(']')) {
+          console.log('⚠️ JSON可能被截断，尝试补全...');
+          // 尝试找到最后一个完整的对象或数组
+          const lastCompleteMatch = fixedJson.match(/(.*[}\]])[^}\]]*$/);
+          if (lastCompleteMatch) {
+            fixedJson = lastCompleteMatch[1];
+            console.log('✂️ 截取到最后一个完整结构');
+          }
+        }
         
         // 再次尝试解析
         try {
-          const parsed = JSON.parse(jsonText);
+          const parsed = JSON.parse(fixedJson);
           
           if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
             throw new Error('响应格式错误：缺少 analyses 数组');
@@ -449,21 +477,38 @@ export class AnalysisService implements IAnalysisService {
           console.error('JSON修复失败，使用降级策略');
           
           // 3. 降级策略：尝试提取部分有效的分析结果
-          const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)\]/);
-          if (analysesMatch) {
-            try {
-              // 尝试只解析analyses数组
-              const analysesArray = JSON.parse('[' + analysesMatch[1] + ']');
-              console.log(`✅ 部分解析成功，获得${analysesArray.length}条分析`);
-              
-              return {
-                analyses: analysesArray,
-                overallImpact: 'neutral',
-                overallConfidence: 0.5,
-                overallSummary: '部分分析完成'
-              };
-            } catch (arrayError) {
-              console.error('部分解析也失败');
+          // 尝试找到analyses数组的开始和结束
+          const analysesStartMatch = fixedJson.match(/"analyses"\s*:\s*\[/);
+          if (analysesStartMatch) {
+            const startPos = analysesStartMatch.index! + analysesStartMatch[0].length;
+            let bracketCount = 1;
+            let endPos = startPos;
+            
+            // 找到匹配的结束括号
+            for (let i = startPos; i < fixedJson.length && bracketCount > 0; i++) {
+              if (fixedJson[i] === '[') bracketCount++;
+              if (fixedJson[i] === ']') bracketCount--;
+              if (bracketCount === 0) {
+                endPos = i;
+                break;
+              }
+            }
+            
+            if (endPos > startPos) {
+              try {
+                const analysesContent = fixedJson.substring(startPos, endPos);
+                const analysesArray = JSON.parse('[' + analysesContent + ']');
+                console.log(`✅ 部分解析成功，获得${analysesArray.length}条分析`);
+                
+                return {
+                  analyses: analysesArray,
+                  overallImpact: 'neutral',
+                  overallConfidence: 0.5,
+                  overallSummary: '部分分析完成'
+                };
+              } catch (arrayError) {
+                console.error('部分解析也失败:', arrayError);
+              }
             }
           }
           
