@@ -385,7 +385,7 @@ export class AnalysisService implements IAnalysisService {
   private parseBatchGeminiResponseText(responseText: string, _expectedCount: number): BatchAnalysisResult {
     try {
       // 移除可能的 markdown 代码块标记
-      const cleanedText = responseText
+      let cleanedText = responseText
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
@@ -396,18 +396,81 @@ export class AnalysisService implements IAnalysisService {
         throw new Error('无法从响应中提取JSON');
       }
       
-      const parsed = JSON.parse(jsonMatch[0]);
+      let jsonText = jsonMatch[0];
       
-      if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
-        throw new Error('响应格式错误：缺少 analyses 数组');
+      // 尝试修复常见的JSON格式问题
+      try {
+        // 1. 尝试直接解析
+        const parsed = JSON.parse(jsonText);
+        
+        if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
+          throw new Error('响应格式错误：缺少 analyses 数组');
+        }
+        
+        return {
+          analyses: parsed.analyses,
+          overallImpact: parsed.overallImpact || 'neutral',
+          overallConfidence: parsed.overallConfidence || 0.5,
+          overallSummary: parsed.overallSummary || '分析完成'
+        };
+      } catch (parseError) {
+        console.warn('首次JSON解析失败，尝试修复...', parseError);
+        
+        // 2. 尝试修复常见问题
+        // 修复未转义的换行符
+        jsonText = jsonText.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        
+        // 修复未转义的引号（在字符串内部）
+        // 这个比较复杂，先尝试简单的替换
+        jsonText = jsonText.replace(/([^\\])"/g, (match, p1) => {
+          // 如果前面不是反斜杠，可能需要转义
+          return p1 + '\\"';
+        });
+        
+        // 修复数组末尾多余的逗号
+        jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+        
+        // 再次尝试解析
+        try {
+          const parsed = JSON.parse(jsonText);
+          
+          if (!parsed.analyses || !Array.isArray(parsed.analyses)) {
+            throw new Error('响应格式错误：缺少 analyses 数组');
+          }
+          
+          console.log('✅ JSON修复成功');
+          return {
+            analyses: parsed.analyses,
+            overallImpact: parsed.overallImpact || 'neutral',
+            overallConfidence: parsed.overallConfidence || 0.5,
+            overallSummary: parsed.overallSummary || '分析完成'
+          };
+        } catch (secondError) {
+          console.error('JSON修复失败，使用降级策略');
+          
+          // 3. 降级策略：尝试提取部分有效的分析结果
+          const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)\]/);
+          if (analysesMatch) {
+            try {
+              // 尝试只解析analyses数组
+              const analysesArray = JSON.parse('[' + analysesMatch[1] + ']');
+              console.log(`✅ 部分解析成功，获得${analysesArray.length}条分析`);
+              
+              return {
+                analyses: analysesArray,
+                overallImpact: 'neutral',
+                overallConfidence: 0.5,
+                overallSummary: '部分分析完成'
+              };
+            } catch (arrayError) {
+              console.error('部分解析也失败');
+            }
+          }
+          
+          // 4. 最终降级：返回空结果
+          throw new Error('无法解析JSON响应，已尝试所有修复策略');
+        }
       }
-      
-      return {
-        analyses: parsed.analyses,
-        overallImpact: parsed.overallImpact || 'neutral',
-        overallConfidence: parsed.overallConfidence || 0.5,
-        overallSummary: parsed.overallSummary || '分析完成'
-      };
     } catch (error) {
       console.error('解析批量分析响应失败:', error);
       throw error;
@@ -445,34 +508,47 @@ export class AnalysisService implements IAnalysisService {
     
     return `你是一位专业的金融分析师。分析以下${newsList.length}条新闻对${assetName}的影响。${investmentStrategy}
 
-注意：新闻内容可能较简短（仅标题和摘要），请基于标题和关键信息做出专业判断。返回JSON（无markdown）：
+注意：新闻内容可能较简短（仅标题和摘要），请基于标题和关键信息做出专业判断。
+
+**重要：必须返回严格的JSON格式，不要包含任何markdown标记、注释或额外文本。**
 
 ${newsText}
 
-格式：
+返回格式（纯JSON，无markdown）：
 {
   "analyses": [
     {
       "newsIndex": 0,
-      "impact": "positive/negative/neutral",
+      "impact": "positive",
       "confidence": 0.75,
-      "summary": "基于标题和摘要，详细分析这条新闻的影响机制和传导路径（80-120字）",
+      "summary": "基于标题和摘要详细分析这条新闻的影响机制和传导路径（80-120字）",
       "keyPoints": ["关键点1", "关键点2", "关键点3"],
       "predictedChange": 2.5
     }
   ],
-  "overallImpact": "positive/negative/neutral",
+  "overallImpact": "positive",
   "overallConfidence": 0.70,
   "overallSummary": "综合所有新闻的整体市场影响分析（150-200字）"
 }
 
+JSON格式要求：
+- 所有字符串必须使用双引号
+- 字符串内的特殊字符必须转义（换行用\\n，引号用\\"）
+- 不要在字符串中使用未转义的换行符
+- 数组最后一个元素后不要有逗号
+- 对象最后一个属性后不要有逗号
+- impact只能是: "positive", "negative", "neutral"
+- confidence和predictedChange必须是数字，不要用字符串
+
 分析要求：
 - 即使内容简短，也要基于标题和关键词做出合理推断
-- summary要具体说明影响机制和传导路径
+- summary要具体说明影响机制和传导路径（不要包含换行符）
 - keyPoints要提取核心要素（政策、数据、事件等）
 - predictedChange范围：-10到+10（百分比）
 - confidence反映信息完整度和影响确定性
-- 必须返回所有${newsList.length}条新闻的完整分析`;
+- 必须返回所有${newsList.length}条新闻的完整分析
+
+再次强调：只返回纯JSON，不要任何markdown标记或额外说明。`;
   }
 
   /**
