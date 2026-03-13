@@ -28,7 +28,11 @@ import { measureAsync, recordError } from '../utils/monitoring';
  * 使用实际可用的 Gemini 模型
  */
 const GEMINI_MODELS = [
-  { model: 'gemini-3-pro-preview', version: 'v1beta' },      // 首选：Gemini 3 Pro Preview（最强大）
+  { model: 'gemini-1.5-pro', version: 'v1' },                   // 首选：Gemini 1.5 Pro（稳定版）
+  { model: 'gemini-1.5-flash', version: 'v1' },                 // 备用：Gemini 1.5 Flash（更快）
+  { model: 'gemini-pro', version: 'v1' },                       // 备用：Gemini Pro（经典版）
+  { model: 'gemini-1.5-pro-latest', version: 'v1beta' },        // 备用：最新版本
+  { model: 'gemini-1.5-flash-latest', version: 'v1beta' },      // 备用：最新Flash版本
 ];
 
 /**

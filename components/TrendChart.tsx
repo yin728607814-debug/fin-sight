@@ -56,24 +56,43 @@ export const TrendChart: React.FC<TrendChartProps> = ({
       };
     }
 
-    // 按日期排序
+    // 按日期排序并去重
     const sortedData = [...data].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
-    const labels = sortedData.map(item => 
+    // 去重：如果有相同日期的数据，只保留最新的一条
+    const uniqueData = sortedData.reduce((acc, current) => {
+      const dateStr = new Date(current.date).toDateString();
+      const existingIndex = acc.findIndex(item => 
+        new Date(item.date).toDateString() === dateStr
+      );
+      
+      if (existingIndex >= 0) {
+        // 如果日期已存在，保留时间戳更新的数据
+        if (new Date(current.date).getTime() > new Date(acc[existingIndex].date).getTime()) {
+          acc[existingIndex] = current;
+        }
+      } else {
+        acc.push(current);
+      }
+      
+      return acc;
+    }, [] as typeof sortedData);
+
+    const labels = uniqueData.map(item => 
       new Date(item.date).toLocaleDateString('zh-CN', {
         month: 'short',
         day: 'numeric'
       })
     );
 
-    const prices = sortedData.map(item => item.close);
+    const prices = uniqueData.map(item => item.close);
     // const changes = sortedData.map(item => item.changePercent);
 
     // 确定线条颜色（基于最新日期的涨跌 - 中国股市习惯：红涨绿跌）
-    const latestChange = sortedData.length > 1 
-      ? sortedData[sortedData.length - 1].changePercent
+    const latestChange = uniqueData.length > 1 
+      ? uniqueData[uniqueData.length - 1].changePercent
       : 0;
     
     const lineColor = latestChange >= 0 ? '#ef4444' : '#10b981'; // 红色上涨，绿色下跌
