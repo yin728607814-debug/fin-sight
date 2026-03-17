@@ -102,30 +102,34 @@ export async function onRequest(context: { request: Request; env: Env }) {
       const date = new Date(timestamp * 1000);
       const openPrice = open?.[index];
       const closePrice = close?.[index];
+      const highPrice = high?.[index];
+      const lowPrice = low?.[index];
+      const volumeData = volume?.[index] || 0;
 
       let change = 0;
       let changePercent = 0;
 
+      // 计算日涨跌幅：相对于前一个交易日的收盘价
       if (index > 0 && close?.[index - 1] && closePrice) {
         const previousClose = close[index - 1];
         change = closePrice - previousClose;
         changePercent = (change / previousClose) * 100;
-      } else if (openPrice && closePrice) {
-        change = closePrice - openPrice;
-        changePercent = (change / openPrice) * 100;
       }
 
       return {
         date: date.toISOString().split('T')[0],
         open: openPrice,
-        high: high?.[index],
-        low: low?.[index],
+        high: highPrice,
+        low: lowPrice,
         close: closePrice,
-        volume: volume?.[index] || 0,
+        volume: volumeData,
         change,
         changePercent
       };
-    }).filter(item => item.close !== null && item.close !== undefined);
+    }).filter(item => {
+      // 只过滤掉完全无效的数据，保留所有有收盘价的数据
+      return item.close !== null && item.close !== undefined && !isNaN(item.close);
+    });
 
     const responseData = {
       symbol: yahooSymbol,
@@ -141,7 +145,17 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
     console.log('✅ Yahoo Finance 成功:', {
       symbol: yahooSymbol,
-      dataPoints: priceData.length
+      dataPoints: priceData.length,
+      dateRange: priceData.length > 0 ? {
+        first: priceData[0]?.date,
+        last: priceData[priceData.length - 1]?.date
+      } : null,
+      sampleData: priceData.slice(-2).map(item => ({
+        date: item.date,
+        close: item.close,
+        change: item.change?.toFixed(2),
+        changePercent: item.changePercent?.toFixed(2) + '%'
+      }))
     });
 
     return new Response(JSON.stringify(responseData), {
