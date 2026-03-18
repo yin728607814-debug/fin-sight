@@ -315,10 +315,10 @@ export class NewsService implements INewsService {
     const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
     console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
     
-    // 如果中文源仍然不足，补充Finnhub + 翻译
+    // 如果中文源仍然不足，尝试补充Finnhub + 翻译（非必需）
     if (filteredNews.length < limit) {
       const needed = limit - filteredNews.length;
-      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），需要Finnhub补充${needed}条`);
+      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），尝试Finnhub补充${needed}条`);
       console.log(`🌐 使用Finnhub获取并翻译...`);
       
       try {
@@ -327,17 +327,20 @@ export class NewsService implements INewsService {
           const translatedNews = await this.translateNewsItems(finnhubNews);
           filteredNews.push(...translatedNews);
           console.log(`✅ Finnhub补充完成: ${translatedNews.length}条`);
+        } else {
+          console.log(`⚠️ Finnhub未返回数据，继续使用现有${filteredNews.length}条新闻`);
         }
       } catch (error) {
-        console.error(`❌ Finnhub补充失败:`, error);
+        console.warn(`⚠️ Finnhub补充失败（非致命），继续使用现有${filteredNews.length}条新闻:`, error);
+        // Finnhub失败不影响整体流程，继续使用已有的中文新闻
       }
     } else {
-      console.log(`✅ 中文源充足，无需Finnhub补充`);
+      console.log(`✅ 中文源充足（${filteredNews.length}条），无需Finnhub补充`);
     }
     
-    // 返回前N条
+    // 返回前N条（如果不足limit条，返回所有可用的）
     const finalNews = filteredNews.slice(0, limit);
-    console.log(`🎯 最终返回: ${finalNews.length}条`);
+    console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
     console.log(`📊 来源: 东方财富优先 + 新浪财经补充`);
     
     return finalNews;
@@ -400,10 +403,10 @@ export class NewsService implements INewsService {
     const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
     console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
     
-    // 如果中文源仍然不足，补充Finnhub + 翻译
+    // 如果中文源仍然不足，尝试补充Finnhub + 翻译（非必需）
     if (filteredNews.length < limit) {
       const needed = limit - filteredNews.length;
-      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），需要Finnhub补充${needed}条`);
+      console.log(`⚠️ 中文源不足（${filteredNews.length}/${limit}），尝试Finnhub补充${needed}条`);
       console.log(`🌐 使用Finnhub获取并翻译...`);
       
       try {
@@ -412,17 +415,20 @@ export class NewsService implements INewsService {
           const translatedNews = await this.translateNewsItems(finnhubNews);
           filteredNews.push(...translatedNews);
           console.log(`✅ Finnhub补充完成: ${translatedNews.length}条`);
+        } else {
+          console.log(`⚠️ Finnhub未返回数据，继续使用现有${filteredNews.length}条新闻`);
         }
       } catch (error) {
-        console.error(`❌ Finnhub补充失败:`, error);
+        console.warn(`⚠️ Finnhub补充失败（非致命），继续使用现有${filteredNews.length}条新闻:`, error);
+        // Finnhub失败不影响整体流程，继续使用已有的中文新闻
       }
     } else {
-      console.log(`✅ 中文源充足，无需Finnhub补充`);
+      console.log(`✅ 中文源充足（${filteredNews.length}条），无需Finnhub补充`);
     }
     
-    // 返回前N条
+    // 返回前N条（如果不足limit条，返回所有可用的）
     const finalNews = filteredNews.slice(0, limit);
-    console.log(`🎯 最终返回: ${finalNews.length}条`);
+    console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
     console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经补充`);
     
     return finalNews;
