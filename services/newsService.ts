@@ -281,10 +281,10 @@ export class NewsService implements INewsService {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
-        // 使用 Promise.race 设置快速超时（20秒）
+        // 使用 Promise.race 设置快速超时（5秒 - Fail Fast）
         const sinaPromise = this.fetchSinaUSStockNews(300); // 减少请求量
         const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
-          setTimeout(() => reject(new Error('新浪新闻获取超时(20秒)')), 20000)
+          setTimeout(() => reject(new Error('新浪新闻获取超时(5秒)')), 5000)
         );
         
         const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
@@ -366,10 +366,10 @@ export class NewsService implements INewsService {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
-        // 使用 Promise.race 设置快速超时（20秒）
+        // 使用 Promise.race 设置快速超时（5秒 - Fail Fast）
         const sinaPromise = this.fetchSinaGoldNews(300); // 减少请求量，加快速度
         const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
-          setTimeout(() => reject(new Error('新浪新闻获取超时(20秒)')), 20000)
+          setTimeout(() => reject(new Error('新浪新闻获取超时(5秒)')), 5000)
         );
         
         const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
@@ -452,10 +452,10 @@ export class NewsService implements INewsService {
       console.log(`📰 [2/2] 获取新浪财经A股新闻 (请求: ${needed}条)`);
       
       try {
-        // 20秒超时保护
+        // 5秒超时保护 - Fail Fast
         const sinaNewsPromise = this.fetchSinaAStockNews(needed);
         const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
-          setTimeout(() => reject(new Error('新浪新闻请求超时(20秒)')), 20000)
+          setTimeout(() => reject(new Error('新浪新闻请求超时(5秒)')), 5000)
         );
         
         const sinaNews = await Promise.race([sinaNewsPromise, timeoutPromise]);
