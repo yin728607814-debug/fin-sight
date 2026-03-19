@@ -259,17 +259,17 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 混合策略获取纳斯达克新闻（中文源优先 + Finnhub备用）
+   * 混合策略获取纳斯达克新闻（多源降级）
    */
   private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
     console.log('📡 开始混合策略获取纳斯达克新闻');
-    console.log('📋 优先级: 东方财富 → 新浪财经 → Finnhub');
+    console.log('📋 优先级: 东方财富 → 新浪财经 → 极速数据');
     
     const allNews: NewsItem[] = [];
     
     // 第一优先级：东方财富美股专页
     try {
-      const eastmoneyNews = await this.fetchEastMoneyNews(limit * 2); // 获取更多以确保足够
+      const eastmoneyNews = await this.fetchEastMoneyNews(limit * 2);
       console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
       allNews.push(...eastmoneyNews);
     } catch (error) {
@@ -282,7 +282,7 @@ export class NewsService implements INewsService {
       
       try {
         // 使用 Promise.race 设置快速超时（5秒 - Fail Fast）
-        const sinaPromise = this.fetchSinaUSStockNews(300); // 减少请求量
+        const sinaPromise = this.fetchSinaUSStockNews(300);
         const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
           setTimeout(() => reject(new Error('新浪新闻获取超时(5秒)')), 5000)
         );
@@ -292,7 +292,17 @@ export class NewsService implements INewsService {
         allNews.push(...sinaNews);
       } catch (error) {
         console.warn(`⚠️ 新浪财经获取失败或超时:`, error.message);
-        // 新浪失败不影响整体流程
+      }
+    }
+    
+    // 第三优先级：极速数据（稳定的付费API）
+    if (allNews.length < limit) {
+      try {
+        const jisuNews = await this.fetchJisuNews('股票', limit, 'nasdaq');
+        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
+        allNews.push(...jisuNews);
+      } catch (error) {
+        console.warn(`⚠️ 极速数据获取失败:`, error.message);
       }
     }
     
@@ -332,7 +342,6 @@ export class NewsService implements INewsService {
         }
       } catch (error) {
         console.warn(`⚠️ Finnhub补充失败（非致命），继续使用现有${filteredNews.length}条新闻:`, error);
-        // Finnhub失败不影响整体流程，继续使用已有的中文新闻
       }
     } else {
       console.log(`✅ 中文源充足（${filteredNews.length}条），无需Finnhub补充`);
@@ -341,23 +350,23 @@ export class NewsService implements INewsService {
     // 返回前N条（如果不足limit条，返回所有可用的）
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
-    console.log(`📊 来源: 东方财富优先 + 新浪财经补充`);
+    console.log(`📊 来源: 东方财富优先 + 新浪财经 + 极速数据补充`);
     
     return finalNews;
   }
 
   /**
-   * 混合策略获取黄金新闻（中文源优先 + Finnhub备用）
+   * 混合策略获取黄金新闻（多源降级）
    */
   private async fetchGoldNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
     console.log('📡 开始混合策略获取黄金新闻');
-    console.log('📋 优先级: 东方财富黄金频道 → 新浪财经 → Finnhub');
+    console.log('📋 优先级: 东方财富黄金频道 → 新浪财经 → 极速数据');
     
     const allNews: NewsItem[] = [];
     
     // 第一优先级：东方财富黄金频道
     try {
-      const eastmoneyGoldNews = await this.fetchEastMoneyGoldNews(limit * 2); // 获取更多以确保足够
+      const eastmoneyGoldNews = await this.fetchEastMoneyGoldNews(limit * 2);
       console.log(`✅ 东方财富黄金频道获取成功: ${eastmoneyGoldNews.length}条`);
       allNews.push(...eastmoneyGoldNews);
     } catch (error) {
@@ -370,7 +379,7 @@ export class NewsService implements INewsService {
       
       try {
         // 使用 Promise.race 设置快速超时（5秒 - Fail Fast）
-        const sinaPromise = this.fetchSinaGoldNews(300); // 减少请求量，加快速度
+        const sinaPromise = this.fetchSinaGoldNews(300);
         const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
           setTimeout(() => reject(new Error('新浪新闻获取超时(5秒)')), 5000)
         );
@@ -380,7 +389,17 @@ export class NewsService implements INewsService {
         allNews.push(...sinaNews);
       } catch (error) {
         console.warn(`⚠️ 新浪财经获取失败或超时:`, error.message);
-        // 新浪失败不影响整体流程，继续使用已有的新闻
+      }
+    }
+    
+    // 第三优先级：极速数据（稳定的付费API）
+    if (allNews.length < limit) {
+      try {
+        const jisuNews = await this.fetchJisuNews('财经', limit, 'gold');
+        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
+        allNews.push(...jisuNews);
+      } catch (error) {
+        console.warn(`⚠️ 极速数据获取失败:`, error.message);
       }
     }
     
@@ -420,7 +439,6 @@ export class NewsService implements INewsService {
         }
       } catch (error) {
         console.warn(`⚠️ Finnhub补充失败（非致命），继续使用现有${filteredNews.length}条新闻:`, error);
-        // Finnhub失败不影响整体流程，继续使用已有的中文新闻
       }
     } else {
       console.log(`✅ 中文源充足（${filteredNews.length}条），无需Finnhub补充`);
@@ -429,21 +447,22 @@ export class NewsService implements INewsService {
     // 返回前N条（如果不足limit条，返回所有可用的）
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
-    console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经补充`);
+    console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经 + 极速数据补充`);
     
     return finalNews;
   }
 
   /**
-   * 混合策略获取A股新闻（东方财富 + 新浪财经）
+   * 混合策略获取A股新闻（多源降级）
    */
   private async fetchAStockNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
     console.log(`\n🔍 开始混合策略获取A股新闻 (目标: ${limit}条)`);
+    console.log('📋 优先级: 东方财富 → 新浪财经 → 极速数据');
     
     const allNews: NewsItem[] = [];
     
-    // 1. 优先使用东方财富A股新闻（更可靠）
-    console.log(`📰 [1/2] 获取东方财富A股新闻 (请求: ${limit * 2}条)`);
+    // 1. 第一优先级：东方财富A股新闻
+    console.log(`📰 [1/3] 获取东方财富A股新闻 (请求: ${limit * 2}条)`);
     try {
       const eastmoneyNews = await this.fetchEastmoneyAStockNews(limit * 2);
       console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
@@ -452,10 +471,10 @@ export class NewsService implements INewsService {
       console.error(`❌ 东方财富A股新闻获取失败:`, error);
     }
     
-    // 2. 新浪财经作为补充（带超时保护）
+    // 2. 第二优先级：新浪财经作为补充（带超时保护）
     if (allNews.length < limit) {
-      const needed = Math.min(300, limit * 2); // 最多请求300条，避免超时
-      console.log(`📰 [2/2] 获取新浪财经A股新闻 (请求: ${needed}条)`);
+      const needed = Math.min(300, limit * 2);
+      console.log(`📰 [2/3] 获取新浪财经A股新闻 (请求: ${needed}条)`);
       
       try {
         // 5秒超时保护 - Fail Fast
@@ -469,17 +488,30 @@ export class NewsService implements INewsService {
         allNews.push(...sinaNews);
       } catch (error) {
         console.warn(`⚠️ 新浪财经A股新闻获取失败（非致命错误）:`, error);
-        // 新浪失败不影响整体流程，继续使用已有的东方财富数据
       }
     } else {
       console.log(`✅ 东方财富数据充足（${allNews.length}条），跳过新浪财经`);
+    }
+    
+    // 3. 第三优先级：极速数据（稳定的付费API）
+    if (allNews.length < limit) {
+      console.log(`📰 [3/3] 获取极速数据股票新闻 (请求: ${limit}条)`);
+      try {
+        const jisuNews = await this.fetchJisuNews('股票', limit, 'astock');
+        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
+        allNews.push(...jisuNews);
+      } catch (error) {
+        console.error(`❌ 极速数据获取失败:`, error);
+      }
+    } else {
+      console.log(`✅ 前两个源数据充足（${allNews.length}条），跳过极速数据`);
     }
     
     console.log(`📊 合并前总数: ${allNews.length}条`);
     
     // 去重（按URL）
     const uniqueNews = this.deduplicateNews(allNews);
-    console.log(`🔄 去重后: ${uniqueNews.length}条`);
+    console.log(`� 去重后: ${uniqueNews.length}条`);
     
     // 计算相关性评分
     const scoredNews = uniqueNews.map(news => ({
@@ -497,7 +529,7 @@ export class NewsService implements INewsService {
     // 返回前N条
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条`);
-    console.log(`📊 来源: 东方财富A股频道优先 + 新浪财经补充`);
+    console.log(`📊 来源: 东方财富优先 + 新浪财经 + 极速数据补充`);
     
     return finalNews;
   }
@@ -715,6 +747,52 @@ export class NewsService implements INewsService {
     }
   }
 
+  /**
+   * 获取极速数据新闻
+   */
+  private async fetchJisuNews(category: string, limit: number, type?: string): Promise<NewsItem[]> {
+    try {
+      const response = await axios.get('/jisu-news-proxy', {
+        params: { 
+          category: category,
+          num: limit,
+          type: type || ''
+        },
+        timeout: this.config.timeout
+      });
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        console.warn('极速数据返回数据格式错误');
+        return [];
+      }
+
+      return response.data.articles
+        .slice(0, limit)
+        .map((article: any) => {
+          // 使用 URL 或标题生成稳定的 ID
+          const stableId = article.url 
+            ? `jisu_${this.hashString(article.url)}`
+            : `jisu_${this.hashString(article.title)}_${Date.now()}`;
+          
+          return {
+            id: stableId,
+            title: article.title || '',
+            content: article.description || article.content || article.title || '',
+            source: '极速数据',
+            publishedAt: new Date(article.publishedAt || Date.now()),
+            url: article.url || '#',
+            relevanceScore: 0.7, // 极速数据质量较高
+            image: article.urlToImage
+          };
+        });
+    } catch (error) {
+      console.error('极速数据新闻获取失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取探数API新闻
   /**
    * 获取东方财富美股新闻
    */
@@ -1006,7 +1084,7 @@ export class NewsService implements INewsService {
         const batch = tickers.slice(i, i + 2);
         
         const batchPromises = batch.map(ticker =>
-          axios.get('/api/finnhub-news-proxy', {
+          axios.get('/finnhub-news-proxy', {
             params: {
               symbol: ticker,
               from: formatDate(fromDate),
@@ -1015,12 +1093,13 @@ export class NewsService implements INewsService {
             timeout: this.config.timeout
           }).catch(err => {
             console.warn(`⚠️ 获取${ticker}新闻失败`, err.message);
-            return { data: { articles: [] } };
+            return { data: { articles: [], status: 'error' } };
           })
         );
         
         const batchResults = await Promise.all(batchPromises);
         batchResults.forEach(response => {
+          // Finnhub代理返回格式：{ status, articles, total }
           if (response.data?.articles && Array.isArray(response.data.articles)) {
             allNews.push(...response.data.articles);
           }
@@ -1035,7 +1114,8 @@ export class NewsService implements INewsService {
       console.log('📡 Finnhub响应', { totalNews: allNews.length });
 
       if (allNews.length === 0) {
-        throw new Error('Finnhub API未返回新闻数据');
+        console.log('⚠️ Finnhub未返回新闻数据，返回空数组');
+        return [];
       }
 
       // 去重（按URL）
@@ -1087,7 +1167,7 @@ export class NewsService implements INewsService {
       const goldTickers = ['GLD', 'GOLD', 'NEM', 'RGLD', 'FNV', 'WPM'];
       
       const batchPromises = goldTickers.map(ticker =>
-        axios.get('/api/finnhub-news-proxy', {
+        axios.get('/finnhub-news-proxy', {
           params: {
             symbol: ticker,
             from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -1096,17 +1176,19 @@ export class NewsService implements INewsService {
           timeout: this.config.timeout
         }).catch(error => {
           console.warn(`⚠️ 获取${ticker}新闻失败:`, error.message);
-          return { data: [] };
+          return { data: { articles: [], status: 'error' } };
         })
       );
 
       const responses = await Promise.all(batchPromises);
-      const allNews = responses.flatMap(response => response.data || []);
+      // Finnhub代理返回格式：{ status, articles, total }
+      const allNews = responses.flatMap(response => response.data?.articles || []);
 
       console.log('📡 Finnhub响应', { totalNews: allNews.length });
 
       if (allNews.length === 0) {
-        throw new Error('Finnhub未返回黄金新闻数据');
+        console.log('⚠️ Finnhub未返回黄金新闻数据，返回空数组');
+        return [];
       }
 
       // 去重（按URL）

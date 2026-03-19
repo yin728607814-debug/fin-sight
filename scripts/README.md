@@ -1,5 +1,63 @@
 # 测试脚本使用说明
 
+## 分析服务修复测试
+
+### 测试JSON解析修复
+
+```bash
+# 测试分析服务的JSON解析容错性
+node scripts/test-analysis-fix.js
+```
+
+测试会验证：
+- 自动移除markdown标记
+- 修复未转义的换行符
+- 移除多余的逗号
+- 补全截断的JSON
+- 提供兜底分析结果
+
+## 新API源测试
+
+### 测试极速数据和探数API
+
+```bash
+# 确保开发服务器正在运行
+npm run dev
+
+# 在另一个终端运行测试
+node scripts/test-new-apis.js
+```
+
+测试会验证：
+- 极速数据股票新闻获取
+- 极速数据财经新闻获取
+- 探数API股票新闻获取
+- 探数API财经新闻获取
+
+注意：需要在 `.env` 文件中配置相应的API密钥：
+- `VITE_JISU_API_KEY` - 极速数据API密钥
+- `VITE_TANSHU_API_KEY` - 探数API密钥
+
+## Finnhub 代理测试
+
+### 测试 Finnhub 新闻代理功能
+
+```bash
+# 确保开发服务器正在运行
+npm run dev
+
+# 在另一个终端运行测试
+node scripts/test-finnhub-proxy.js
+```
+
+测试会验证：
+- AAPL 公司新闻获取
+- GLD (黄金ETF) 新闻获取
+- 通用财经新闻获取
+- 代理返回格式是否正确
+
+注意：需要在 `.env` 文件中配置 `VITE_FINNHUB_API_KEY`。如果未配置，代理会返回错误，但不会影响整体应用（Finnhub 是可选的补充源）。
+
 ## A股新闻混合策略测试
 
 ### 测试A股新闻获取（东方财富 + 新浪财经混合策略）

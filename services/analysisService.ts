@@ -279,11 +279,12 @@ export class AnalysisService implements IAnalysisService {
 
   /**
    * AI批量分析方法 - 使用 Gemini API，为每条新闻返回单独分析
-   * 如果新闻数量超过 20 条，自动分批并行处理以提升速度
+   * 针对纳斯达克新闻进行特殊优化，减少批次大小
    */
   private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
-    const BATCH_SIZE = 20; // 每批最多 20 条新闻
-    const MAX_PARALLEL_BATCHES = 3; // 最多并行处理3个批次（付费版API限制充足）
+    // 针对不同资产类型调整批次大小
+    const BATCH_SIZE = assetType === 'nasdaq' ? 10 : 20; // 纳斯达克新闻更复杂，减少批次大小
+    const MAX_PARALLEL_BATCHES = assetType === 'nasdaq' ? 2 : 3; // 纳斯达克减少并发数
     
     // 如果新闻数量较少，直接处理
     if (newsList.length <= BATCH_SIZE) {
@@ -291,7 +292,7 @@ export class AnalysisService implements IAnalysisService {
     }
     
     // 分批处理
-    console.log(`📊 新闻数量较多 (${newsList.length}条)，分批并行处理以提升速度...`);
+    console.log(`📊 ${assetType}新闻数量较多 (${newsList.length}条)，分批处理 (批次大小: ${BATCH_SIZE})...`);
     const batches: Array<{ title: string; content: string }[]> = [];
     for (let i = 0; i < newsList.length; i += BATCH_SIZE) {
       batches.push(newsList.slice(i, i + BATCH_SIZE));
@@ -304,7 +305,6 @@ export class AnalysisService implements IAnalysisService {
     
     for (let i = 0; i < batches.length; i += MAX_PARALLEL_BATCHES) {
       const currentBatches = batches.slice(i, i + MAX_PARALLEL_BATCHES);
-      const batchIndices = currentBatches.map((_, idx) => i + idx);
       
       console.log(`🚀 并行处理第 ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} 批 (共${currentBatches.length}个批次)...`);
       
@@ -321,9 +321,9 @@ export class AnalysisService implements IAnalysisService {
       
       console.log(`✅ 第 ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} 批处理完成`);
       
-      // 如果还有更多批次，稍微延迟一下（避免瞬间请求过多）
+      // 如果还有更多批次，稍微延迟一下（纳斯达克延迟更长）
       if (i + MAX_PARALLEL_BATCHES < batches.length) {
-        const delay = 500; // 批次组之间延迟500ms
+        const delay = assetType === 'nasdaq' ? 1000 : 500; // 纳斯达克延迟1秒
         console.log(`⏳ 等待${delay}ms后处理下一组批次...`);
         await this.sleep(delay);
       }
@@ -380,10 +380,16 @@ export class AnalysisService implements IAnalysisService {
   }
 
   /**
-   * 解析批量分析响应文本
+   * 解析批量分析响应文本（增强版容错处理）
    */
-  private parseBatchGeminiResponseText(responseText: string, _expectedCount: number): BatchAnalysisResult {
+  private parseBatchGeminiResponseText(responseText: string, expectedCount: number): BatchAnalysisResult {
     try {
+      console.log('🔍 开始解析Gemini响应', { 
+        responseLength: responseText.length,
+        expectedCount,
+        preview: responseText.substring(0, 200) + '...'
+      });
+
       // 移除可能的 markdown 代码块标记
       let cleanedText = responseText
         .replace(/```json\s*/gi, '')
@@ -393,10 +399,12 @@ export class AnalysisService implements IAnalysisService {
       // 提取 JSON
       const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        console.error('❌ 无法从响应中提取JSON');
         throw new Error('无法从响应中提取JSON');
       }
       
       let jsonText = jsonMatch[0];
+      console.log('📝 提取的JSON长度:', jsonText.length);
       
       // 尝试修复常见的JSON格式问题
       try {
@@ -407,6 +415,7 @@ export class AnalysisService implements IAnalysisService {
           throw new Error('响应格式错误：缺少 analyses 数组');
         }
         
+        console.log('✅ 直接解析成功', { analysesCount: parsed.analyses.length });
         return {
           analyses: parsed.analyses,
           overallImpact: parsed.overallImpact || 'neutral',
@@ -414,48 +423,59 @@ export class AnalysisService implements IAnalysisService {
           overallSummary: parsed.overallSummary || '分析完成'
         };
       } catch (parseError: any) {
-        console.warn('首次JSON解析失败，尝试修复...', parseError);
+        console.warn('⚠️ 首次JSON解析失败，开始修复...', parseError.message);
         
         // 打印错误位置附近的内容以便调试
         if (parseError.message && parseError.message.includes('position')) {
           const posMatch = parseError.message.match(/position (\d+)/);
           if (posMatch) {
             const pos = parseInt(posMatch[1]);
-            const start = Math.max(0, pos - 100);
-            const end = Math.min(jsonText.length, pos + 100);
+            const start = Math.max(0, pos - 50);
+            const end = Math.min(jsonText.length, pos + 50);
             console.log('❌ 错误位置附近的内容:');
             console.log(jsonText.substring(start, end));
-            console.log(' '.repeat(Math.min(100, pos - start)) + '^');
+            console.log(' '.repeat(Math.min(50, pos - start)) + '^');
           }
         }
         
-        // 2. 智能修复策略
+        // 2. 多重修复策略
         let fixedJson = jsonText;
         
         // 修复策略1: 移除数组/对象末尾多余的逗号
         fixedJson = fixedJson.replace(/,(\s*[}\]])/g, '$1');
         
-        // 修复策略2: 修复字符串中未转义的换行符（但保留JSON结构中的换行）
-        // 使用更智能的方式：只在字符串值内部替换换行符
-        fixedJson = fixedJson.replace(/"([^"]*?)"/g, (match, content) => {
-          // 在字符串内容中转义换行符和回车符
-          const escaped = content
+        // 修复策略2: 修复字符串中的特殊字符
+        // 更安全的字符串修复：只处理明显的问题
+        fixedJson = fixedJson.replace(/"([^"\\]*)\\?([^"\\]*?)"/g, (match, part1, part2) => {
+          // 转义字符串中的换行符、制表符等
+          const content = (part1 + part2)
             .replace(/\n/g, '\\n')
             .replace(/\r/g, '\\r')
-            .replace(/\t/g, '\\t');
-          return `"${escaped}"`;
+            .replace(/\t/g, '\\t')
+            .replace(/"/g, '\\"');
+          return `"${content}"`;
         });
         
-        // 修复策略3: 尝试修复截断的JSON（如果最后一个字符不是}或]）
+        // 修复策略3: 处理截断的JSON
         fixedJson = fixedJson.trim();
-        if (!fixedJson.endsWith('}') && !fixedJson.endsWith(']')) {
+        if (!fixedJson.endsWith('}')) {
           console.log('⚠️ JSON可能被截断，尝试补全...');
-          // 尝试找到最后一个完整的对象或数组
-          const lastCompleteMatch = fixedJson.match(/(.*[}\]])[^}\]]*$/);
-          if (lastCompleteMatch) {
-            fixedJson = lastCompleteMatch[1];
-            console.log('✂️ 截取到最后一个完整结构');
+          
+          // 计算未闭合的括号
+          const openBraces = (fixedJson.match(/\{/g) || []).length;
+          const closeBraces = (fixedJson.match(/\}/g) || []).length;
+          const openBrackets = (fixedJson.match(/\[/g) || []).length;
+          const closeBrackets = (fixedJson.match(/\]/g) || []).length;
+          
+          // 补全缺失的括号
+          if (openBrackets > closeBrackets) {
+            fixedJson += ']'.repeat(openBrackets - closeBrackets);
           }
+          if (openBraces > closeBraces) {
+            fixedJson += '}'.repeat(openBraces - closeBraces);
+          }
+          
+          console.log('🔧 补全括号后的JSON长度:', fixedJson.length);
         }
         
         // 再次尝试解析
@@ -466,7 +486,7 @@ export class AnalysisService implements IAnalysisService {
             throw new Error('响应格式错误：缺少 analyses 数组');
           }
           
-          console.log('✅ JSON修复成功');
+          console.log('✅ JSON修复成功', { analysesCount: parsed.analyses.length });
           return {
             analyses: parsed.analyses,
             overallImpact: parsed.overallImpact || 'neutral',
@@ -474,126 +494,173 @@ export class AnalysisService implements IAnalysisService {
             overallSummary: parsed.overallSummary || '分析完成'
           };
         } catch (secondError) {
-          console.error('JSON修复失败，使用降级策略');
+          console.error('❌ JSON修复失败，尝试部分解析...', secondError.message);
           
-          // 3. 降级策略：尝试提取部分有效的分析结果
-          // 尝试找到analyses数组的开始和结束
-          const analysesStartMatch = fixedJson.match(/"analyses"\s*:\s*\[/);
-          if (analysesStartMatch) {
-            const startPos = analysesStartMatch.index! + analysesStartMatch[0].length;
-            let bracketCount = 1;
-            let endPos = startPos;
+          // 3. 部分解析策略：尝试提取analyses数组
+          const analysesMatch = fixedJson.match(/"analyses"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
+          if (analysesMatch) {
+            console.log('🔍 找到analyses数组，尝试部分解析...');
             
-            // 找到匹配的结束括号
-            for (let i = startPos; i < fixedJson.length && bracketCount > 0; i++) {
-              if (fixedJson[i] === '[') bracketCount++;
-              if (fixedJson[i] === ']') bracketCount--;
-              if (bracketCount === 0) {
-                endPos = i;
-                break;
+            try {
+              let analysesContent = analysesMatch[1];
+              
+              // 尝试解析单个分析对象
+              const analysisObjects = [];
+              let depth = 0;
+              let currentObj = '';
+              let inString = false;
+              let escapeNext = false;
+              
+              for (let i = 0; i < analysesContent.length; i++) {
+                const char = analysesContent[i];
+                
+                if (escapeNext) {
+                  currentObj += char;
+                  escapeNext = false;
+                  continue;
+                }
+                
+                if (char === '\\') {
+                  escapeNext = true;
+                  currentObj += char;
+                  continue;
+                }
+                
+                if (char === '"' && !escapeNext) {
+                  inString = !inString;
+                }
+                
+                if (!inString) {
+                  if (char === '{') {
+                    depth++;
+                  } else if (char === '}') {
+                    depth--;
+                  }
+                }
+                
+                currentObj += char;
+                
+                // 当depth回到0时，说明找到了一个完整的对象
+                if (depth === 0 && currentObj.trim().startsWith('{')) {
+                  try {
+                    const obj = JSON.parse(currentObj.trim());
+                    analysisObjects.push(obj);
+                    currentObj = '';
+                  } catch (objError) {
+                    console.warn('⚠️ 跳过无效的分析对象:', currentObj.substring(0, 100));
+                    currentObj = '';
+                  }
+                }
               }
-            }
-            
-            if (endPos > startPos) {
-              try {
-                const analysesContent = fixedJson.substring(startPos, endPos);
-                const analysesArray = JSON.parse('[' + analysesContent + ']');
-                console.log(`✅ 部分解析成功，获得${analysesArray.length}条分析`);
+              
+              if (analysisObjects.length > 0) {
+                console.log(`✅ 部分解析成功，获得${analysisObjects.length}条分析`);
                 
                 return {
-                  analyses: analysesArray,
+                  analyses: analysisObjects,
                   overallImpact: 'neutral',
                   overallConfidence: 0.5,
-                  overallSummary: '部分分析完成'
+                  overallSummary: `部分分析完成，成功解析${analysisObjects.length}条新闻`
                 };
-              } catch (arrayError) {
-                console.error('部分解析也失败:', arrayError);
               }
+            } catch (arrayError) {
+              console.error('❌ 部分解析也失败:', arrayError);
             }
           }
           
-          // 4. 最终降级：返回空结果
-          throw new Error('无法解析JSON响应，已尝试所有修复策略');
+          // 4. 最终降级：生成基础分析结果
+          console.warn('⚠️ 所有解析策略都失败，生成基础分析结果');
+          
+          const fallbackAnalyses = Array.from({ length: Math.min(expectedCount, 10) }, (_, index) => ({
+            newsIndex: index,
+            impact: 'neutral' as const,
+            confidence: 0.3,
+            summary: `第${index + 1}条新闻的分析暂时不可用，请稍后重试`,
+            keyPoints: ['分析失败', '请重试'],
+            predictedChange: 0
+          }));
+          
+          return {
+            analyses: fallbackAnalyses,
+            overallImpact: 'neutral',
+            overallConfidence: 0.3,
+            overallSummary: 'AI分析遇到技术问题，已生成基础分析结果。建议稍后重试以获得完整分析。'
+          };
         }
       }
     } catch (error) {
-      console.error('解析批量分析响应失败:', error);
-      throw error;
+      console.error('❌ 解析批量分析响应完全失败:', error);
+      
+      // 最终兜底：返回空分析结果
+      const fallbackAnalyses = Array.from({ length: Math.min(expectedCount, 5) }, (_, index) => ({
+        newsIndex: index,
+        impact: 'neutral' as const,
+        confidence: 0.2,
+        summary: `新闻分析服务暂时不可用`,
+        keyPoints: ['服务异常'],
+        predictedChange: 0
+      }));
+      
+      return {
+        analyses: fallbackAnalyses,
+        overallImpact: 'neutral',
+        overallConfidence: 0.2,
+        overallSummary: 'AI分析服务暂时不可用，请稍后重试。'
+      };
     }
   }
 
   /**
-   * 构建批量分析提示词 - 为每条新闻返回单独分析（平衡版本）
+   * 构建批量分析提示词 - 简化版本，减少格式错误
    */
   private buildBatchAnalysisPrompt(newsList: Array<{ title: string; content: string }>, assetType: string): string {
     const assetNames = {
-      'gold': '现货黄金(XAUUSD)',
-      'nasdaq': '纳斯达克100指数',
-      'astock': 'A股市场(上证指数)'
+      'gold': '现货黄金',
+      'nasdaq': '纳斯达克指数',
+      'astock': 'A股市场'
     };
     
     const assetName = assetNames[assetType as keyof typeof assetNames] || assetType;
     
-    // 根据资产类型添加投资策略说明
-    let investmentStrategy = '';
-    if (assetType === 'gold') {
-      investmentStrategy = '\n\n**投资策略背景**：用户对黄金采取长期持有策略，只买入不卖出，关注长期价值保值和增值机会。请在分析时考虑长期持有的视角，重点关注影响黄金长期价值的因素。';
-    } else if (assetType === 'nasdaq') {
-      investmentStrategy = '\n\n**投资策略背景**：用户对纳斯达克100采取定期定投策略，持续买入，关注长期增长趋势。请在分析时考虑定投策略的特点，重点关注长期成长性和趋势性机会。';
-    }
-    
-    // 将新闻列表格式化，每条新闻带编号（使用完整内容，最多800字）
+    // 将新闻列表格式化，每条新闻带编号（限制长度避免超token）
     const newsText = newsList.map((news, index) => {
-      // 使用完整的content，如果太长则截取800字
-      const fullContent = news.content.length > 800 
-        ? news.content.substring(0, 800) + '...' 
+      // 限制每条新闻最多300字，避免prompt过长
+      const shortContent = news.content.length > 300 
+        ? news.content.substring(0, 300) + '...' 
         : news.content;
-      return `[${index}] ${news.title}\n${fullContent}`;
+      return `[${index}] ${news.title}\n${shortContent}`;
     }).join('\n\n');
     
-    return `你是一位专业的金融分析师。分析以下${newsList.length}条新闻对${assetName}的影响。${investmentStrategy}
+    return `分析以下${newsList.length}条新闻对${assetName}的影响。返回纯JSON格式，不要markdown标记。
 
-注意：新闻内容可能较简短（仅标题和摘要），请基于标题和关键信息做出专业判断。
-
-**重要：必须返回严格的JSON格式，不要包含任何markdown标记、注释或额外文本。**
-
+新闻内容：
 ${newsText}
 
-返回格式（纯JSON，无markdown）：
+返回格式：
 {
   "analyses": [
     {
       "newsIndex": 0,
       "impact": "positive",
       "confidence": 0.75,
-      "summary": "基于标题和摘要详细分析这条新闻的影响机制和传导路径（80-120字）",
-      "keyPoints": ["关键点1", "关键点2", "关键点3"],
+      "summary": "简要分析影响",
+      "keyPoints": ["要点1", "要点2"],
       "predictedChange": 2.5
     }
   ],
   "overallImpact": "positive",
   "overallConfidence": 0.70,
-  "overallSummary": "综合所有新闻的整体市场影响分析（150-200字）"
+  "overallSummary": "整体影响分析"
 }
 
-JSON格式要求：
-- 所有字符串必须使用双引号
-- 字符串内的特殊字符必须转义（换行用\\n，引号用\\"）
-- 不要在字符串中使用未转义的换行符
-- 数组最后一个元素后不要有逗号
-- 对象最后一个属性后不要有逗号
-- impact只能是: "positive", "negative", "neutral"
-- confidence和predictedChange必须是数字，不要用字符串
-
-分析要求：
-- 即使内容简短，也要基于标题和关键词做出合理推断
-- summary要具体说明影响机制和传导路径（不要包含换行符）
-- keyPoints要提取核心要素（政策、数据、事件等）
-- predictedChange范围：-10到+10（百分比）
-- confidence反映信息完整度和影响确定性
-- 必须返回所有${newsList.length}条新闻的完整分析
-
-再次强调：只返回纯JSON，不要任何markdown标记或额外说明。`;
+要求：
+- impact只能是positive/negative/neutral
+- confidence是0-1的数字
+- predictedChange是-10到+10的数字
+- summary不超过50字，不要换行符
+- keyPoints最多3个要点
+- 必须分析所有${newsList.length}条新闻
+- 只返回JSON，不要其他文字`;
   }
 
   /**
