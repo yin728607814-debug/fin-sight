@@ -25,6 +25,10 @@ export default defineConfig(({ mode }) => {
           target: 'https://www.alphavantage.co',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/alphavantage/, ''),
+        },
+        '/jisu-news-proxy': {
+          target: 'http://localhost:3001',
+          changeOrigin: true
         }
       }
     },
