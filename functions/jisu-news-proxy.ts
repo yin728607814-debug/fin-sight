@@ -263,6 +263,66 @@ function generateTestNews(type: string, _category: string) {
         publishedAt: new Date(Date.now() - 3600000).toISOString(),
         source: { name: '极速数据(测试)' },
         author: '极速数据'
+      },
+      {
+        title: '美联储政策预期推动黄金ETF资金流入创新高',
+        description: '市场对美联储货币政策转向的预期升温，黄金ETF连续三周录得资金净流入，创下年内新高。',
+        content: '市场对美联储货币政策转向的预期升温，黄金ETF连续三周录得资金净流入，创下年内新高。投资者认为，在通胀压力和经济不确定性双重影响下，黄金的配置价值凸显。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 7200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '中国黄金消费需求回暖，金饰销售同比增长15%',
+        description: '随着经济复苏和消费信心恢复，中国黄金消费需求显著回暖，金饰销售同比增长15%。',
+        content: '随着经济复苏和消费信心恢复，中国黄金消费需求显著回暖。数据显示，第一季度金饰销售同比增长15%，投资金条销售也保持稳定增长。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 10800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '黄金期货持仓量创历史新高，机构看多情绪浓厚',
+        description: '黄金期货市场持仓量创历史新高，机构投资者看多情绪浓厚，预计金价将继续上涨。',
+        content: '黄金期货市场持仓量创历史新高，机构投资者看多情绪浓厚。分析师指出，在全球经济不确定性和通胀预期推动下，黄金的避险属性和保值功能将继续受到青睐。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 14400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '印度黄金进口量大幅增加，推动全球金价上涨',
+        description: '印度作为全球第二大黄金消费国，进口量大幅增加，为全球金价提供了强劲支撑。',
+        content: '印度作为全球第二大黄金消费国，近期进口量大幅增加，为全球金价提供了强劲支撑。业内人士认为，随着印度经济复苏和节庆季节临近，黄金需求将持续增长。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 18000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '黄金矿业公司股价集体上涨，受益于金价走强',
+        description: '受国际金价走强影响，主要黄金矿业公司股价集体上涨，投资者对黄金板块信心增强。',
+        content: '受国际金价走强影响，主要黄金矿业公司股价集体上涨。巴里克黄金、纽蒙特等龙头企业涨幅超过5%，投资者对黄金板块的信心显著增强。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 21600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '技术分析：黄金突破关键阻力位，目标价看向2100美元',
+        description: '技术分析显示，黄金价格成功突破关键阻力位，分析师将目标价上调至2100美元。',
+        content: '技术分析显示，黄金价格成功突破关键阻力位，成交量放大确认突破有效。多位分析师将目标价上调至2100美元，认为黄金正进入新一轮上涨周期。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 25200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
       }
     ],
     nasdaq: [
@@ -285,6 +345,86 @@ function generateTestNews(type: string, _category: string) {
         publishedAt: new Date(Date.now() - 7200000).toISOString(),
         source: { name: '极速数据(测试)' },
         author: '极速数据'
+      },
+      {
+        title: 'NVIDIA财报超预期，AI芯片需求持续强劲',
+        description: 'NVIDIA发布超预期财报，AI芯片需求持续强劲，股价盘后大涨8%，带动纳斯达克期货走高。',
+        content: 'NVIDIA发布超预期财报，数据中心业务收入同比增长200%，AI芯片需求持续强劲。公司上调全年业绩指引，股价盘后大涨8%，带动纳斯达克期货走高。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 10800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '微软云业务增长强劲，Azure收入同比增长30%',
+        description: '微软公布最新财报，云业务Azure收入同比增长30%，超出市场预期，推动股价上涨。',
+        content: '微软公布最新财报，云业务Azure收入同比增长30%，超出市场预期。公司在AI和云计算领域的投资正在获得回报，推动股价在盘后交易中上涨5%。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 14400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '苹果发布新款MacBook Pro，搭载M4芯片性能提升40%',
+        description: '苹果发布新款MacBook Pro，搭载自研M4芯片，性能较上代提升40%，预计将推动销量增长。',
+        content: '苹果发布新款MacBook Pro，搭载自研M4芯片，CPU和GPU性能较上代分别提升40%和50%。分析师预计新产品将推动Mac业务销量增长，苹果股价应声上涨3%。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 18000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '谷歌AI搜索功能全面升级，广告收入有望大幅增长',
+        description: '谷歌宣布AI搜索功能全面升级，集成更多智能化服务，分析师预计将推动广告收入大幅增长。',
+        content: '谷歌宣布AI搜索功能全面升级，集成更多智能化服务和个性化推荐。分析师预计新功能将提升用户粘性和广告点击率，推动广告收入大幅增长。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 21600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '特斯拉自动驾驶技术获重大突破，股价大涨12%',
+        description: '特斯拉宣布自动驾驶技术获得重大突破，FSD功能显著改进，股价应声大涨12%。',
+        content: '特斯拉宣布自动驾驶技术获得重大突破，最新版本FSD功能在安全性和准确性方面显著改进。市场对特斯拉在自动驾驶领域的领先地位更加看好，股价应声大涨12%。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 25200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Meta元宇宙业务扭亏为盈，VR设备销量创新高',
+        description: 'Meta公布财报显示元宇宙业务首次扭亏为盈，VR设备销量创历史新高，投资者信心大增。',
+        content: 'Meta公布财报显示，Reality Labs部门首次实现盈利，VR设备销量创历史新高。公司在元宇宙领域的长期投资开始获得回报，投资者信心大增，股价上涨7%。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 28800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'AMD推出新一代AI芯片，挑战NVIDIA市场地位',
+        description: 'AMD推出新一代AI芯片MI300X，性能大幅提升，有望挑战NVIDIA在AI芯片市场的主导地位。',
+        content: 'AMD推出新一代AI芯片MI300X，在机器学习训练和推理性能方面大幅提升。分析师认为，AMD有望在AI芯片市场获得更多份额，挑战NVIDIA的主导地位。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 32400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '纳斯达克100指数权重调整，AI概念股占比进一步提升',
+        description: '纳斯达克100指数进行年度权重调整，AI相关概念股占比进一步提升，反映科技行业发展趋势。',
+        content: '纳斯达克100指数进行年度权重调整，NVIDIA、微软、谷歌等AI相关概念股权重进一步提升。这一调整反映了人工智能在科技行业中的重要地位和发展趋势。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 36000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
       }
     ],
     default: [
@@ -295,6 +435,26 @@ function generateTestNews(type: string, _category: string) {
         url: '#',
         urlToImage: '',
         publishedAt: new Date().toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '全球股市普遍上涨，投资者风险偏好回升',
+        description: '全球主要股指普遍上涨，投资者风险偏好回升，资金流入股票市场。',
+        content: '全球主要股指普遍上涨，美股、欧股、亚太股市均录得涨幅。投资者风险偏好回升，资金从债券市场流入股票市场，推动股指走高。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 7200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: '美联储官员发表鸽派言论，市场预期降息概率上升',
+        description: '美联储官员发表鸽派言论，暗示可能放缓加息步伐，市场预期降息概率上升。',
+        content: '美联储官员在最新讲话中发表鸽派言论，暗示可能放缓加息步伐。市场预期年内降息概率上升至70%，推动股市和债市同时上涨。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 14400000).toISOString(),
         source: { name: '极速数据(测试)' },
         author: '极速数据'
       }
