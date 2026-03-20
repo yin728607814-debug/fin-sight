@@ -100,6 +100,31 @@ export async function onRequest(context: { request: Request; env: Env }) {
     // 检查API响应状态
     if (data.status !== 0 && data.status !== '0') {
       console.error('❌ 极速数据API返回错误:', data);
+      
+      // 如果是接口停用或其他API错误，返回测试数据
+      const isApiDisabled = data.msg && (data.msg.includes('停用') || data.msg.includes('disabled'));
+      const isApiError = data.status === '108' || data.status === 108;
+      
+      if (isApiDisabled || isApiError) {
+        console.log('🔧 极速数据API不可用，返回测试数据');
+        const testArticles = generateTestNews(type, category);
+        
+        return new Response(JSON.stringify({
+          status: 'ok',
+          totalResults: testArticles.length,
+          articles: testArticles,
+          debug: {
+            error: `极速数据API错误: ${data.msg || data.message || '未知错误'}`,
+            isTestData: true,
+            reason: 'API接口不可用，使用测试数据',
+            requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
+          }
+        }), {
+          status: 200,
+          headers: corsHeaders
+        });
+      }
+      
       return new Response(JSON.stringify({
         error: `极速数据API错误: ${data.msg || data.message || '未知错误'}`,
         articles: [],
