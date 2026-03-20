@@ -20,22 +20,31 @@ export async function onRequest(context: { request: Request; env: Env }) {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  // 在函数开始就解析URL参数，确保在catch块中也能访问
+  const url = new URL(context.request.url);
+  const category = url.searchParams.get('category') || '财经'; // 默认财经频道
+  const type = url.searchParams.get('type') || ''; // 分析类型：gold, nasdaq等
+  const num = url.searchParams.get('num') || '50'; // 默认50条
+  
+  // 根据分析类型调整搜索关键词
+  let searchKeyword = '';
+  if (type === 'gold') {
+    searchKeyword = '黄金';
+  } else if (type === 'nasdaq') {
+    searchKeyword = '纳斯达克';
+  }
+
+  const apiKey = context.env.VITE_JISU_API_KEY || context.env.JISU_API_KEY;
+
+  // 构建请求URL（在try块外定义，确保catch块能访问）
+  let requestUrl = '';
+  if (searchKeyword) {
+    requestUrl = `https://api.jisuapi.com/news/search?appkey=${apiKey || 'NO_KEY'}&keyword=${encodeURIComponent(searchKeyword)}&num=${num}`;
+  } else {
+    requestUrl = `https://api.jisuapi.com/news/get?appkey=${apiKey || 'NO_KEY'}&channel=${encodeURIComponent(category)}&num=${num}`;
+  }
+
   try {
-    const url = new URL(context.request.url);
-    const category = url.searchParams.get('category') || '财经'; // 默认财经频道
-    const type = url.searchParams.get('type') || ''; // 分析类型：gold, nasdaq等
-    const num = url.searchParams.get('num') || '50'; // 默认50条
-    
-    // 根据分析类型调整搜索关键词
-    let searchKeyword = '';
-    if (type === 'gold') {
-      searchKeyword = '黄金';
-    } else if (type === 'nasdaq') {
-      searchKeyword = '纳斯达克';
-    }
-
-    const apiKey = context.env.VITE_JISU_API_KEY || context.env.JISU_API_KEY;
-
     // 检查API密钥是否为占位符或未配置
     const isValidApiKey = apiKey && 
                          apiKey !== 'your_jisu_api_key_here' && 
@@ -45,7 +54,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
     if (!isValidApiKey) {
       console.log('⚠️ 极速数据API密钥未配置或为占位符，返回测试数据');
       
-      const testArticles = generateTestNews(type || '', category);
+      const testArticles = generateTestNews(type, category);
       
       return new Response(JSON.stringify({ 
         status: 'ok',
@@ -62,7 +71,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
       });
     }
 
-    console.log('📡 极速数据请求:', { category, type, searchKeyword, num, requestUrl });
+    console.log('📡 极速数据请求:', { category, type, searchKeyword, num });
+    console.log('🔗 请求URL:', requestUrl.replace(apiKey, 'API_KEY_HIDDEN'));
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -96,7 +106,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
         totalResults: 0,
         debug: {
           apiResponse: data,
-          requestUrl: requestUrl.replace(apiKey, 'API_KEY_HIDDEN')
+          requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
         }
       }), {
         status: 200, // 返回200但包含错误信息
@@ -145,7 +155,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
       articles: articles,
       debug: {
         originalResponse: data,
-        requestUrl: requestUrl.replace(apiKey, 'API_KEY_HIDDEN'),
+        requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN'),
         foundArticles: articles.length
       }
     }), {
@@ -166,7 +176,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
       console.log('🔧 极速数据API不可用，返回测试数据');
       
       // 根据类型返回相关的测试新闻
-      const testArticles = generateTestNews(type || '', category);
+      const testArticles = generateTestNews(type, category);
       
       return new Response(JSON.stringify({
         status: 'ok',
@@ -175,7 +185,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
         debug: {
           error: errorMessage,
           isTestData: true,
-          reason: isApiKeyIssue ? 'API密钥问题' : '网络问题'
+          reason: isApiKeyIssue ? 'API密钥问题' : '网络问题',
+          requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
         }
       }), {
         status: 200,
@@ -183,20 +194,29 @@ export async function onRequest(context: { request: Request; env: Env }) {
       });
     }
 
+    // 对于其他错误，也返回测试数据而不是500错误
+    console.log('🔧 极速数据出现其他错误，返回测试数据');
+    const testArticles = generateTestNews(type, category);
+    
     return new Response(JSON.stringify({
-      status: 'error',
-      message: errorMessage,
-      articles: [],
-      totalResults: 0
+      status: 'ok',
+      totalResults: testArticles.length,
+      articles: testArticles,
+      debug: {
+        error: errorMessage,
+        isTestData: true,
+        reason: '服务器错误，使用测试数据',
+        requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
+      }
     }), {
-      status: 500,
+      status: 200,
       headers: corsHeaders
     });
   }
 }
 
 // 生成测试新闻数据
-function generateTestNews(type: string, category: string) {
+function generateTestNews(type: string, _category: string) {
   const testNews = {
     gold: [
       {
