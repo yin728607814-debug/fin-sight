@@ -240,7 +240,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
   }
 }
 
-// 生成测试新闻数据
+// 生成测试新闻数据 - 扩展到30+条
 function generateTestNews(type: string, _category: string) {
   const testNews = {
     gold: [
@@ -423,6 +423,236 @@ function generateTestNews(type: string, _category: string) {
         url: '#',
         urlToImage: '',
         publishedAt: new Date(Date.now() - 36000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Netflix订阅用户数创新高，流媒体竞争加剧',
+        description: 'Netflix公布最新用户数据，全球订阅用户数创历史新高，但流媒体市场竞争日趋激烈。',
+        content: 'Netflix公布最新用户数据，全球订阅用户数突破2.5亿，创历史新高。尽管用户增长强劲，但面临Disney+、HBO Max等竞争对手的激烈竞争，公司正加大原创内容投资。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 39600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Zoom视频会议需求回升，远程办公趋势持续',
+        description: 'Zoom公布财报显示视频会议需求回升，远程办公和混合办公模式成为新常态。',
+        content: 'Zoom公布财报显示，视频会议需求在经历短暂下滑后重新回升。随着企业采用混合办公模式，Zoom的企业客户数量和平均合同价值均实现增长。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 43200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'PayPal数字支付业务增长强劲，股价上涨6%',
+        description: 'PayPal公布强劲财报，数字支付交易量大幅增长，推动股价上涨6%。',
+        content: 'PayPal公布强劲财报，数字支付交易量同比增长25%，活跃用户数突破4亿。公司在移动支付和跨境支付领域的优势地位进一步巩固，股价应声上涨6%。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 46800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Adobe创意软件订阅收入创新高，AI功能受欢迎',
+        description: 'Adobe公布财报显示创意软件订阅收入创新高，新推出的AI功能深受用户欢迎。',
+        content: 'Adobe公布财报显示，Creative Cloud订阅收入创历史新高，新推出的AI辅助创作功能大幅提升用户体验。公司在创意软件市场的领导地位进一步巩固。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 50400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Salesforce CRM业务增长稳健，企业数字化转型加速',
+        description: 'Salesforce公布财报显示CRM业务增长稳健，企业数字化转型需求推动业绩增长。',
+        content: 'Salesforce公布财报显示，CRM业务收入同比增长20%，企业数字化转型需求持续推动业绩增长。公司在客户关系管理领域的市场份额进一步扩大。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 54000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Intel推出新一代处理器，与AMD竞争加剧',
+        description: 'Intel推出新一代Core处理器，性能大幅提升，与AMD在CPU市场的竞争进一步加剧。',
+        content: 'Intel推出新一代Core处理器，采用先进制程工艺，性能较上代提升30%。这将与AMD的Ryzen系列形成更激烈的竞争，有望重新夺回市场份额。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 57600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Qualcomm 5G芯片出货量创新高，移动通信需求强劲',
+        description: 'Qualcomm公布财报显示5G芯片出货量创新高，移动通信市场需求持续强劲。',
+        content: 'Qualcomm公布财报显示，5G芯片出货量创历史新高，移动通信市场需求持续强劲。公司在5G技术领域的领先优势为业绩增长提供了强劲动力。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 61200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Cisco网络设备需求回暖，企业IT投资增加',
+        description: 'Cisco公布财报显示网络设备需求回暖，企业IT基础设施投资显著增加。',
+        content: 'Cisco公布财报显示，网络设备需求在经历低迷后开始回暖，企业IT基础设施投资显著增加。公司在网络安全和云计算领域的布局开始显现成效。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 64800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Oracle云计算业务加速增长，数据库市场地位稳固',
+        description: 'Oracle公布财报显示云计算业务加速增长，在数据库市场的领导地位进一步稳固。',
+        content: 'Oracle公布财报显示，云计算业务收入同比增长35%，在数据库市场的领导地位进一步稳固。公司向云计算转型的战略正在获得回报。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 68400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Broadcom半导体业务表现强劲，5G和AI需求推动增长',
+        description: 'Broadcom公布财报显示半导体业务表现强劲，5G和AI应用需求推动业绩增长。',
+        content: 'Broadcom公布财报显示，半导体业务收入创新高，5G基站和AI数据中心需求推动业绩强劲增长。公司在通信芯片领域的技术优势明显。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 72000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Workday企业软件需求增长，人力资源数字化加速',
+        description: 'Workday公布财报显示企业软件需求增长强劲，人力资源管理数字化趋势加速。',
+        content: 'Workday公布财报显示，企业软件订阅收入同比增长22%，人力资源管理数字化趋势加速。公司在企业级SaaS市场的竞争优势进一步显现。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 75600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'ServiceNow IT服务管理平台受欢迎，企业数字化需求旺盛',
+        description: 'ServiceNow公布财报显示IT服务管理平台广受欢迎，企业数字化转型需求旺盛。',
+        content: 'ServiceNow公布财报显示，IT服务管理平台订阅收入大幅增长，企业数字化转型需求旺盛。公司在企业级工作流自动化领域的领先地位得到巩固。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 79200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Snowflake数据云平台增长迅猛，大数据分析需求激增',
+        description: 'Snowflake公布财报显示数据云平台增长迅猛，企业大数据分析需求激增。',
+        content: 'Snowflake公布财报显示，数据云平台收入同比增长40%，企业大数据分析需求激增。公司在云原生数据仓库领域的技术优势推动业绩快速增长。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 82800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'CrowdStrike网络安全需求激增，股价创历史新高',
+        description: 'CrowdStrike公布财报显示网络安全需求激增，终端保护业务快速增长，股价创历史新高。',
+        content: 'CrowdStrike公布财报显示，网络安全威胁增加推动终端保护业务快速增长，订阅收入同比增长35%。公司股价创历史新高，市场对网络安全前景看好。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 86400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Palantir大数据分析业务扩张，政府和企业客户增长',
+        description: 'Palantir公布财报显示大数据分析业务持续扩张，政府和企业客户数量显著增长。',
+        content: 'Palantir公布财报显示，大数据分析平台在政府和企业市场的渗透率持续提升，客户数量同比增长30%。公司在数据分析和AI领域的技术实力获得认可。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 90000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Datadog监控平台需求强劲，云原生应用推动增长',
+        description: 'Datadog公布财报显示监控平台需求强劲，云原生应用部署推动业绩增长。',
+        content: 'Datadog公布财报显示，应用性能监控平台需求强劲，云原生应用部署趋势推动业绩增长。公司在DevOps和云监控领域的市场地位进一步巩固。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 93600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'MongoDB数据库需求增长，现代应用开发趋势明显',
+        description: 'MongoDB公布财报显示NoSQL数据库需求增长，现代应用开发对灵活数据存储需求增加。',
+        content: 'MongoDB公布财报显示，NoSQL数据库Atlas云服务收入大幅增长，现代应用开发对灵活数据存储的需求持续增加。公司在文档数据库领域的领先地位稳固。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 97200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Splunk数据分析平台表现强劲，企业数据洞察需求旺盛',
+        description: 'Splunk公布财报显示数据分析平台表现强劲，企业对数据洞察和安全分析需求旺盛。',
+        content: 'Splunk公布财报显示，数据分析平台在企业市场表现强劲，安全信息与事件管理(SIEM)需求推动业绩增长。公司向云端转型的战略正在显现成效。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 100800000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Okta身份管理服务需求激增，零信任安全趋势推动增长',
+        description: 'Okta公布财报显示身份管理服务需求激增，零信任安全架构趋势推动业绩增长。',
+        content: 'Okta公布财报显示，身份和访问管理服务需求激增，零信任安全架构成为企业标配。公司在身份管理领域的技术优势推动订阅收入快速增长。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 104400000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Zscaler云安全平台增长迅猛，远程办公安全需求持续',
+        description: 'Zscaler公布财报显示云安全平台增长迅猛，远程办公和混合办公安全需求持续增长。',
+        content: 'Zscaler公布财报显示，云安全平台Zero Trust Exchange增长迅猛，远程办公安全需求持续推动业绩增长。公司在安全服务边缘(SSE)领域的领先地位明显。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 108000000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Palo Alto Networks网络安全业务全面增长，AI安全成新亮点',
+        description: 'Palo Alto Networks公布财报显示网络安全业务全面增长，AI驱动的安全解决方案成为新亮点。',
+        content: 'Palo Alto Networks公布财报显示，网络安全业务全面增长，AI驱动的威胁检测和响应解决方案成为新的增长点。公司在企业安全市场的综合实力进一步增强。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 111600000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Fortinet网络安全设备需求稳定，SD-WAN业务快速增长',
+        description: 'Fortinet公布财报显示网络安全设备需求稳定，SD-WAN和安全访问服务边缘业务快速增长。',
+        content: 'Fortinet公布财报显示，传统网络安全设备需求保持稳定，SD-WAN和SASE业务成为新的增长引擎。公司在网络安全领域的产品组合优势明显。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 115200000).toISOString(),
+        source: { name: '极速数据(测试)' },
+        author: '极速数据'
+      },
+      {
+        title: 'Cloudflare边缘计算服务增长强劲，CDN市场地位稳固',
+        description: 'Cloudflare公布财报显示边缘计算服务增长强劲，在CDN和网络安全市场地位进一步稳固。',
+        content: 'Cloudflare公布财报显示，边缘计算和安全服务收入大幅增长，在CDN市场的领先地位进一步稳固。公司的全球网络基础设施优势为业务增长提供强劲支撑。',
+        url: '#',
+        urlToImage: '',
+        publishedAt: new Date(Date.now() - 118800000).toISOString(),
         source: { name: '极速数据(测试)' },
         author: '极速数据'
       }
