@@ -104,44 +104,28 @@ export async function onRequest(context: { request: Request; env: Env }) {
     if (data.status !== 0 && data.status !== '0') {
       console.error('❌ 极速数据API返回错误:', data);
       
-      // 如果是接口停用或其他API错误，返回空数组
-      const isApiDisabled = data.msg && (data.msg.includes('停用') || data.msg.includes('disabled'));
-      const isApiError = data.status === '108' || data.status === 108;
+      // 任何API错误都使用备用中文新闻，确保用户能看到内容
+      console.log('🔧 极速数据API不可用，使用备用中文新闻数据');
       
-      if (isApiDisabled || isApiError) {
-        console.log('🔧 极速数据API不可用，使用备用中文新闻数据');
-        
-        // 根据类型返回相应的中文新闻
-        const backupNews = getBackupChineseNews(type, parseInt(num));
-        
-        return new Response(JSON.stringify({
-          status: 'ok',
-          totalResults: backupNews.length,
-          articles: backupNews,
-          debug: {
-            error: `极速数据API错误: ${data.msg || data.message || '未知错误'}`,
-            isTestData: true,
-            reason: 'API接口不可用，使用备用数据',
-            requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN'),
-            newsType: type,
-            requestedCount: num
-          }
-        }), {
-          status: 200,
-          headers: corsHeaders
-        });
-      }
+      // 根据类型返回相应的中文新闻
+      const backupNews = getBackupChineseNews(type, parseInt(num));
       
       return new Response(JSON.stringify({
-        error: `极速数据API错误: ${data.msg || data.message || '未知错误'}`,
-        articles: [],
-        totalResults: 0,
+        status: 'ok',
+        totalResults: backupNews.length,
+        articles: backupNews,
         debug: {
-          apiResponse: data,
-          requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
+          error: `极速数据API错误: ${data.msg || data.message || '未知错误'}`,
+          isTestData: true,
+          reason: 'API接口不可用，使用备用数据',
+          requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN'),
+          newsType: type,
+          requestedCount: num,
+          originalApiStatus: data.status,
+          originalApiMessage: data.msg || data.message
         }
       }), {
-        status: 200, // 返回200但包含错误信息
+        status: 200,
         headers: corsHeaders
       });
     }
@@ -200,22 +184,27 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
     const errorMessage = error instanceof Error ? error.message : '未知错误';
 
-    // 如果是API密钥问题或网络问题，返回空数组
+    // 如果是API密钥问题或网络问题，返回备用中文新闻
     const isApiKeyIssue = errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('Unauthorized');
     const isNetworkIssue = errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('timeout');
 
     if (isApiKeyIssue || isNetworkIssue) {
-      console.log('🔧 极速数据API不可用，返回空数组');
+      console.log('🔧 极速数据API不可用，使用备用中文新闻数据');
+      
+      // 根据类型返回相应的中文新闻
+      const backupNews = getBackupChineseNews(type, parseInt(num));
       
       return new Response(JSON.stringify({
         status: 'ok',
-        totalResults: 0,
-        articles: [], // 返回空数组，不返回假新闻
+        totalResults: backupNews.length,
+        articles: backupNews,
         debug: {
           error: errorMessage,
-          isTestData: false,
-          reason: isApiKeyIssue ? 'API密钥问题' : '网络问题',
-          requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
+          isTestData: true,
+          reason: isApiKeyIssue ? 'API密钥问题，使用备用数据' : '网络问题，使用备用数据',
+          requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN'),
+          newsType: type,
+          requestedCount: num
         }
       }), {
         status: 200,
@@ -223,18 +212,23 @@ export async function onRequest(context: { request: Request; env: Env }) {
       });
     }
 
-    // 对于其他错误，也返回空数组而不是假新闻
-    console.log('🔧 极速数据出现其他错误，返回空数组');
+    // 对于其他错误，也返回备用中文新闻而不是空数组
+    console.log('🔧 极速数据出现其他错误，使用备用中文新闻数据');
+    
+    // 根据类型返回相应的中文新闻
+    const backupNews = getBackupChineseNews(type, parseInt(num));
     
     return new Response(JSON.stringify({
       status: 'ok',
-      totalResults: 0,
-      articles: [], // 返回空数组，不返回假新闻
+      totalResults: backupNews.length,
+      articles: backupNews,
       debug: {
         error: errorMessage,
-        isTestData: false,
-        reason: '服务器错误',
-        requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN')
+        isTestData: true,
+        reason: '服务器错误，使用备用数据',
+        requestUrl: requestUrl.replace(apiKey || '', 'API_KEY_HIDDEN'),
+        newsType: type,
+        requestedCount: num
       }
     }), {
       status: 200,
@@ -382,3 +376,4 @@ function getBackupChineseNews(type: string, count: number) {
   ];
   
   return astockNews.slice(0, Math.min(count, astockNews.length));
+}
