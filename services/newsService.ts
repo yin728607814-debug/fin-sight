@@ -75,7 +75,7 @@ async function callGeminiWithFallback(
     } catch (error: any) {
       lastError = error;
       const status = error.response?.status;
-      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      const isTimeout = error.code === 'ECONNABORTED' || error?.message || error?.includes('timeout');
       
       // 503 (服务过载)、429 (配额限制) 或超时时尝试下一个模型
       if (status === 503 || status === 429 || isTimeout) {
@@ -154,7 +154,7 @@ export class NewsService implements INewsService {
     
     this.config = {
       baseURL,
-      apiKey: config.apiKeys.news,
+      apiKey: '', // 新浪财经不需要API Key
       timeout: config.api.timeout,
       maxRetries: config.api.retryAttempts,
       ...apiConfig
@@ -242,7 +242,7 @@ export class NewsService implements INewsService {
           
           return newsItems;
           
-        } catch (error) {
+        } catch (error: any) {
           recordError(error as Error, { operation: 'fetchMarketNews', assetType, limit });
           
           console.error('❌ API调用失败，回退到演示数据');
@@ -272,8 +272,8 @@ export class NewsService implements INewsService {
       const eastmoneyNews = await this.fetchEastMoneyNews(limit * 2);
       console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
       allNews.push(...eastmoneyNews);
-    } catch (error) {
-      console.warn(`⚠️ 东方财富获取失败:`, error.message);
+    } catch (error: any) {
+      console.warn(`⚠️ 东方财富获取失败:`, error?.message || error);
     }
     
     // 第二优先级：新浪财经补充（快速超时）
@@ -290,19 +290,8 @@ export class NewsService implements INewsService {
         const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
-      } catch (error) {
-        console.warn(`⚠️ 新浪财经获取失败或超时:`, error.message);
-      }
-    }
-    
-    // 第三优先级：极速数据（稳定的付费API）
-    if (allNews.length < limit) {
-      try {
-        const jisuNews = await this.fetchJisuNews('股票', limit, 'nasdaq');
-        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
-        allNews.push(...jisuNews);
-      } catch (error) {
-        console.warn(`⚠️ 极速数据获取失败:`, error.message);
+      } catch (error: any) {
+        console.warn(`⚠️ 新浪财经获取失败或超时:`, error?.message || error);
       }
     }
     
@@ -325,15 +314,34 @@ export class NewsService implements INewsService {
     const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
     console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
     
-    // 🚫 移除Finnhub英文新闻回退，只使用中文新闻源
-    console.log(`✅ 只使用中文新闻源，不补充英文新闻`);
-    console.log(`📊 中文新闻总数: ${filteredNews.length}条`);
-
+    // 第三优先级：极速数据多频道补充（如果前两个源不足）
+    if (filteredNews.length < limit) {
+      console.log(`📊 前两个源不足（${filteredNews.length}/${limit}），尝试极速数据补充`);
+      
+      try {
+        const jisuNews = await this.fetchJisuMultiChannel(['科技', '股票', '财经'], 50, 'nasdaq');
+        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
+        
+        // 合并并去重
+        const combined = [...filteredNews, ...jisuNews];
+        const deduped = this.deduplicateNews(combined);
+        console.log(`🔄 合并极速数据后去重: ${deduped.length}条`);
+        
+        // 返回前N条
+        const finalNews = deduped.slice(0, limit);
+        console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
+        console.log(`📊 来源: 东方财富 + 新浪财经 + 极速数据`);
+        
+        return finalNews;
+      } catch (error: any) {
+        console.warn(`⚠️ 极速数据获取失败:`, error?.message || error);
+      }
+    }
     
     // 返回前N条（如果不足limit条，返回所有可用的）
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
-    console.log(`📊 来源: 东方财富优先 + 新浪财经 + 极速数据补充`);
+    console.log(`📊 来源: 东方财富 + 新浪财经`);
     
     return finalNews;
   }
@@ -352,8 +360,8 @@ export class NewsService implements INewsService {
       const eastmoneyGoldNews = await this.fetchEastMoneyGoldNews(limit * 2);
       console.log(`✅ 东方财富黄金频道获取成功: ${eastmoneyGoldNews.length}条`);
       allNews.push(...eastmoneyGoldNews);
-    } catch (error) {
-      console.warn(`⚠️ 东方财富黄金频道获取失败:`, error.message);
+    } catch (error: any) {
+      console.warn(`⚠️ 东方财富黄金频道获取失败:`, error?.message || error);
     }
     
     // 第二优先级：新浪财经黄金新闻补充（设置较短超时，快速失败）
@@ -370,19 +378,8 @@ export class NewsService implements INewsService {
         const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
-      } catch (error) {
-        console.warn(`⚠️ 新浪财经获取失败或超时:`, error.message);
-      }
-    }
-    
-    // 第三优先级：极速数据（稳定的付费API）
-    if (allNews.length < limit) {
-      try {
-        const jisuNews = await this.fetchJisuNews('财经', limit, 'gold');
-        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
-        allNews.push(...jisuNews);
-      } catch (error) {
-        console.warn(`⚠️ 极速数据获取失败:`, error.message);
+      } catch (error: any) {
+        console.warn(`⚠️ 新浪财经获取失败或超时:`, error?.message || error);
       }
     }
     
@@ -405,15 +402,34 @@ export class NewsService implements INewsService {
     const filteredNews = scoredNews.filter(news => news.relevanceScore >= 0.1);
     console.log(`✂️ 过滤后: ${filteredNews.length}条 (相关性≥10分)`);
     
-    // 🚫 移除Finnhub英文新闻回退，只使用中文新闻源
-    console.log(`✅ 只使用中文新闻源，不补充英文新闻`);
-    console.log(`📊 中文新闻总数: ${filteredNews.length}条`);
-
+    // 第三优先级：极速数据多频道补充（如果前两个源不足）
+    if (filteredNews.length < limit) {
+      console.log(`📊 前两个源不足（${filteredNews.length}/${limit}），尝试极速数据补充`);
+      
+      try {
+        const jisuNews = await this.fetchJisuMultiChannel(['股票', '新闻', '头条', '财经'], 50, 'gold');
+        console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
+        
+        // 合并并去重
+        const combined = [...filteredNews, ...jisuNews];
+        const deduped = this.deduplicateNews(combined);
+        console.log(`🔄 合并极速数据后去重: ${deduped.length}条`);
+        
+        // 返回前N条
+        const finalNews = deduped.slice(0, limit);
+        console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
+        console.log(`📊 来源: 东方财富 + 新浪财经 + 极速数据`);
+        
+        return finalNews;
+      } catch (error: any) {
+        console.warn(`⚠️ 极速数据获取失败:`, error?.message || error);
+      }
+    }
     
     // 返回前N条（如果不足limit条，返回所有可用的）
     const finalNews = filteredNews.slice(0, limit);
     console.log(`🎯 最终返回: ${finalNews.length}条（目标${limit}条）`);
-    console.log(`📊 来源: 东方财富黄金频道优先 + 新浪财经 + 极速数据补充`);
+    console.log(`📊 来源: 东方财富 + 新浪财经`);
     
     return finalNews;
   }
@@ -433,7 +449,7 @@ export class NewsService implements INewsService {
       const eastmoneyNews = await this.fetchEastmoneyAStockNews(limit * 2);
       console.log(`✅ 东方财富获取成功: ${eastmoneyNews.length}条`);
       allNews.push(...eastmoneyNews);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ 东方财富A股新闻获取失败:`, error);
     }
     
@@ -452,7 +468,7 @@ export class NewsService implements INewsService {
         const sinaNews = await Promise.race([sinaNewsPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
-      } catch (error) {
+      } catch (error: any) {
         console.warn(`⚠️ 新浪财经A股新闻获取失败（非致命错误）:`, error);
       }
     } else {
@@ -463,10 +479,10 @@ export class NewsService implements INewsService {
     if (allNews.length < limit) {
       console.log(`📰 [3/3] 获取极速数据股票新闻 (请求: ${limit}条)`);
       try {
-        const jisuNews = await this.fetchJisuNews('股票', limit, 'astock');
+        const jisuNews = await this.fetchJisuMultiChannel(['股票', '财经', '头条'], 50, 'astock');
         console.log(`✅ 极速数据获取成功: ${jisuNews.length}条`);
         allNews.push(...jisuNews);
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ 极速数据获取失败:`, error);
       }
     } else {
@@ -572,7 +588,7 @@ export class NewsService implements INewsService {
         });
 
       return astockNews;
-    } catch (error) {
+    } catch (error: any) {
       console.error('新浪财经A股新闻获取失败:', error);
       return [];
     }
@@ -644,7 +660,7 @@ export class NewsService implements INewsService {
         });
 
       return usStockNews;
-    } catch (error) {
+    } catch (error: any) {
       console.error('新浪财经美股新闻获取失败:', error);
       return [];
     }
@@ -707,10 +723,68 @@ export class NewsService implements INewsService {
         });
 
       return goldNews;
-    } catch (error) {
+    } catch (error: any) {
       console.error('新浪财经黄金新闻获取失败:', error);
       return [];
     }
+  }
+
+  /**
+   * 获取极速数据新闻（多频道组合策略）
+   */
+  private async fetchJisuMultiChannel(channels: string[], numPerChannel: number, type: 'nasdaq' | 'gold' | 'astock'): Promise<NewsItem[]> {
+    console.log(`📡 极速数据多频道策略: ${channels.join(' + ')}`);
+    
+    const allNews: NewsItem[] = [];
+    
+    for (const channel of channels) {
+      try {
+        const news = await this.fetchJisuNews(channel, numPerChannel, type);
+        console.log(`   ${channel}频道: ${news.length}条`);
+        allNews.push(...news);
+      } catch (error: any) {
+        console.warn(`   ${channel}频道获取失败:`, error?.message || error);
+      }
+    }
+    
+    // 去重
+    const uniqueNews = this.deduplicateNews(allNews);
+    console.log(`   合并去重: ${allNews.length} → ${uniqueNews.length}条`);
+    
+    // 根据类型过滤相关新闻
+    const filtered = this.filterJisuNewsByType(uniqueNews, type);
+    console.log(`   相关性过滤: ${uniqueNews.length} → ${filtered.length}条`);
+    
+    return filtered;
+  }
+
+  /**
+   * 根据类型过滤极速数据新闻
+   */
+  private filterJisuNewsByType(newsItems: NewsItem[], type: 'nasdaq' | 'gold' | 'astock'): NewsItem[] {
+    return newsItems.filter(item => {
+      const text = `${item.title} ${item.content}`.toLowerCase();
+      
+      if (type === 'nasdaq') {
+        return text.includes('美股') || text.includes('纳斯达克') || text.includes('纳指') ||
+               text.includes('科技股') || text.includes('nasdaq') ||
+               text.includes('苹果') || text.includes('微软') || text.includes('谷歌') ||
+               text.includes('亚马逊') || text.includes('特斯拉') || text.includes('英伟达') ||
+               text.includes('华尔街') || text.includes('道琼斯') || text.includes('标普');
+      } else if (type === 'gold') {
+        return text.includes('黄金') || text.includes('金价') || 
+               text.includes('贵金属') || text.includes('白银') ||
+               text.includes('现货金') || text.includes('伦敦金');
+      } else if (type === 'astock') {
+        return text.includes('a股') || text.includes('上证') || 
+               text.includes('深证') || text.includes('创业板') || 
+               text.includes('科创板') || text.includes('沪指') ||
+               text.includes('深指') || text.includes('股市') ||
+               text.includes('上证指数') || text.includes('深证成指');
+      }
+      
+      return false;
+    });
   }
 
   /**
@@ -751,7 +825,7 @@ export class NewsService implements INewsService {
             image: article.urlToImage
           };
         });
-    } catch (error) {
+    } catch (error: any) {
       console.error('极速数据新闻获取失败:', error);
       return [];
     }
@@ -792,7 +866,7 @@ export class NewsService implements INewsService {
             image: article.image
           };
         });
-    } catch (error) {
+    } catch (error: any) {
       console.error('东方财富新闻获取失败:', error);
       return [];
     }
@@ -831,7 +905,7 @@ export class NewsService implements INewsService {
             image: article.image
           };
         });
-    } catch (error) {
+    } catch (error: any) {
       console.error('东方财富黄金新闻获取失败:', error);
       return [];
     }
@@ -871,7 +945,7 @@ export class NewsService implements INewsService {
             image: article.image
           };
         });
-    } catch (error) {
+    } catch (error: any) {
       console.error('东方财富A股新闻获取失败:', error);
       return [];
     }
@@ -1078,7 +1152,7 @@ export class NewsService implements INewsService {
         try {
           const analysis = await this.analyzeIndividualNews(newsItem, assetType);
           analyses.push(analysis);
-        } catch (error) {
+        } catch (error: any) {
           logError('单条新闻分析失败', { newsId: newsItem.id, error });
           // 继续处理其他新闻，不中断整个流程
         }
@@ -1091,7 +1165,7 @@ export class NewsService implements INewsService {
       
       return analyses;
       
-    } catch (error) {
+    } catch (error: any) {
       const apiError = this.errorHandler.handleAnalysisError(error);
       logError('新闻影响分析失败', apiError);
       throw apiError;
@@ -1171,7 +1245,7 @@ export class NewsService implements INewsService {
 
         return response;
         
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
         
         if (attempt === this.config.maxRetries) {
@@ -1261,7 +1335,7 @@ export class NewsService implements INewsService {
           });
 
           return newsItem;
-        } catch (error) {
+        } catch (error: any) {
           console.error('❌ 转换新闻数据失败', { article, error });
           return null;
         }
@@ -1742,10 +1816,10 @@ export class NewsService implements INewsService {
           await this.sleep(3000);
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.warn(`❌ 翻译第 ${i + 1} 条新闻失败，保留原文`, { 
           title: item.title.substring(0, 50), 
-          error: error.message 
+          error: error?.message || error 
         });
         translatedItems.push(item);
       }
