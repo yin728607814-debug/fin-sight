@@ -259,6 +259,40 @@ export class NewsService implements INewsService {
   }
 
   /**
+   * 带重试机制获取新浪新闻
+   */
+  private async fetchSinaNewsWithRetry(fetchFunc: () => Promise<NewsItem[]>, maxRetries: number = 3, timeout: number = 15000): Promise<NewsItem[]> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`   尝试第 ${attempt}/${maxRetries} 次...`);
+        
+        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
+          setTimeout(() => reject(new Error(`新浪新闻获取超时(${timeout/1000}秒)`)), timeout)
+        );
+        
+        const result = await Promise.race([fetchFunc(), timeoutPromise]);
+        console.log(`   ✅ 第 ${attempt} 次尝试成功`);
+        return result;
+        
+      } catch (error: any) {
+        console.warn(`   ⚠️ 第 ${attempt} 次尝试失败:`, error?.message || error);
+        
+        if (attempt === maxRetries) {
+          console.error(`   ❌ 所有 ${maxRetries} 次尝试都失败`);
+          throw error;
+        }
+        
+        // 等待后重试（递增延迟）
+        const delay = attempt * 2000; // 2秒、4秒、6秒
+        console.log(`   ⏳ 等待 ${delay/1000} 秒后重试...`);
+        await this.sleep(delay);
+      }
+    }
+    
+    return [];
+  }
+
+  /**
    * 混合策略获取纳斯达克新闻（多源降级）
    */
   private async fetchNasdaqNewsHybrid(limit: number = 50): Promise<NewsItem[]> {
@@ -276,18 +310,16 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富获取失败:`, error?.message || error);
     }
     
-    // 第二优先级：新浪财经补充（快速超时）
+    // 第二优先级：新浪财经补充（带重试机制，15秒超时）
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
-        // 使用 Promise.race 设置快速超时（5秒 - Fail Fast）
-        const sinaPromise = this.fetchSinaUSStockNews(300);
-        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
-          setTimeout(() => reject(new Error('新浪新闻获取超时(5秒)')), 5000)
+        const sinaNews = await this.fetchSinaNewsWithRetry(
+          () => this.fetchSinaUSStockNews(300),
+          3,  // 最多重试3次
+          15000  // 每次15秒超时
         );
-        
-        const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error: any) {
@@ -364,18 +396,16 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富黄金频道获取失败:`, error?.message || error);
     }
     
-    // 第二优先级：新浪财经黄金新闻补充（设置较短超时，快速失败）
+    // 第二优先级：新浪财经黄金新闻补充（带重试机制，15秒超时）
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
-        // 使用 Promise.race 设置快速超时（5秒 - Fail Fast）
-        const sinaPromise = this.fetchSinaGoldNews(300);
-        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
-          setTimeout(() => reject(new Error('新浪新闻获取超时(5秒)')), 5000)
+        const sinaNews = await this.fetchSinaNewsWithRetry(
+          () => this.fetchSinaGoldNews(300),
+          3,  // 最多重试3次
+          15000  // 每次15秒超时
         );
-        
-        const sinaNews = await Promise.race([sinaPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error: any) {
@@ -453,19 +483,17 @@ export class NewsService implements INewsService {
       console.error(`❌ 东方财富A股新闻获取失败:`, error);
     }
     
-    // 2. 第二优先级：新浪财经作为补充（带超时保护）
+    // 2. 第二优先级：新浪财经作为补充（带重试机制，15秒超时）
     if (allNews.length < limit) {
       const needed = Math.min(300, limit * 2);
       console.log(`📰 [2/3] 获取新浪财经A股新闻 (请求: ${needed}条)`);
       
       try {
-        // 5秒超时保护 - Fail Fast
-        const sinaNewsPromise = this.fetchSinaAStockNews(needed);
-        const timeoutPromise = new Promise<NewsItem[]>((_, reject) => 
-          setTimeout(() => reject(new Error('新浪新闻请求超时(5秒)')), 5000)
+        const sinaNews = await this.fetchSinaNewsWithRetry(
+          () => this.fetchSinaAStockNews(needed),
+          3,  // 最多重试3次
+          15000  // 每次15秒超时
         );
-        
-        const sinaNews = await Promise.race([sinaNewsPromise, timeoutPromise]);
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
       } catch (error: any) {
@@ -730,6 +758,29 @@ export class NewsService implements INewsService {
   }
 
   /**
+   * 清理HTML标签
+   */
+  private stripHtmlTags(html: string): string {
+    if (!html) return '';
+    
+    // 移除所有HTML标签
+    let text = html.replace(/<[^>]*>/g, ' ');
+    
+    // 解码HTML实体
+    text = text.replace(/&nbsp;/g, ' ')
+               .replace(/&lt;/g, '<')
+               .replace(/&gt;/g, '>')
+               .replace(/&amp;/g, '&')
+               .replace(/&quot;/g, '"')
+               .replace(/&#39;/g, "'");
+    
+    // 移除多余空格
+    text = text.replace(/\s+/g, ' ').trim();
+    
+    return text;
+  }
+
+  /**
    * 获取极速数据新闻（多频道组合策略）
    */
   private async fetchJisuMultiChannel(channels: string[], numPerChannel: number, type: 'nasdaq' | 'gold' | 'astock'): Promise<NewsItem[]> {
@@ -814,10 +865,14 @@ export class NewsService implements INewsService {
             ? `jisu_${this.hashString(article.url)}`
             : `jisu_${this.hashString(article.title)}_${Date.now()}`;
           
+          // 清理HTML标签
+          const cleanTitle = this.stripHtmlTags(article.title || '');
+          const cleanContent = this.stripHtmlTags(article.description || article.content || article.title || '');
+          
           return {
             id: stableId,
-            title: article.title || '',
-            content: article.description || article.content || article.title || '',
+            title: cleanTitle,
+            content: cleanContent,
             source: '极速数据',
             publishedAt: new Date(article.publishedAt || Date.now()),
             url: article.url || '#',
