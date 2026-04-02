@@ -310,15 +310,15 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富获取失败:`, error?.message || error);
     }
     
-    // 第二优先级：新浪财经补充（增加请求数量，带重试机制，15秒超时）
+    // 第二优先级：新浪财经补充（并行请求，15秒超时）
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
         const sinaNews = await this.fetchSinaNewsWithRetry(
-          () => this.fetchSinaUSStockNews(500),  // 增加到500
+          () => this.fetchSinaUSStockNews(250),  // 请求250条（5页并行）
           3,  // 最多重试3次
-          15000  // 每次15秒超时
+          20000  // 每次20秒超时（并行请求需要更多时间）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -396,15 +396,15 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富黄金频道获取失败:`, error?.message || error);
     }
     
-    // 第二优先级：新浪财经黄金新闻补充（增加请求数量，带重试机制，15秒超时）
+    // 第二优先级：新浪财经黄金新闻补充（并行请求，15秒超时）
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
         const sinaNews = await this.fetchSinaNewsWithRetry(
-          () => this.fetchSinaGoldNews(500),  // 增加到500
+          () => this.fetchSinaGoldNews(250),  // 请求250条（5页并行）
           3,  // 最多重试3次
-          15000  // 每次15秒超时
+          20000  // 每次20秒超时（并行请求需要更多时间）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -483,16 +483,16 @@ export class NewsService implements INewsService {
       console.error(`❌ 东方财富A股新闻获取失败:`, error);
     }
     
-    // 2. 第二优先级：新浪财经作为补充（增加请求数量，带重试机制，15秒超时）
+    // 2. 第二优先级：新浪财经作为补充（并行请求，15秒超时）
     if (allNews.length < limit) {
-      const needed = 500;  // 增加到500
+      const needed = 250;  // 请求250条（5页并行）
       console.log(`📰 [2/3] 获取新浪财经A股新闻 (请求: ${needed}条)`);
       
       try {
         const sinaNews = await this.fetchSinaNewsWithRetry(
           () => this.fetchSinaAStockNews(needed),
           3,  // 最多重试3次
-          15000  // 每次15秒超时
+          20000  // 每次20秒超时（并行请求需要更多时间）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -545,102 +545,93 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取新浪财经A股新闻（多页请求）
+   * 获取新浪财经A股新闻（并行多页请求）
    */
   private async fetchSinaAStockNews(limit: number): Promise<NewsItem[]> {
     try {
-      const allNews: NewsItem[] = [];
       const perPage = 50;  // 新浪API每页最多50条
-      const pages = Math.ceil(limit / perPage);  // 计算需要请求的页数
+      const pagesToFetch = Math.min(Math.ceil(limit / perPage), 5);  // 最多5页，并行请求
       
-      console.log(`   新浪财经A股：需要请求 ${pages} 页，每页${perPage}条`);
+      console.log(`   新浪财经A股：并行请求 ${pagesToFetch} 页，每页${perPage}条`);
       
-      // 多页请求
-      for (let page = 1; page <= Math.min(pages, 10); page++) {  // 最多10页
-        try {
-          const response = await axios.get('/sina-news-proxy', {
-            params: { 
-              category: 'finance',
-              num: perPage,
-              page: page
-            },
-            timeout: 30000
-          });
-
-          if (!response.data.articles || !Array.isArray(response.data.articles)) {
-            break;
-          }
-
-          const articles = response.data.articles;
-          console.log(`   第${page}页: 获取${articles.length}条`);
-          
-          // 放宽A股相关的新闻过滤条件
-          const astockNews = articles.filter((article: any) => {
-            const url = article.url || '';
-            const title = article.title || '';
-            const content = (article.description || article.content || '').toLowerCase();
-            const titleLower = title.toLowerCase();
-            
-            // URL过滤：A股路径（排除美股和港股）
-            const hasAStockURL = url.includes('/stock/') && 
-                                !url.includes('/usstock/') && 
-                                !url.includes('/hkstock/');
-            
-            // 如果URL匹配，直接保留
-            if (hasAStockURL) return true;
-            
-            // 扩展A股相关关键词（更宽松）
-            const keywords = [
-              // 核心指数
-              'A股', 'a股', '沪指', '深指', '上证', '深证',
-              '上证指数', '深证成指', '创业板', '科创板',
-              // 市场相关
-              '股市', '股票', '股价', '大盘', '指数',
-              '涨跌', '行情', '交易', '成交', '成交量',
-              // 监管机构
-              '证监会', '交易所', '上交所', '深交所',
-              '政策', '监管', '改革', '开放',
-              // 行业板块
-              '白酒', '新能源', '半导体', '医药', '地产',
-              '银行', '保险', '券商', '基金', '芯片',
-              '锂电', '光伏', '军工', '消费', '科技',
-              // 投资相关
-              '北向资金', '外资', '机构', '散户', '主力',
-              '涨停', '跌停', '停牌', '复牌', '重组',
-              // 市场情绪
-              '牛市', '熊市', '震荡', '反弹', '回调'
-            ];
-            
-            const hasKeyword = keywords.some(kw => 
-              titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
-            );
-            
-            return hasKeyword;
-          });
-          
-          console.log(`   第${page}页: A股相关${astockNews.length}条`);
-          allNews.push(...astockNews);
-          
-          // 如果已经足够，提前结束
-          if (allNews.length >= limit) {
-            console.log(`   已获取足够新闻(${allNews.length}条)，停止请求`);
-            break;
-          }
-          
-          // 避免请求过快
-          if (page < pages) {
-            await this.sleep(500);  // 等待500ms
-          }
-          
-        } catch (error: any) {
-          console.warn(`   第${page}页请求失败:`, error?.message || error);
-          break;
+      // 并行请求多页
+      const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => 
+        axios.get('/sina-news-proxy', {
+          params: { 
+            category: 'finance',
+            num: perPage,
+            page: i + 1
+          },
+          timeout: 15000  // 15秒超时
+        }).catch(error => {
+          console.warn(`   第${i + 1}页请求失败:`, error?.message || error);
+          return null;
+        })
+      );
+      
+      // 等待所有请求完成（无论成功失败）
+      const responses = await Promise.all(pagePromises);
+      
+      // 收集所有新闻
+      const allArticles: any[] = [];
+      responses.forEach((response, index) => {
+        if (response && response.data?.articles && Array.isArray(response.data.articles)) {
+          console.log(`   第${index + 1}页: 获取${response.data.articles.length}条`);
+          allArticles.push(...response.data.articles);
         }
-      }
+      });
+      
+      console.log(`   合并后总数: ${allArticles.length}条`);
+      
+      // 过滤A股相关新闻
+      const astockNews = allArticles.filter((article: any) => {
+        const url = article.url || '';
+        const title = article.title || '';
+        const content = (article.description || article.content || '').toLowerCase();
+        const titleLower = title.toLowerCase();
+        
+        // URL过滤：A股路径（排除美股和港股）
+        const hasAStockURL = url.includes('/stock/') && 
+                            !url.includes('/usstock/') && 
+                            !url.includes('/hkstock/');
+        
+        // 如果URL匹配，直接保留
+        if (hasAStockURL) return true;
+        
+        // 扩展A股相关关键词（更宽松）
+        const keywords = [
+          // 核心指数
+          'A股', 'a股', '沪指', '深指', '上证', '深证',
+          '上证指数', '深证成指', '创业板', '科创板',
+          // 市场相关
+          '股市', '股票', '股价', '大盘', '指数',
+          '涨跌', '行情', '交易', '成交', '成交量',
+          // 监管机构
+          '证监会', '交易所', '上交所', '深交所',
+          '政策', '监管', '改革', '开放',
+          // 行业板块
+          '白酒', '新能源', '半导体', '医药', '地产',
+          '银行', '保险', '券商', '基金', '芯片',
+          '锂电', '光伏', '军工', '消费', '科技',
+          // 投资相关
+          '北向资金', '外资', '机构', '散户', '主力',
+          '涨停', '跌停', '停牌', '复牌', '重组',
+          // 市场情绪
+          '牛市', '熊市', '震荡', '反弹', '回调'
+        ];
+        
+        const hasKeyword = keywords.some(kw => 
+          titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
+        );
+        
+        return hasKeyword;
+      });
+      
+      console.log(`   过滤后A股相关: ${astockNews.length}条`);
       
       // 去重并转换格式
       const uniqueNews = this.deduplicateNews(
-        allNews.slice(0, limit).map((article: any, index: number) => {
+        astockNews.slice(0, limit).map((article: any, index: number) => {
           const stableId = article.url 
             ? `sina_astock_${this.hashString(article.url)}`
             : `sina_astock_${this.hashString(article.title)}_${index}`;
@@ -667,98 +658,89 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取新浪财经美股新闻（多页请求）
+   * 获取新浪财经美股新闻（并行多页请求）
    */
   private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
     try {
-      const allNews: NewsItem[] = [];
       const perPage = 50;  // 新浪API每页最多50条
-      const pages = Math.ceil(limit / perPage);  // 计算需要请求的页数
+      const pagesToFetch = Math.min(Math.ceil(limit / perPage), 5);  // 最多5页，并行请求
       
-      console.log(`   新浪财经美股：需要请求 ${pages} 页，每页${perPage}条`);
+      console.log(`   新浪财经美股：并行请求 ${pagesToFetch} 页，每页${perPage}条`);
       
-      // 多页请求
-      for (let page = 1; page <= Math.min(pages, 10); page++) {  // 最多10页
-        try {
-          const response = await axios.get('/sina-news-proxy', {
-            params: { 
-              category: 'finance',
-              num: perPage,
-              page: page
-            },
-            timeout: 30000
-          });
-
-          if (!response.data.articles || !Array.isArray(response.data.articles)) {
-            break;
-          }
-
-          const articles = response.data.articles;
-          console.log(`   第${page}页: 获取${articles.length}条`);
-          
-          // 放宽美股相关的新闻过滤条件
-          const usStockNews = articles.filter((article: any) => {
-            const url = article.url || '';
-            const title = article.title || '';
-            const content = (article.description || article.content || '').toLowerCase();
-            const titleLower = title.toLowerCase();
-            
-            // URL过滤：包含美股路径
-            const hasUSStockURL = url.includes('/stock/usstock/') || 
-                                 url.includes('/stock/us/') ||
-                                 url.includes('/usstock/');
-            
-            // 如果URL匹配，直接保留
-            if (hasUSStockURL) return true;
-            
-            // 扩展美股相关关键词（更宽松）
-            const keywords = [
-              // 核心关键词
-              '美股', '纳斯达克', '纳指', '科技股', 'NASDAQ', 
-              // 主要公司
-              '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
-              'Apple', 'Microsoft', 'Google', 'Amazon', 'Tesla', 'NVIDIA',
-              'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA',
-              // 市场指数
-              '华尔街', '道琼斯', '标普', 'S&P', 'Dow Jones',
-              // 科技相关
-              'AI', '人工智能', '芯片', '半导体', '云计算',
-              // 其他大公司
-              'Meta', 'Netflix', 'Facebook', 'Intel', 'AMD',
-              // 市场相关
-              '美国股市', '美国市场', '美股市场'
-            ];
-            
-            const hasKeyword = keywords.some(kw => 
-              titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
-            );
-            
-            return hasKeyword;
-          });
-          
-          console.log(`   第${page}页: 美股相关${usStockNews.length}条`);
-          allNews.push(...usStockNews);
-          
-          // 如果已经足够，提前结束
-          if (allNews.length >= limit) {
-            console.log(`   已获取足够新闻(${allNews.length}条)，停止请求`);
-            break;
-          }
-          
-          // 避免请求过快
-          if (page < pages) {
-            await this.sleep(500);  // 等待500ms
-          }
-          
-        } catch (error: any) {
-          console.warn(`   第${page}页请求失败:`, error?.message || error);
-          break;
+      // 并行请求多页
+      const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => 
+        axios.get('/sina-news-proxy', {
+          params: { 
+            category: 'finance',
+            num: perPage,
+            page: i + 1
+          },
+          timeout: 15000  // 15秒超时
+        }).catch(error => {
+          console.warn(`   第${i + 1}页请求失败:`, error?.message || error);
+          return null;
+        })
+      );
+      
+      // 等待所有请求完成（无论成功失败）
+      const responses = await Promise.all(pagePromises);
+      
+      // 收集所有新闻
+      const allArticles: any[] = [];
+      responses.forEach((response, index) => {
+        if (response && response.data?.articles && Array.isArray(response.data.articles)) {
+          console.log(`   第${index + 1}页: 获取${response.data.articles.length}条`);
+          allArticles.push(...response.data.articles);
         }
-      }
+      });
+      
+      console.log(`   合并后总数: ${allArticles.length}条`);
+      
+      // 过滤美股相关新闻
+      const usStockNews = allArticles.filter((article: any) => {
+        const url = article.url || '';
+        const title = article.title || '';
+        const content = (article.description || article.content || '').toLowerCase();
+        const titleLower = title.toLowerCase();
+        
+        // URL过滤：包含美股路径
+        const hasUSStockURL = url.includes('/stock/usstock/') || 
+                             url.includes('/stock/us/') ||
+                             url.includes('/usstock/');
+        
+        // 如果URL匹配，直接保留
+        if (hasUSStockURL) return true;
+        
+        // 扩展美股相关关键词（更宽松）
+        const keywords = [
+          // 核心关键词
+          '美股', '纳斯达克', '纳指', '科技股', 'NASDAQ', 
+          // 主要公司
+          '苹果', '微软', '谷歌', '亚马逊', '特斯拉', '英伟达',
+          'Apple', 'Microsoft', 'Google', 'Amazon', 'Tesla', 'NVIDIA',
+          'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA',
+          // 市场指数
+          '华尔街', '道琼斯', '标普', 'S&P', 'Dow Jones',
+          // 科技相关
+          'AI', '人工智能', '芯片', '半导体', '云计算',
+          // 其他大公司
+          'Meta', 'Netflix', 'Facebook', 'Intel', 'AMD',
+          // 市场相关
+          '美国股市', '美国市场', '美股市场'
+        ];
+        
+        const hasKeyword = keywords.some(kw => 
+          titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
+        );
+        
+        return hasKeyword;
+      });
+      
+      console.log(`   过滤后美股相关: ${usStockNews.length}条`);
       
       // 去重并转换格式
       const uniqueNews = this.deduplicateNews(
-        allNews.slice(0, limit).map((article: any, index: number) => {
+        usStockNews.slice(0, limit).map((article: any, index: number) => {
           const stableId = article.url 
             ? `sina_us_${this.hashString(article.url)}`
             : `sina_us_${this.hashString(article.title)}_${index}`;
@@ -785,79 +767,70 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取新浪财经黄金新闻（多页请求）
+   * 获取新浪财经黄金新闻（并行多页请求）
    */
   private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
     try {
-      const allNews: NewsItem[] = [];
       const perPage = 50;  // 新浪API每页最多50条
-      const pages = Math.ceil(limit / perPage);  // 计算需要请求的页数
+      const pagesToFetch = Math.min(Math.ceil(limit / perPage), 5);  // 最多5页，并行请求
       
-      console.log(`   新浪财经黄金：需要请求 ${pages} 页，每页${perPage}条`);
+      console.log(`   新浪财经黄金：并行请求 ${pagesToFetch} 页，每页${perPage}条`);
       
-      // 多页请求
-      for (let page = 1; page <= Math.min(pages, 10); page++) {  // 最多10页
-        try {
-          const response = await axios.get('/sina-news-proxy', {
-            params: { 
-              category: 'finance',
-              num: perPage,
-              page: page
-            },
-            timeout: 30000
-          });
-
-          if (!response.data.articles || !Array.isArray(response.data.articles)) {
-            break;
-          }
-
-          const articles = response.data.articles;
-          console.log(`   第${page}页: 获取${articles.length}条`);
-          
-          // 放宽黄金相关的新闻过滤条件
-          const goldNews = articles.filter((article: any) => {
-            const title = article.title || '';
-            const content = (article.description || article.content || '').toLowerCase();
-            const titleLower = title.toLowerCase();
-            
-            // 扩展黄金相关关键词（更宽松）
-            const keywords = [
-              '黄金', '金价', '贵金属', '白银', '现货金', 'XAUUSD', 
-              '伦敦金', '美元金', '金市', '黄金市场', '金银',
-              '避险', '通胀', '美联储', '央行', '黄金储备',
-              '美元指数', '实际利率', '地缘政治',
-              '黄金ETF', '金矿', '黄金期货', '黄金现货',
-              'gold', 'precious metal', 'bullion'
-            ];
-            
-            return keywords.some(kw => 
-              titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
-            );
-          });
-          
-          console.log(`   第${page}页: 黄金相关${goldNews.length}条`);
-          allNews.push(...goldNews);
-          
-          // 如果已经足够，提前结束
-          if (allNews.length >= limit) {
-            console.log(`   已获取足够新闻(${allNews.length}条)，停止请求`);
-            break;
-          }
-          
-          // 避免请求过快
-          if (page < pages) {
-            await this.sleep(500);  // 等待500ms
-          }
-          
-        } catch (error: any) {
-          console.warn(`   第${page}页请求失败:`, error?.message || error);
-          break;
+      // 并行请求多页
+      const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => 
+        axios.get('/sina-news-proxy', {
+          params: { 
+            category: 'finance',
+            num: perPage,
+            page: i + 1
+          },
+          timeout: 15000  // 15秒超时
+        }).catch(error => {
+          console.warn(`   第${i + 1}页请求失败:`, error?.message || error);
+          return null;
+        })
+      );
+      
+      // 等待所有请求完成（无论成功失败）
+      const responses = await Promise.all(pagePromises);
+      
+      // 收集所有新闻
+      const allArticles: any[] = [];
+      responses.forEach((response, index) => {
+        if (response && response.data?.articles && Array.isArray(response.data.articles)) {
+          console.log(`   第${index + 1}页: 获取${response.data.articles.length}条`);
+          allArticles.push(...response.data.articles);
         }
-      }
+      });
+      
+      console.log(`   合并后总数: ${allArticles.length}条`);
+      
+      // 过滤黄金相关新闻
+      const goldNews = allArticles.filter((article: any) => {
+        const title = article.title || '';
+        const content = (article.description || article.content || '').toLowerCase();
+        const titleLower = title.toLowerCase();
+        
+        // 扩展黄金相关关键词（更宽松）
+        const keywords = [
+          '黄金', '金价', '贵金属', '白银', '现货金', 'XAUUSD', 
+          '伦敦金', '美元金', '金市', '黄金市场', '金银',
+          '避险', '通胀', '美联储', '央行', '黄金储备',
+          '美元指数', '实际利率', '地缘政治',
+          '黄金ETF', '金矿', '黄金期货', '黄金现货',
+          'gold', 'precious metal', 'bullion'
+        ];
+        
+        return keywords.some(kw => 
+          titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
+        );
+      });
+      
+      console.log(`   过滤后黄金相关: ${goldNews.length}条`);
       
       // 去重并转换格式
       const uniqueNews = this.deduplicateNews(
-        allNews.slice(0, limit).map((article: any, index: number) => {
+        goldNews.slice(0, limit).map((article: any, index: number) => {
           const stableId = article.url 
             ? `sina_gold_${this.hashString(article.url)}`
             : `sina_gold_${this.hashString(article.title)}_${index}`;
@@ -877,8 +850,6 @@ export class NewsService implements INewsService {
       
       console.log(`   新浪财经黄金最终: ${uniqueNews.length}条`);
       return uniqueNews;
-
-      return goldNews;
     } catch (error: any) {
       console.error('新浪财经黄金新闻获取失败:', error);
       return [];
