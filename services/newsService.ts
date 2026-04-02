@@ -553,7 +553,7 @@ export class NewsService implements INewsService {
   private async fetchSinaAStockNews(limit: number): Promise<NewsItem[]> {
     try {
       // 直接请求大量数据（num参数支持到1000）
-      const requestNum = Math.min(limit * 3, 300);  // 请求3倍数量用于过滤，最多300
+      const requestNum = 200;  // 固定请求200条用于过滤
       
       console.log(`   新浪财经A股：请求${requestNum}条原始数据`);
       
@@ -656,7 +656,7 @@ export class NewsService implements INewsService {
   private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
     try {
       // 直接请求大量数据（num参数支持到1000）
-      const requestNum = Math.min(limit * 3, 300);  // 请求3倍数量用于过滤，最多300
+      const requestNum = 200;  // 固定请求200条用于过滤
       
       console.log(`   新浪财经美股：请求${requestNum}条原始数据`);
       
@@ -755,7 +755,7 @@ export class NewsService implements INewsService {
   private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
     try {
       // 直接请求大量数据（num参数支持到1000）
-      const requestNum = Math.min(limit * 3, 300);  // 请求3倍数量用于过滤，最多300
+      const requestNum = 200;  // 固定请求200条用于过滤
       
       console.log(`   新浪财经黄金：请求${requestNum}条原始数据`);
       
