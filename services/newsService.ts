@@ -310,15 +310,15 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富获取失败:`, error?.message || error);
     }
     
-    // 第二优先级：新浪财经补充（并行请求，15秒超时）
+    // 第二优先级：新浪财经补充（单次大量请求）
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
         const sinaNews = await this.fetchSinaNewsWithRetry(
-          () => this.fetchSinaUSStockNews(250),  // 请求250条（5页并行）
+          () => this.fetchSinaUSStockNews(limit),  // 请求limit数量，内部会请求10倍用于过滤
           3,  // 最多重试3次
-          20000  // 每次20秒超时（并行请求需要更多时间）
+          35000  // 35秒超时（单次大量请求需要更多时间）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -396,15 +396,15 @@ export class NewsService implements INewsService {
       console.warn(`⚠️ 东方财富黄金频道获取失败:`, error?.message || error);
     }
     
-    // 第二优先级：新浪财经黄金新闻补充（并行请求，15秒超时）
+    // 第二优先级：新浪财经黄金新闻补充（单次大量请求）
     if (allNews.length < limit) {
       console.log(`📊 东方财富不足（${allNews.length}/${limit}），尝试新浪财经补充`);
       
       try {
         const sinaNews = await this.fetchSinaNewsWithRetry(
-          () => this.fetchSinaGoldNews(250),  // 请求250条（5页并行）
+          () => this.fetchSinaGoldNews(limit),  // 请求limit数量，内部会请求10倍用于过滤
           3,  // 最多重试3次
-          20000  // 每次20秒超时（并行请求需要更多时间）
+          35000  // 35秒超时（单次大量请求需要更多时间）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -483,16 +483,15 @@ export class NewsService implements INewsService {
       console.error(`❌ 东方财富A股新闻获取失败:`, error);
     }
     
-    // 2. 第二优先级：新浪财经作为补充（并行请求，15秒超时）
+    // 2. 第二优先级：新浪财经作为补充（单次大量请求）
     if (allNews.length < limit) {
-      const needed = 250;  // 请求250条（5页并行）
-      console.log(`📰 [2/3] 获取新浪财经A股新闻 (请求: ${needed}条)`);
+      console.log(`📰 [2/3] 获取新浪财经A股新闻 (请求: ${limit}条)`);
       
       try {
         const sinaNews = await this.fetchSinaNewsWithRetry(
-          () => this.fetchSinaAStockNews(needed),
+          () => this.fetchSinaAStockNews(limit),  // 请求limit数量，内部会请求10倍用于过滤
           3,  // 最多重试3次
-          20000  // 每次20秒超时（并行请求需要更多时间）
+          35000  // 35秒超时（单次大量请求需要更多时间）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -545,43 +544,29 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取新浪财经A股新闻（并行多页请求）
+   * 获取新浪财经A股新闻（单次大量请求）
    */
   private async fetchSinaAStockNews(limit: number): Promise<NewsItem[]> {
     try {
-      const perPage = 50;  // 新浪API每页最多50条
-      const pagesToFetch = Math.min(Math.ceil(limit / perPage), 5);  // 最多5页，并行请求
+      // 直接请求大量数据（num参数支持到1000）
+      const requestNum = Math.min(limit * 10, 1000);  // 请求10倍数量用于过滤，最多1000
       
-      console.log(`   新浪财经A股：并行请求 ${pagesToFetch} 页，每页${perPage}条`);
+      console.log(`   新浪财经A股：请求${requestNum}条原始数据`);
       
-      // 并行请求多页
-      const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => 
-        axios.get('/sina-news-proxy', {
-          params: { 
-            category: 'finance',
-            num: perPage,
-            page: i + 1
-          },
-          timeout: 15000  // 15秒超时
-        }).catch(error => {
-          console.warn(`   第${i + 1}页请求失败:`, error?.message || error);
-          return null;
-        })
-      );
-      
-      // 等待所有请求完成（无论成功失败）
-      const responses = await Promise.all(pagePromises);
-      
-      // 收集所有新闻
-      const allArticles: any[] = [];
-      responses.forEach((response, index) => {
-        if (response && response.data?.articles && Array.isArray(response.data.articles)) {
-          console.log(`   第${index + 1}页: 获取${response.data.articles.length}条`);
-          allArticles.push(...response.data.articles);
-        }
+      const response = await axios.get('/sina-news-proxy', {
+        params: { 
+          category: 'finance',
+          num: requestNum
+        },
+        timeout: 30000  // 30秒超时
       });
-      
-      console.log(`   合并后总数: ${allArticles.length}条`);
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      const allArticles = response.data.articles;
+      console.log(`   获取成功: ${allArticles.length}条`);
       
       // 过滤A股相关新闻
       const astockNews = allArticles.filter((article: any) => {
@@ -631,7 +616,7 @@ export class NewsService implements INewsService {
       
       // 去重并转换格式
       const uniqueNews = this.deduplicateNews(
-        astockNews.slice(0, limit).map((article: any, index: number) => {
+        astockNews.map((article: any, index: number) => {
           const stableId = article.url 
             ? `sina_astock_${this.hashString(article.url)}`
             : `sina_astock_${this.hashString(article.title)}_${index}`;
@@ -649,8 +634,12 @@ export class NewsService implements INewsService {
         })
       );
       
-      console.log(`   新浪财经A股最终: ${uniqueNews.length}条`);
-      return uniqueNews;
+      console.log(`   去重后: ${uniqueNews.length}条`);
+      
+      // 返回前N条
+      const finalNews = uniqueNews.slice(0, limit);
+      console.log(`   新浪财经A股最终: ${finalNews.length}条`);
+      return finalNews;
     } catch (error: any) {
       console.error('新浪财经A股新闻获取失败:', error);
       return [];
@@ -658,43 +647,29 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取新浪财经美股新闻（并行多页请求）
+   * 获取新浪财经美股新闻（单次大量请求）
    */
   private async fetchSinaUSStockNews(limit: number): Promise<NewsItem[]> {
     try {
-      const perPage = 50;  // 新浪API每页最多50条
-      const pagesToFetch = Math.min(Math.ceil(limit / perPage), 5);  // 最多5页，并行请求
+      // 直接请求大量数据（num参数支持到1000）
+      const requestNum = Math.min(limit * 10, 1000);  // 请求10倍数量用于过滤，最多1000
       
-      console.log(`   新浪财经美股：并行请求 ${pagesToFetch} 页，每页${perPage}条`);
+      console.log(`   新浪财经美股：请求${requestNum}条原始数据`);
       
-      // 并行请求多页
-      const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => 
-        axios.get('/sina-news-proxy', {
-          params: { 
-            category: 'finance',
-            num: perPage,
-            page: i + 1
-          },
-          timeout: 15000  // 15秒超时
-        }).catch(error => {
-          console.warn(`   第${i + 1}页请求失败:`, error?.message || error);
-          return null;
-        })
-      );
-      
-      // 等待所有请求完成（无论成功失败）
-      const responses = await Promise.all(pagePromises);
-      
-      // 收集所有新闻
-      const allArticles: any[] = [];
-      responses.forEach((response, index) => {
-        if (response && response.data?.articles && Array.isArray(response.data.articles)) {
-          console.log(`   第${index + 1}页: 获取${response.data.articles.length}条`);
-          allArticles.push(...response.data.articles);
-        }
+      const response = await axios.get('/sina-news-proxy', {
+        params: { 
+          category: 'finance',
+          num: requestNum
+        },
+        timeout: 30000  // 30秒超时
       });
-      
-      console.log(`   合并后总数: ${allArticles.length}条`);
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      const allArticles = response.data.articles;
+      console.log(`   获取成功: ${allArticles.length}条`);
       
       // 过滤美股相关新闻
       const usStockNews = allArticles.filter((article: any) => {
@@ -740,7 +715,7 @@ export class NewsService implements INewsService {
       
       // 去重并转换格式
       const uniqueNews = this.deduplicateNews(
-        usStockNews.slice(0, limit).map((article: any, index: number) => {
+        usStockNews.map((article: any, index: number) => {
           const stableId = article.url 
             ? `sina_us_${this.hashString(article.url)}`
             : `sina_us_${this.hashString(article.title)}_${index}`;
@@ -758,8 +733,12 @@ export class NewsService implements INewsService {
         })
       );
       
-      console.log(`   新浪财经美股最终: ${uniqueNews.length}条`);
-      return uniqueNews;
+      console.log(`   去重后: ${uniqueNews.length}条`);
+      
+      // 返回前N条
+      const finalNews = uniqueNews.slice(0, limit);
+      console.log(`   新浪财经美股最终: ${finalNews.length}条`);
+      return finalNews;
     } catch (error: any) {
       console.error('新浪财经美股新闻获取失败:', error);
       return [];
@@ -767,43 +746,29 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 获取新浪财经黄金新闻（并行多页请求）
+   * 获取新浪财经黄金新闻（单次大量请求）
    */
   private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
     try {
-      const perPage = 50;  // 新浪API每页最多50条
-      const pagesToFetch = Math.min(Math.ceil(limit / perPage), 5);  // 最多5页，并行请求
+      // 直接请求大量数据（num参数支持到1000）
+      const requestNum = Math.min(limit * 10, 1000);  // 请求10倍数量用于过滤，最多1000
       
-      console.log(`   新浪财经黄金：并行请求 ${pagesToFetch} 页，每页${perPage}条`);
+      console.log(`   新浪财经黄金：请求${requestNum}条原始数据`);
       
-      // 并行请求多页
-      const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => 
-        axios.get('/sina-news-proxy', {
-          params: { 
-            category: 'finance',
-            num: perPage,
-            page: i + 1
-          },
-          timeout: 15000  // 15秒超时
-        }).catch(error => {
-          console.warn(`   第${i + 1}页请求失败:`, error?.message || error);
-          return null;
-        })
-      );
-      
-      // 等待所有请求完成（无论成功失败）
-      const responses = await Promise.all(pagePromises);
-      
-      // 收集所有新闻
-      const allArticles: any[] = [];
-      responses.forEach((response, index) => {
-        if (response && response.data?.articles && Array.isArray(response.data.articles)) {
-          console.log(`   第${index + 1}页: 获取${response.data.articles.length}条`);
-          allArticles.push(...response.data.articles);
-        }
+      const response = await axios.get('/sina-news-proxy', {
+        params: { 
+          category: 'finance',
+          num: requestNum
+        },
+        timeout: 30000  // 30秒超时
       });
-      
-      console.log(`   合并后总数: ${allArticles.length}条`);
+
+      if (!response.data.articles || !Array.isArray(response.data.articles)) {
+        return [];
+      }
+
+      const allArticles = response.data.articles;
+      console.log(`   获取成功: ${allArticles.length}条`);
       
       // 过滤黄金相关新闻
       const goldNews = allArticles.filter((article: any) => {
@@ -830,7 +795,7 @@ export class NewsService implements INewsService {
       
       // 去重并转换格式
       const uniqueNews = this.deduplicateNews(
-        goldNews.slice(0, limit).map((article: any, index: number) => {
+        goldNews.map((article: any, index: number) => {
           const stableId = article.url 
             ? `sina_gold_${this.hashString(article.url)}`
             : `sina_gold_${this.hashString(article.title)}_${index}`;
@@ -848,8 +813,12 @@ export class NewsService implements INewsService {
         })
       );
       
-      console.log(`   新浪财经黄金最终: ${uniqueNews.length}条`);
-      return uniqueNews;
+      console.log(`   去重后: ${uniqueNews.length}条`);
+      
+      // 返回前N条
+      const finalNews = uniqueNews.slice(0, limit);
+      console.log(`   新浪财经黄金最终: ${finalNews.length}条`);
+      return finalNews;
     } catch (error: any) {
       console.error('新浪财经黄金新闻获取失败:', error);
       return [];
