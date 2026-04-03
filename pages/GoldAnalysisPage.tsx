@@ -15,8 +15,10 @@ import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { SentimentIndex } from '../components/SentimentIndex';
 import { DownloadPageButton } from '../components/DownloadPageButton';
+import PromptEditorModal from '../components/PromptEditorModal';
 import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
+import { promptConfigService } from '../services/promptConfigService';
 
 /**
  * 现货黄金分析页面Props
@@ -40,6 +42,79 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   const [refreshNewsOnly, setRefreshNewsOnly] = useState(false);
   const [refreshingPrice, setRefreshingPrice] = useState(false);
   const [criticalError, setCriticalError] = useState<string | null>(null);
+  const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+
+  // 默认的黄金投资策略 Prompt
+  const defaultGoldPrompt = `
+**投资策略背景**：
+用户将黄金视为战略防守底仓，采取极度保守的动态配置策略。核心原则：过滤短期单日噪音，只有在特定的宏观与技术共振时才触发减仓。
+
+**【铁律：禁止单日逆向跟风】**
+严禁仅仅因为"单日/短期纳斯达克上涨、黄金下跌"的表象，就给出"卖出黄金"的建议。系统必须具备大周期全局观。
+
+**【触发条件一：宏观复苏 + 牛市健康回调（核心上车信号）】**
+只有当以下三个条件同时满足时，AI才能建议"减仓黄金，买入纳斯达克"：
+
+1. **纳指趋势确认**：
+   - 新闻和数据表明，纳斯达克在最近一个月左右呈现明确的上升态势
+   - 甚至突破前高，确立多头趋势
+   - 不是单日或几日的短期波动
+
+2. **宏观基本面确认**：
+   - 宏观新闻明确指向"全球经济出现明显的实质性回暖与复苏"
+   - 不是单一数据或短期现象
+   - 需要多个经济指标共同验证
+
+3. **精准逢低切入（修正参数）**：
+   - 在满足前两点的背景下，绝对不追高！
+   - 系统需耐心等待纳斯达克出现"牛市级别的健康回调或深度洗盘"
+   - 通常指从高点回撤 8% — 15% 的区间
+   - 只有在这个回调区间，才可触发"卖出黄金以换取廉价纳指筹码"的指令
+
+**【触发条件二：黄金逻辑逆转（滞涨套利信号）】**
+当新闻和数据分析得出明确结论：
+
+1. **黄金宏观趋势改变**：
+   - 黄金的宏观上涨趋势发生实质性改变
+   - 世界经济全面回暖、地缘避险情绪彻底消退
+   - 导致"黄金上涨动能枯竭、预期涨幅极其有限"
+   - 出现横盘或震荡下跌
+
+2. **操作建议**：
+   - 此时可以建议：逢高卖出"部分"黄金进行获利套现
+   - 将这部分资金作为弹药，转移部署至纳斯达克阵地
+   - 注意：是"部分"减仓，不是全部清仓
+
+**【默认持仓策略】**
+如果以上两个触发条件都不满足，默认建议：
+- 保持当前黄金仓位不变
+- 黄金作为战略防守底仓，长期持有
+- 不要因为短期波动而频繁调整
+- 强调"耐心等待"和"战略定力"
+
+**【分析要求】**
+在提供投资建议时，必须：
+1. 明确说明当前是否满足"触发条件一"或"触发条件二"
+2. 如果不满足，明确建议"保持当前黄金仓位，耐心等待"
+3. 如果满足，详细说明满足哪些具体条件，以及建议的操作方式
+4. 强调大周期视角，避免被短期噪音干扰`;
+
+  // 加载用户自定义 Prompt
+  useEffect(() => {
+    const loadCustomPrompt = async () => {
+      try {
+        const userId = localStorage.getItem('userId') || 'guest';
+        const prompt = await promptConfigService.getUserPrompt(userId, 'gold');
+        if (prompt) {
+          setCustomPrompt(prompt);
+        }
+      } catch (error) {
+        console.error('加载自定义 Prompt 失败:', error);
+      }
+    };
+    loadCustomPrompt();
+  }, []);
 
   // 设置当前资产类型，带错误处理
   useEffect(() => {
@@ -204,6 +279,14 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+              <button
+                onClick={() => setIsPromptEditorOpen(true)}
+                className="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 
+                         bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50
+                         transition-colors border border-blue-200 dark:border-blue-800"
+              >
+                ⚙️ 自定义策略
+              </button>
               <div className="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                 {formatUpdateTime(lastUpdated)}
               </div>
@@ -431,6 +514,20 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
           </div>
         </div>
       </main>
+
+      {/* Prompt 编辑器模态框 */}
+      <PromptEditorModal
+        isOpen={isPromptEditorOpen}
+        onClose={() => setIsPromptEditorOpen(false)}
+        assetType="gold"
+        userId={localStorage.getItem('userId') || 'guest'}
+        defaultPrompt={defaultGoldPrompt}
+        onSave={(prompt) => {
+          setCustomPrompt(prompt);
+          // 刷新分析以应用新的 Prompt
+          setLastUpdated(new Date());
+        }}
+      />
     </div>
   );
 };

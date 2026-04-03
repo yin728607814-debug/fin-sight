@@ -60,6 +60,9 @@ export { DataFetchError, DemoDataNotice } from './DemoDataNotice';
 export { RetryHandler, RetryButton, RetryIndicator } from './RetryHandler';
 export { ProgressiveFallback, createStandardFallbackLevels } from './ProgressiveFallback';
 
+// Prompt 配置组件
+export { default as PromptEditorModal } from './PromptEditorModal';
+
 // 现有组件
 export { FeatureCard } from './FeatureCard';
 export { DebugPanel } from './DebugPanel';

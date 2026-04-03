@@ -7,11 +7,13 @@ import { newsService } from './newsService';
 import { priceService } from './priceService';
 import { analysisService } from './analysisService';
 import { logInfo, logError, checkHealth } from './logger';
+import { promptConfigService } from './promptConfigService';
 
 export { NewsService, newsService } from './newsService';
 export { PriceService, priceService } from './priceService';
 export { AnalysisService, analysisService } from './analysisService';
 export { logInfo, logError, checkHealth } from './logger';
+export { promptConfigService } from './promptConfigService';
 
 // 服务管理器
 export class ServiceManager {

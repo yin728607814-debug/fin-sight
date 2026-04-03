@@ -1555,7 +1555,8 @@ ${newsText}
    */
   async analyzeOverallMarket(
     newsList: Array<{ title: string; content: string }>, 
-    assetType: import('../types').AssetType
+    assetType: import('../types').AssetType,
+    customPrompt?: string  // 新增：用户自定义的投资策略 Prompt
   ): Promise<import('../types').OverallMarketAnalysis> {
     const assetNames = {
       'gold': '现货黄金(XAUUSD)',
@@ -1597,7 +1598,12 @@ ${newsText}
     
     // 根据资产类型添加投资策略说明
     let investmentStrategy = '';
-    if (assetType === 'gold') {
+    
+    // 如果用户提供了自定义 Prompt，优先使用
+    if (customPrompt) {
+      console.log(`🎯 使用用户自定义投资策略 Prompt`);
+      investmentStrategy = `\n\n**投资策略背景（用户自定义）**：\n${customPrompt}`;
+    } else if (assetType === 'gold') {
       investmentStrategy = `
 
 **投资策略背景**：

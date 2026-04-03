@@ -15,8 +15,10 @@ import { OverallAnalysisCard } from '../components/OverallAnalysisCard';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { SentimentIndex } from '../components/SentimentIndex';
 import { DownloadPageButton } from '../components/DownloadPageButton';
+import PromptEditorModal from '../components/PromptEditorModal';
 import { useCurrentAsset, useNews, useAnalysis, useOverallAnalysis, usePriceData, useLoading, useErrors } from '../utils/context';
 import { formatUpdateTime, formatExpirationWarning, isDataExpired } from '../utils/helpers';
+import { promptConfigService } from '../services/promptConfigService';
 
 /**
  * 纳斯达克100分析页面Props
@@ -40,6 +42,28 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
   const [refreshNewsOnly, setRefreshNewsOnly] = useState(false);
   const [refreshingPrice, setRefreshingPrice] = useState(false);
   const [criticalError, setCriticalError] = useState<string | null>(null);
+  const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+
+  // 默认的纳斯达克投资策略 Prompt
+  const defaultNasdaqPrompt = `
+**投资策略背景**：用户对纳斯达克100采取定期定投策略，持续买入，关注长期增长趋势。请在提供投资建议时，重点关注定投策略的优化，分析当前是否适合继续定投，以及如何通过定投策略获得长期收益。`;
+
+  // 加载用户自定义 Prompt
+  useEffect(() => {
+    const loadCustomPrompt = async () => {
+      try {
+        const userId = localStorage.getItem('userId') || 'guest';
+        const prompt = await promptConfigService.getUserPrompt(userId, 'nasdaq');
+        if (prompt) {
+          setCustomPrompt(prompt);
+        }
+      } catch (error) {
+        console.error('加载自定义 Prompt 失败:', error);
+      }
+    };
+    loadCustomPrompt();
+  }, []);
 
   // 设置当前资产类型，带错误处理
   useEffect(() => {
@@ -243,6 +267,14 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsPromptEditorOpen(true)}
+                className="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 
+                         bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50
+                         transition-colors border border-blue-200 dark:border-blue-800"
+              >
+                ⚙️ 自定义策略
+              </button>
               <div className="text-sm text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                 {formatUpdateTime(lastUpdated)}
               </div>
@@ -504,6 +536,20 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
           </div>
         </div>
       </main>
+
+      {/* Prompt 编辑器模态框 */}
+      <PromptEditorModal
+        isOpen={isPromptEditorOpen}
+        onClose={() => setIsPromptEditorOpen(false)}
+        assetType="nasdaq"
+        userId={localStorage.getItem('userId') || 'guest'}
+        defaultPrompt={defaultNasdaqPrompt}
+        onSave={(prompt) => {
+          setCustomPrompt(prompt);
+          // 刷新分析以应用新的 Prompt
+          setLastUpdated(new Date());
+        }}
+      />
     </div>
   );
 };
