@@ -1,60 +1,43 @@
 /**
  * Prompt 配置服务
  * 管理用户自定义的分析策略 Prompt
+ * 使用 Supabase 存储
  */
 
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { supabase } from './supabaseClient';
 import { AssetType } from '../types';
 
 interface UserPrompt {
   id?: number;
-  userId: string;
-  assetType: AssetType;
-  promptContent: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface PromptDB extends DBSchema {
-  userPrompts: {
-    key: number;
-    value: UserPrompt;
-    indexes: { 'by-user-asset': [string, AssetType] };
-  };
+  user_id: string;
+  asset_type: AssetType;
+  prompt_content: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 class PromptConfigService {
-  private dbPromise: Promise<IDBPDatabase<PromptDB>> | null = null;
-
-  /**
-   * 初始化数据库
-   */
-  private async initDB(): Promise<IDBPDatabase<PromptDB>> {
-    if (!this.dbPromise) {
-      this.dbPromise = openDB<PromptDB>('prompt-config-db', 1, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains('userPrompts')) {
-            const store = db.createObjectStore('userPrompts', {
-              keyPath: 'id',
-              autoIncrement: true,
-            });
-            store.createIndex('by-user-asset', ['userId', 'assetType'], { unique: true });
-          }
-        },
-      });
-    }
-    return this.dbPromise;
-  }
-
   /**
    * 获取用户的自定义 Prompt
    */
   async getUserPrompt(userId: string, assetType: AssetType): Promise<string | null> {
     try {
-      const db = await this.initDB();
-      const index = db.transaction('userPrompts').store.index('by-user-asset');
-      const prompt = await index.get([userId, assetType]);
-      return prompt?.promptContent || null;
+      const { data, error } = await supabase
+        .from('user_prompts')
+        .select('prompt_content')
+        .eq('user_id', userId)
+        .eq('asset_type', assetType)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // 没有找到记录，返回 null
+          return null;
+        }
+        throw error;
+      }
+
+      return data?.prompt_content || null;
     } catch (error) {
       console.error('获取用户 Prompt 失败:', error);
       return null;
@@ -66,32 +49,25 @@ class PromptConfigService {
    */
   async saveUserPrompt(userId: string, assetType: AssetType, promptContent: string): Promise<void> {
     try {
-      const db = await this.initDB();
-      const tx = db.transaction('userPrompts', 'readwrite');
-      const index = tx.store.index('by-user-asset');
-      
-      // 检查是否已存在
-      const existing = await index.get([userId, assetType]);
-      
-      if (existing) {
-        // 更新
-        await tx.store.put({
-          ...existing,
-          promptContent,
-          updatedAt: new Date(),
-        });
-      } else {
-        // 新增
-        await tx.store.add({
-          userId,
-          assetType,
-          promptContent,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+      // 使用 upsert 来插入或更新
+      const { error } = await supabase
+        .from('user_prompts')
+        .upsert(
+          {
+            user_id: userId,
+            asset_type: assetType,
+            prompt_content: promptContent,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'user_id,asset_type',
+          }
+        );
+
+      if (error) {
+        throw error;
       }
-      
-      await tx.done;
+
       console.log(`✅ 保存用户 Prompt 成功: ${userId} - ${assetType}`);
     } catch (error) {
       console.error('保存用户 Prompt 失败:', error);
@@ -104,16 +80,16 @@ class PromptConfigService {
    */
   async deleteUserPrompt(userId: string, assetType: AssetType): Promise<void> {
     try {
-      const db = await this.initDB();
-      const tx = db.transaction('userPrompts', 'readwrite');
-      const index = tx.store.index('by-user-asset');
-      
-      const existing = await index.get([userId, assetType]);
-      if (existing && existing.id) {
-        await tx.store.delete(existing.id);
+      const { error } = await supabase
+        .from('user_prompts')
+        .delete()
+        .eq('user_id', userId)
+        .eq('asset_type', assetType);
+
+      if (error) {
+        throw error;
       }
-      
-      await tx.done;
+
       console.log(`✅ 删除用户 Prompt 成功: ${userId} - ${assetType}`);
     } catch (error) {
       console.error('删除用户 Prompt 失败:', error);
