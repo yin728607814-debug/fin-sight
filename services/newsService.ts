@@ -774,22 +774,43 @@ export class NewsService implements INewsService {
       const allArticles = response.data.articles;
       console.log(`   获取成功: ${allArticles.length}条`);
       
-      // 过滤黄金相关新闻
+      // 过滤黄金相关新闻（放宽过滤条件）
       const goldNews = allArticles.filter((article: any) => {
         const title = article.title || '';
         const content = (article.description || article.content || '').toLowerCase();
         const titleLower = title.toLowerCase();
+        const url = article.url || '';
         
-        // 扩展黄金相关关键词（更宽松）
+        // URL过滤：包含黄金相关路径
+        const hasGoldURL = url.includes('/gold/') || 
+                          url.includes('/precious/') ||
+                          url.includes('黄金') ||
+                          url.includes('贵金属');
+        
+        // 如果URL匹配，直接保留
+        if (hasGoldURL) return true;
+        
+        // 扩展黄金相关关键词（更宽松，包含间接相关）
         const keywords = [
+          // 核心关键词
           '黄金', '金价', '贵金属', '白银', '现货金', 'XAUUSD', 
           '伦敦金', '美元金', '金市', '黄金市场', '金银',
-          '避险', '通胀', '美联储', '央行', '黄金储备',
-          '美元指数', '实际利率', '地缘政治',
           '黄金ETF', '金矿', '黄金期货', '黄金现货',
-          'gold', 'precious metal', 'bullion'
+          'gold', 'precious metal', 'bullion',
+          // 影响黄金的宏观因素（放宽）
+          '避险', '避险资产', '避险情绪',
+          '通胀', '通货膨胀', 'CPI', 'PPI',
+          '美联储', '央行', '货币政策', '加息', '降息',
+          '黄金储备', '外汇储备',
+          '美元指数', '美元走势', '美元汇率',
+          '实际利率', '名义利率',
+          '地缘政治', '地缘风险', '战争', '冲突',
+          '量化宽松', 'QE', '缩表',
+          // 相关商品
+          '大宗商品', '商品市场', '原油', '铜价'
         ];
         
+        // 只要标题或内容包含任一关键词即可
         return keywords.some(kw => 
           titleLower.includes(kw.toLowerCase()) || content.includes(kw.toLowerCase())
         );
@@ -1126,7 +1147,7 @@ export class NewsService implements INewsService {
   }
 
   /**
-   * 计算黄金相关性评分（0-1）- 优化版
+   * 计算黄金相关性评分（0-1）- 优化版（更宽松）
    */
   private calculateGoldRelevanceScore(news: NewsItem): number {
     let score = 0;
@@ -1135,33 +1156,40 @@ export class NewsService implements INewsService {
     const url = news.url.toLowerCase();
     const source = news.source.toLowerCase();
     
-    // 1. 来源加分 (40分) - 提高来源权重
+    // 1. 来源加分 (50分) - 大幅提高来源权重，确保新浪财经的新闻能通过
     // 东方财富黄金频道的新闻默认高分
     if (source.includes('东方财富') || url.includes('gold.eastmoney.com')) {
-      score += 0.40;
+      score += 0.50;
     }
-    // 新浪财经
+    // 新浪财经 - 提高到50分，确保能通过10分阈值
     else if (source.includes('新浪') || source.includes('sina') || source.includes('财经')) {
-      score += 0.30;
+      score += 0.50;
     }
     
-    // 2. 标题核心关键词 (30分)
-    const highPriorityKeywords = ['黄金', '金价', '贵金属', 'xauusd', '现货金', '伦敦金', '美元金'];
+    // 2. 标题核心关键词 (30分) - 扩展关键词列表
+    const highPriorityKeywords = [
+      '黄金', '金价', '贵金属', 'xauusd', '现货金', '伦敦金', '美元金',
+      '金银', '金市', '黄金市场', '黄金储备', '黄金etf', '黄金期货',
+      'gold', 'precious metal', 'bullion'
+    ];
     if (highPriorityKeywords.some(kw => title.includes(kw))) {
       score += 0.30;
     }
     
-    // 3. 相关市场因素 (20分)
-    const marketFactors = ['白银', '金银', '避险', '通胀', '美联储', '央行', '黄金储备', 
-                          '金市', '黄金市场', '金矿', '黄金etf'];
+    // 3. 相关市场因素 (15分) - 扩展关键词
+    const marketFactors = [
+      '白银', '避险', '通胀', '美联储', '央行', '金矿',
+      '美元指数', '实际利率', '地缘政治', '避险资产',
+      '货币政策', '加息', '降息', '量化宽松'
+    ];
     if (marketFactors.some(kw => title.includes(kw) || content.includes(kw))) {
-      score += 0.20;
+      score += 0.15;
     }
     
-    // 4. 通用财经关键词 (10分)
-    const generalKeywords = ['美元', '利率', '通胀', '经济', '投资', '市场', '交易'];
+    // 4. 通用财经关键词 (5分) - 降低权重
+    const generalKeywords = ['美元', '利率', '经济', '投资', '市场', '交易', '商品'];
     if (generalKeywords.some(kw => title.includes(kw) || content.includes(kw))) {
-      score += 0.10;
+      score += 0.05;
     }
     
     return Math.min(score, 1.0);
