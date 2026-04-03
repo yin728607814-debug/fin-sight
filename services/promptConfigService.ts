@@ -60,7 +60,7 @@ class PromptConfigService {
             updated_at: new Date().toISOString(),
           },
           {
-            onConflict: 'user_id,asset_type',
+            onConflict: 'user_id, asset_type',  // 修复：逗号后加空格
           }
         );
 
