@@ -49,8 +49,16 @@ class PromptConfigService {
    */
   async saveUserPrompt(userId: string, assetType: AssetType, promptContent: string): Promise<void> {
     try {
+      console.log('🔍 保存 Prompt - userId:', userId);
+      console.log('🔍 保存 Prompt - assetType:', assetType);
+      console.log('🔍 保存 Prompt - promptContent length:', promptContent.length);
+      
+      // 检查用户是否已登录
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 当前登录用户:', user?.id);
+      
       // 使用 upsert 来插入或更新
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_prompts')
         .upsert(
           {
@@ -62,13 +70,15 @@ class PromptConfigService {
           {
             onConflict: 'user_id, asset_type',  // 修复：逗号后加空格
           }
-        );
+        )
+        .select();
 
       if (error) {
+        console.error('❌ Supabase 错误详情:', error);
         throw error;
       }
 
-      console.log(`✅ 保存用户 Prompt 成功: ${userId} - ${assetType}`);
+      console.log(`✅ 保存用户 Prompt 成功:`, data);
     } catch (error) {
       console.error('保存用户 Prompt 失败:', error);
       throw error;
