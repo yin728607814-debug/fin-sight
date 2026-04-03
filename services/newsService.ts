@@ -322,7 +322,7 @@ export class NewsService implements INewsService {
         const sinaNews = await this.fetchSinaNewsWithRetry(
           () => this.fetchSinaUSStockNews(limit),  // 请求limit数量，内部会请求10倍用于过滤
           3,  // 最多重试3次
-          35000  // 35秒超时（单次大量请求需要更多时间）
+          50000  // 50秒超时（大于axios的45秒）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -408,7 +408,7 @@ export class NewsService implements INewsService {
         const sinaNews = await this.fetchSinaNewsWithRetry(
           () => this.fetchSinaGoldNews(limit),  // 请求limit数量，内部会请求10倍用于过滤
           3,  // 最多重试3次
-          35000  // 35秒超时（单次大量请求需要更多时间）
+          50000  // 50秒超时（大于axios的45秒）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -495,7 +495,7 @@ export class NewsService implements INewsService {
         const sinaNews = await this.fetchSinaNewsWithRetry(
           () => this.fetchSinaAStockNews(limit),  // 请求limit数量，内部会请求10倍用于过滤
           3,  // 最多重试3次
-          35000  // 35秒超时（单次大量请求需要更多时间）
+          50000  // 50秒超时（大于axios的45秒）
         );
         console.log(`✅ 新浪财经获取成功: ${sinaNews.length}条`);
         allNews.push(...sinaNews);
@@ -562,7 +562,7 @@ export class NewsService implements INewsService {
           category: 'finance',
           num: requestNum
         },
-        timeout: 30000  // 30秒超时
+        timeout: 45000  // 45秒超时（请求200条需要更多时间）
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
@@ -665,7 +665,7 @@ export class NewsService implements INewsService {
           category: 'finance',
           num: requestNum
         },
-        timeout: 30000  // 30秒超时
+        timeout: 45000  // 45秒超时（请求200条需要更多时间）
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
@@ -764,7 +764,7 @@ export class NewsService implements INewsService {
           category: 'finance',
           num: requestNum
         },
-        timeout: 30000  // 30秒超时
+        timeout: 45000  // 45秒超时（请求200条需要更多时间）
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
