@@ -44,6 +44,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   const [criticalError, setCriticalError] = useState<string | null>(null);
   const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string>('guest');
 
   // 默认的黄金投资策略 Prompt
   const defaultGoldPrompt = `
@@ -100,12 +101,27 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
 3. 如果满足，详细说明满足哪些具体条件，以及建议的操作方式
 4. 强调大周期视角，避免被短期噪音干扰`;
 
+  // 获取当前用户 ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { supabase } = await import('../services/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+        }
+      } catch (error) {
+        console.error('获取用户 ID 失败:', error);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
   // 加载用户自定义 Prompt
   useEffect(() => {
     const loadCustomPrompt = async () => {
       try {
-        const userId = localStorage.getItem('userId') || 'guest';
-        const prompt = await promptConfigService.getUserPrompt(userId, 'gold');
+        const prompt = await promptConfigService.getUserPrompt(currentUserId, 'gold');
         if (prompt) {
           setCustomPrompt(prompt);
         }
@@ -113,8 +129,10 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
         console.error('加载自定义 Prompt 失败:', error);
       }
     };
-    loadCustomPrompt();
-  }, []);
+    if (currentUserId !== 'guest') {
+      loadCustomPrompt();
+    }
+  }, [currentUserId]);
 
   // 设置当前资产类型，带错误处理
   useEffect(() => {
@@ -520,7 +538,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
         isOpen={isPromptEditorOpen}
         onClose={() => setIsPromptEditorOpen(false)}
         assetType="gold"
-        userId={localStorage.getItem('userId') || 'guest'}
+        userId={currentUserId}
         defaultPrompt={defaultGoldPrompt}
         onSave={(prompt) => {
           setCustomPrompt(prompt);

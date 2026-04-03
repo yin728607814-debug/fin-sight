@@ -44,17 +44,33 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
   const [criticalError, setCriticalError] = useState<string | null>(null);
   const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string>('guest');
 
   // 默认的纳斯达克投资策略 Prompt
   const defaultNasdaqPrompt = `
 **投资策略背景**：用户对纳斯达克100采取定期定投策略，持续买入，关注长期增长趋势。请在提供投资建议时，重点关注定投策略的优化，分析当前是否适合继续定投，以及如何通过定投策略获得长期收益。`;
 
+  // 获取当前用户 ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { supabase } = await import('../services/supabaseClient');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+        }
+      } catch (error) {
+        console.error('获取用户 ID 失败:', error);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
   // 加载用户自定义 Prompt
   useEffect(() => {
     const loadCustomPrompt = async () => {
       try {
-        const userId = localStorage.getItem('userId') || 'guest';
-        const prompt = await promptConfigService.getUserPrompt(userId, 'nasdaq');
+        const prompt = await promptConfigService.getUserPrompt(currentUserId, 'nasdaq');
         if (prompt) {
           setCustomPrompt(prompt);
         }
@@ -62,8 +78,10 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
         console.error('加载自定义 Prompt 失败:', error);
       }
     };
-    loadCustomPrompt();
-  }, []);
+    if (currentUserId !== 'guest') {
+      loadCustomPrompt();
+    }
+  }, [currentUserId]);
 
   // 设置当前资产类型，带错误处理
   useEffect(() => {
@@ -542,7 +560,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
         isOpen={isPromptEditorOpen}
         onClose={() => setIsPromptEditorOpen(false)}
         assetType="nasdaq"
-        userId={localStorage.getItem('userId') || 'guest'}
+        userId={currentUserId}
         defaultPrompt={defaultNasdaqPrompt}
         onSave={(prompt) => {
           setCustomPrompt(prompt);
