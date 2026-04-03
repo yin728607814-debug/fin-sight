@@ -755,7 +755,7 @@ export class NewsService implements INewsService {
   private async fetchSinaGoldNews(limit: number): Promise<NewsItem[]> {
     try {
       // 直接请求大量数据（num参数支持到1000）
-      const requestNum = 200;  // 固定请求200条用于过滤
+      const requestNum = 300;  // 固定请求300条用于过滤（黄金新闻较少，需要更多原始数据）
       
       console.log(`   新浪财经黄金：请求${requestNum}条原始数据`);
       
@@ -764,7 +764,7 @@ export class NewsService implements INewsService {
           category: 'finance',
           num: requestNum
         },
-        timeout: 45000  // 45秒超时（请求200条需要更多时间）
+        timeout: 45000  // 45秒超时
       });
 
       if (!response.data.articles || !Array.isArray(response.data.articles)) {
