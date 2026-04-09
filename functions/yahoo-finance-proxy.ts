@@ -127,8 +127,12 @@ export async function onRequest(context: { request: Request; env: Env }) {
         changePercent
       };
     }).filter(item => {
-      // 只过滤掉完全无效的数据，保留所有有收盘价的数据
-      return item.close !== null && item.close !== undefined && !isNaN(item.close);
+      // 过滤掉无效数据：null、undefined、NaN 或 0
+      // 注意：0 也被视为无效，因为股票/指数价格不可能为 0
+      return item.close !== null && 
+             item.close !== undefined && 
+             !isNaN(item.close) && 
+             item.close > 0;
     });
 
     const responseData = {
