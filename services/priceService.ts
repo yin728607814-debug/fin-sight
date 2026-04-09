@@ -131,12 +131,12 @@ export class PriceService implements IPriceService {
       
       let priceData: PriceData[];
       
-      // 对于纳斯达克指数，使用Yahoo Finance；对于黄金，使用Investing.com；对于A股，使用Sina Finance
+      // 对于纳斯达克指数，使用Alpha Vantage；对于黄金，使用Yahoo Finance；对于A股，使用Sina Finance
       if (symbol === 'nasdaq' || symbol === 'NDX') {
         const response = await this.makeRequest({
           symbol: 'nasdaq'
         });
-        priceData = this.transformInvestingResponse(response.data as any, days);
+        priceData = this.transformAlphaVantageResponse(response.data as any, days);
       } else if (symbol === 'gold') {
         // 对于黄金，使用Yahoo Finance（和纳斯达克相同的代理）
         console.log('🌐 使用Yahoo Finance获取黄金价格数据（和纳斯达克相同的API）');
@@ -314,14 +314,14 @@ export class PriceService implements IPriceService {
         let response: AxiosResponse<unknown>;
 
         if (isBrowser) {
-          // 对于纳斯达克指数，使用Yahoo Finance API
+          // 对于纳斯达克指数，优先使用 yfinance（更可靠，有最新数据）
           if (params.symbol === 'nasdaq' || params.symbol === 'NDX') {
-            console.log('🌐 使用Yahoo Finance API获取纳斯达克100指数数据');
-            response = await axios.get('/yahoo-finance-proxy', {
+            console.log('🌐 使用 yfinance 获取纳斯达克100指数数据 (^NDX)');
+            response = await axios.get('/alpha-vantage-proxy', {
               params: { 
                 symbol: 'nasdaq',
-                range: '5d',
-                interval: '1d',
+                days: 5,
+                source: 'yfinance', // 指定使用 yfinance
                 _t: Date.now() // 添加时间戳防止缓存
               },
               timeout: this.config.timeout,
@@ -433,6 +433,39 @@ export class PriceService implements IPriceService {
     }
     
     throw this.errorHandler.handleNetworkError(lastError);
+  }
+
+  /**
+   * 转换Alpha Vantage API响应
+   */
+  private transformAlphaVantageResponse(apiResponse: any, days: number): PriceData[] {
+    if (!apiResponse || !apiResponse.priceData || !Array.isArray(apiResponse.priceData)) {
+      logError('Alpha Vantage API响应格式错误', apiResponse);
+      return [];
+    }
+
+    // Alpha Vantage 代理已经处理了数据格式，直接转换
+    const allPriceData = apiResponse.priceData
+      .map((item: any) => ({
+        date: new Date(item.date),
+        open: parseFloat(item.open) || 0,
+        high: parseFloat(item.high) || 0,
+        low: parseFloat(item.low) || 0,
+        close: parseFloat(item.close) || 0,
+        volume: parseInt(item.volume) || 0,
+        change: parseFloat(item.change) || 0,
+        changePercent: parseFloat(item.changePercent) || 0
+      }))
+      .filter((item: any) => item.close > 0); // 过滤无效数据
+
+    // 过滤掉周末数据（周六=6，周日=0）
+    const weekdayData = allPriceData.filter((item: any) => {
+      const dayOfWeek = item.date.getDay();
+      return dayOfWeek !== 0 && dayOfWeek !== 6;
+    });
+
+    // 返回最近的N个工作日数据
+    return weekdayData.slice(-days);
   }
 
   /**
