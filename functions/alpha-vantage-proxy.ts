@@ -48,94 +48,17 @@ export async function onRequest(context: { request: Request; env: Env }) {
     const avSymbol = symbolMap[symbol] || symbol;
     const yfinanceSymbol = symbol === 'nasdaq' ? '^NDX' : avSymbol;
 
-    // 优先尝试使用 yfinance（更可靠，有最新数据）
+    // 优先尝试使用 Yahoo Finance API 动态获取数据
     if (useYfinance || !context.env.ALPHA_VANTAGE_API_KEY) {
-      console.log('🐍 使用 yfinance 获取数据');
+      console.log('🐍 使用 Yahoo Finance API 动态获取数据');
       
-      // 硬编码的最新数据（从 yfinance Python 脚本获取）
-      interface DayData {
-        open: number;
-        high: number;
-        low: number;
-        close: number;
-        volume: number;
-      }
-      
-      const hardcodedData: Record<string, Record<string, DayData>> = {
-        '^NDX': {
-          '2026-04-10': { open: 24950.0, high: 25200.0, low: 24900.0, close: 25100.0, volume: 1400000000 },  // 继续上涨
-          '2026-04-09': { open: 24903.17, high: 25000.0, low: 24850.0, close: 24950.0, volume: 1380000000 },  // 小幅上涨
-          '2026-04-08': { open: 24200.0, high: 24950.0, low: 24150.0, close: 24903.17, volume: 1360629000 },  // +2.9% 大涨
-          '2026-04-07': { open: 24100.0, high: 24250.0, low: 24050.0, close: 24200.0, volume: 1300000000 },
-          '2026-04-04': { open: 23950.0, high: 24150.0, low: 23900.0, close: 24100.0, volume: 1250000000 }
-        }
-      };
-
-      const symbolData = hardcodedData[yfinanceSymbol];
-      
-      if (symbolData) {
-        console.log('✅ 使用硬编码的 yfinance 数据');
-        
-        const dates = Object.keys(symbolData).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-        const recentDates = dates.slice(0, days);
-
-        const priceData = recentDates.map((dateStr, index) => {
-          const dayData = symbolData[dateStr];
-          
-          let change = 0;
-          let changePercent = 0;
-          
-          if (index < recentDates.length - 1) {
-            const previousDateStr = recentDates[index + 1];
-            const previousClose = symbolData[previousDateStr].close;
-            change = dayData.close - previousClose;
-            changePercent = (change / previousClose) * 100;
-          }
-
-          return {
-            date: dateStr,
-            open: dayData.open,
-            high: dayData.high,
-            low: dayData.low,
-            close: dayData.close,
-            volume: dayData.volume,
-            change,
-            changePercent
-          };
-        }).reverse();
-
-        console.log('✅ yfinance 数据准备完成:', {
-          symbol: yfinanceSymbol,
-          dataPoints: priceData.length,
-          latestDate: priceData[priceData.length - 1]?.date,
-          latestClose: priceData[priceData.length - 1]?.close
-        });
-
-        return new Response(JSON.stringify({
-          symbol: yfinanceSymbol,
-          originalSymbol: symbol,
-          source: 'yfinance-hardcoded',
-          meta: {
-            currency: 'USD',
-            exchangeName: 'NASDAQ',
-            instrumentType: 'INDEX',
-            note: 'Nasdaq 100 Index data from yfinance (reliable source with latest data)'
-          },
-          priceData
-        }), {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            'Cache-Control': 'public, max-age=300'
-          }
-        });
-      }
-      
-      // 尝试调用 Yahoo Finance API（可能被屏蔽）
-      const yfinanceUrl = context.env.YFINANCE_API_URL || 'https://query1.finance.yahoo.com/v8/finance/chart/' + yfinanceSymbol;
+      // 尝试调用 Yahoo Finance API 获取实时数据
+      const yfinanceUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yfinanceSymbol)}?range=10d&interval=1d`;
       
       try {
-        const yfinanceResponse = await fetch(yfinanceUrl + '?interval=1d&range=10d', {
+        console.log('📡 请求 Yahoo Finance:', yfinanceUrl);
+        
+        const yfinanceResponse = await fetch(yfinanceUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json'
@@ -145,29 +68,44 @@ export async function onRequest(context: { request: Request; env: Env }) {
         if (yfinanceResponse.ok) {
           const yfinanceData = await yfinanceResponse.json();
           
+          console.log('📊 Yahoo Finance 响应:', {
+            hasChart: !!yfinanceData?.chart,
+            hasResult: !!yfinanceData?.chart?.result?.[0]
+          });
+          
           if (yfinanceData?.chart?.result?.[0]) {
             const result = yfinanceData.chart.result[0];
             const timestamps = result.timestamp || [];
             const quotes = result.indicators?.quote?.[0] || {};
             
-            const priceData = timestamps.map((ts: number, index: number) => {
-              const date = new Date(ts * 1000);
-              const open = quotes.open?.[index] || 0;
-              const high = quotes.high?.[index] || 0;
-              const low = quotes.low?.[index] || 0;
-              const close = quotes.close?.[index] || 0;
-              const volume = quotes.volume?.[index] || 0;
-              
-              return {
-                date: date.toISOString().split('T')[0],
-                open,
-                high,
-                low,
-                close,
-                volume,
-                timestamp: ts
-              };
-            }).filter((item: { date: string; open: number; high: number; low: number; close: number; volume: number; timestamp: number }) => item.close > 0);
+            console.log('📈 数据点数量:', timestamps.length);
+            
+            // 转换数据格式
+            const priceData = timestamps
+              .map((ts: number, index: number) => {
+                const date = new Date(ts * 1000);
+                const open = quotes.open?.[index];
+                const high = quotes.high?.[index];
+                const low = quotes.low?.[index];
+                const close = quotes.close?.[index];
+                const volume = quotes.volume?.[index];
+                
+                // 过滤掉 null 值
+                if (!close || close === null) {
+                  return null;
+                }
+                
+                return {
+                  date: date.toISOString().split('T')[0],
+                  open: open || 0,
+                  high: high || 0,
+                  low: low || 0,
+                  close: close,
+                  volume: volume || 0,
+                  timestamp: ts
+                };
+              })
+              .filter((item: { date: string; open: number; high: number; low: number; close: number; volume: number; timestamp: number } | null): item is { date: string; open: number; high: number; low: number; close: number; volume: number; timestamp: number } => item !== null);
 
             // 计算涨跌幅
             const priceDataWithChange = priceData.map((item: { date: string; open: number; high: number; low: number; close: number; volume: number; timestamp: number }, index: number) => {
@@ -180,13 +118,22 @@ export async function onRequest(context: { request: Request; env: Env }) {
                 changePercent = (change / previousClose) * 100;
               }
               
-              return { ...item, change, changePercent };
+              return { 
+                date: item.date,
+                open: item.open,
+                high: item.high,
+                low: item.low,
+                close: item.close,
+                volume: item.volume,
+                change, 
+                changePercent 
+              };
             });
 
             // 只返回请求的天数
             const filteredData = priceDataWithChange.slice(-days);
 
-            console.log('✅ yfinance API 成功:', {
+            console.log('✅ Yahoo Finance API 成功:', {
               symbol: yfinanceSymbol,
               dataPoints: filteredData.length,
               latestDate: filteredData[filteredData.length - 1]?.date,
@@ -196,12 +143,12 @@ export async function onRequest(context: { request: Request; env: Env }) {
             return new Response(JSON.stringify({
               symbol: yfinanceSymbol,
               originalSymbol: symbol,
-              source: 'yfinance-api',
+              source: 'yahoo-finance-api',
               meta: {
                 currency: 'USD',
                 exchangeName: 'NASDAQ',
                 instrumentType: 'INDEX',
-                note: 'Data from Yahoo Finance API'
+                note: 'Real-time data from Yahoo Finance API'
               },
               priceData: filteredData
             }), {
@@ -213,8 +160,10 @@ export async function onRequest(context: { request: Request; env: Env }) {
             });
           }
         }
+        
+        console.warn('⚠️ Yahoo Finance API 响应异常:', yfinanceResponse.status);
       } catch (yfinanceError) {
-        console.warn('⚠️ yfinance API 失败，已使用硬编码数据:', yfinanceError);
+        console.error('❌ Yahoo Finance API 失败:', yfinanceError);
       }
     }
 
