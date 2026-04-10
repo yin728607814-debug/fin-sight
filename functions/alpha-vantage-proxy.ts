@@ -80,10 +80,25 @@ export async function onRequest(context: { request: Request; env: Env }) {
             
             console.log('📈 数据点数量:', timestamps.length);
             
-            // 转换数据格式
+            // 转换数据格式（注意时区处理）
             const priceData = timestamps
               .map((ts: number, index: number) => {
                 const date = new Date(ts * 1000);
+                
+                // 使用美东时区格式化日期，避免时区错位
+                const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                  timeZone: 'America/New_York',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit'
+                });
+                
+                const parts = dateFormatter.formatToParts(date);
+                const year = parts.find(p => p.type === 'year')?.value;
+                const month = parts.find(p => p.type === 'month')?.value;
+                const day = parts.find(p => p.type === 'day')?.value;
+                const dateStr = `${year}-${month}-${day}`;
+                
                 const open = quotes.open?.[index];
                 const high = quotes.high?.[index];
                 const low = quotes.low?.[index];
@@ -96,7 +111,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
                 }
                 
                 return {
-                  date: date.toISOString().split('T')[0],
+                  date: dateStr,
                   open: open || 0,
                   high: high || 0,
                   low: low || 0,
