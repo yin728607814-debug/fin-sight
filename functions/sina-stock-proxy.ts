@@ -28,17 +28,51 @@ export async function onRequest(context: { request: Request; env: Env }) {
     // 新浪财经历史数据API
     const historyUrl = `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=${symbol}&scale=240&ma=no&datalen=15`;
     
-    const response = await fetch(historyUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://finance.sina.com.cn/'
-      }
-    });
-
-    const data = await response.json();
+    // 重试逻辑：最多尝试3次
+    let lastError: Error | null = null;
+    let data: any = null;
     
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error('历史数据格式错误或为空');
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`🔄 尝试第 ${attempt} 次请求...`);
+        
+        const response = await fetch(historyUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://finance.sina.com.cn/'
+          },
+          signal: AbortSignal.timeout(10000) // 10秒超时
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        data = await response.json();
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error('历史数据格式错误或为空');
+        }
+        
+        console.log(`✅ 第 ${attempt} 次请求成功，获取到 ${data.length} 条数据`);
+        break; // 成功，跳出循环
+        
+      } catch (error: any) {
+        lastError = error;
+        console.error(`❌ 第 ${attempt} 次请求失败:`, error.message);
+        
+        if (attempt < 3) {
+          // 等待后重试（指数退避）
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`⏳ 等待 ${delay}ms 后重试...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    // 如果3次都失败了
+    if (!data) {
+      throw new Error(`请求失败（已重试3次）: ${lastError?.message || '未知错误'}`);
     }
     
     // 转换为标准格式
