@@ -282,23 +282,23 @@ export class AnalysisService implements IAnalysisService {
    * 针对纳斯达克新闻进行特殊优化，减少批次大小
    */
   private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
-    // gemini-3.5-flash 上下文容量极大，统一使用大批次减少请求次数
-    // 免费版限制 5 RPM，必须尽量减少请求数
-    const BATCH_SIZE = 100; // 单批最多100条，确保50-60条新闻只发1次请求
+    // gemini-3.5-flash 存在 Lazy Generation 问题，单次分析过多新闻会提前截断
+    // 每批 20 条是模型耐心和 API 限流（5 RPM）的最佳平衡点
+    const BATCH_SIZE = 20;
     
     // 如果新闻数量不超过批次大小，直接单次处理
     if (newsList.length <= BATCH_SIZE) {
       return await this.aiBatchAnalysisSingle(newsList, assetType);
     }
     
-    // 超过100条时才分批，使用串行请求 + 12秒间隔，确保不超过 5 RPM
-    console.log(`📊 ${assetType}新闻数量较多 (${newsList.length}条)，分批串行处理 (批次大小: ${BATCH_SIZE})...`);
+    // 分批串行处理（50条 → 3批：20+20+10，完美符合 5 RPM 限制）
+    console.log(`📊 ${assetType}新闻 ${newsList.length} 条，分批串行处理 (每批${BATCH_SIZE}条)...`);
     const batches: Array<{ title: string; content: string }[]> = [];
     for (let i = 0; i < newsList.length; i += BATCH_SIZE) {
       batches.push(newsList.slice(i, i + BATCH_SIZE));
     }
     
-    console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条，串行处理（间隔12秒）`);
+    console.log(`📦 分成 ${batches.length} 批，串行处理（间隔12秒）`);
     
     // 串行处理批次，每次请求之间强制等待12秒
     const batchResults: BatchAnalysisResult[] = [];
