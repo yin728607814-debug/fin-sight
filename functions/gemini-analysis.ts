@@ -80,8 +80,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig: { 
-          temperature: temperature || 0.3,
-          maxOutputTokens: maxOutputTokens || 8192
+          temperature: 0.3,
+          maxOutputTokens: 8192 // 彻底放开限制，严禁写成 2048，也别用动态变量！
         }
       })
     });
