@@ -195,7 +195,7 @@ export class AnalysisService implements IAnalysisService {
     this.config = {
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       apiKey: config?.apiKey || '',
-      model: 'gemini-3-pro-preview', // 使用 Gemini 3 Pro Preview 模型
+      model: 'gemini-3.5-flash', // 使用 Gemini 3.5 Flash 模型（性价比最高）
       timeout: 90000, // 增加到90秒，支持批量分析50条新闻
       maxRetries: 3,
       ...config
@@ -660,7 +660,8 @@ ${newsText}
 - summary不超过50字，不要换行符
 - keyPoints最多3个要点
 - 必须分析所有${newsList.length}条新闻
-- 只返回JSON，不要其他文字`;
+- 只返回JSON，不要其他文字
+- 请务必确保输出完整的JSON闭合标签，严禁截断`;
   }
 
   /**

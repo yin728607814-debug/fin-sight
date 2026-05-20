@@ -52,8 +52,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
       });
     }
 
-    // 使用 gemini-3-pro-preview 模型（Gemini 3 Pro）
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`;
+    // 使用 gemini-3.5-flash 模型（性价比最高，完全兼容）
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
     
     // 构建请求内容
     const parts: any[] = [{ text: prompt }];
@@ -79,7 +79,10 @@ export async function onRequest(context: { request: Request; env: Env }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts }],
-        generationConfig: { temperature, maxOutputTokens }
+        generationConfig: { 
+          temperature: temperature || 0.3,
+          maxOutputTokens: maxOutputTokens || 8192
+        }
       })
     });
 
