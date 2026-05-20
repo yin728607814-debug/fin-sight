@@ -282,50 +282,40 @@ export class AnalysisService implements IAnalysisService {
    * 针对纳斯达克新闻进行特殊优化，减少批次大小
    */
   private async aiBatchAnalysis(newsList: Array<{ title: string; content: string }>, assetType: string): Promise<BatchAnalysisResult> {
-    // 针对不同资产类型调整批次大小
-    const BATCH_SIZE = assetType === 'nasdaq' ? 10 : 20; // 纳斯达克新闻更复杂，减少批次大小
-    const MAX_PARALLEL_BATCHES = assetType === 'nasdaq' ? 2 : 3; // 纳斯达克减少并发数
+    // gemini-3.5-flash 上下文容量极大，统一使用大批次减少请求次数
+    // 免费版限制 5 RPM，必须尽量减少请求数
+    const BATCH_SIZE = 100; // 单批最多100条，确保50-60条新闻只发1次请求
     
-    // 如果新闻数量较少，直接处理
+    // 如果新闻数量不超过批次大小，直接单次处理
     if (newsList.length <= BATCH_SIZE) {
       return await this.aiBatchAnalysisSingle(newsList, assetType);
     }
     
-    // 分批处理
-    console.log(`📊 ${assetType}新闻数量较多 (${newsList.length}条)，分批处理 (批次大小: ${BATCH_SIZE})...`);
+    // 超过100条时才分批，使用串行请求 + 12秒间隔，确保不超过 5 RPM
+    console.log(`📊 ${assetType}新闻数量较多 (${newsList.length}条)，分批串行处理 (批次大小: ${BATCH_SIZE})...`);
     const batches: Array<{ title: string; content: string }[]> = [];
     for (let i = 0; i < newsList.length; i += BATCH_SIZE) {
       batches.push(newsList.slice(i, i + BATCH_SIZE));
     }
     
-    console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条，最多 ${MAX_PARALLEL_BATCHES} 批并行处理`);
+    console.log(`📦 分成 ${batches.length} 批，每批最多 ${BATCH_SIZE} 条，串行处理（间隔12秒）`);
     
-    // 并行处理批次（每次最多处理 MAX_PARALLEL_BATCHES 个批次）
+    // 串行处理批次，每次请求之间强制等待12秒
     const batchResults: BatchAnalysisResult[] = [];
     
-    for (let i = 0; i < batches.length; i += MAX_PARALLEL_BATCHES) {
-      const currentBatches = batches.slice(i, i + MAX_PARALLEL_BATCHES);
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      console.log(`📝 处理批次 ${i + 1}/${batches.length}: ${batch.length}条新闻`);
       
-      console.log(`🚀 并行处理第 ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} 批 (共${currentBatches.length}个批次)...`);
+      const result = await this.aiBatchAnalysisSingle(batch, assetType);
+      batchResults.push(result);
       
-      // 并行处理当前这组批次
-      const promises = currentBatches.map((batch, idx) => {
-        const batchNum = i + idx + 1;
-        console.log(`  📝 批次 ${batchNum}/${batches.length}: ${batch.length}条新闻`);
-        return this.aiBatchAnalysisSingle(batch, assetType);
-      });
+      console.log(`✅ 批次 ${i + 1}/${batches.length} 处理完成`);
       
-      // 等待所有并行批次完成
-      const results = await Promise.all(promises);
-      batchResults.push(...results);
-      
-      console.log(`✅ 第 ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} 批处理完成`);
-      
-      // 如果还有更多批次，稍微延迟一下（纳斯达克延迟更长）
-      if (i + MAX_PARALLEL_BATCHES < batches.length) {
-        const delay = assetType === 'nasdaq' ? 1000 : 500; // 纳斯达克延迟1秒
-        console.log(`⏳ 等待${delay}ms后处理下一组批次...`);
-        await this.sleep(delay);
+      // 如果还有更多批次，强制等待12秒（确保每分钟不超过5次请求）
+      if (i < batches.length - 1) {
+        console.log(`⏳ 等待12秒后处理下一批次（避免触发 5 RPM 限制）...`);
+        await this.sleep(12000);
       }
     }
     
