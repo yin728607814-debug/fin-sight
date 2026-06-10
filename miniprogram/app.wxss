@@ -1,0 +1,114 @@
+page {
+  background: #070b14;
+  color: #f2f5fa;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 28rpx;
+}
+
+view,
+text,
+button,
+input {
+  box-sizing: border-box;
+}
+
+button {
+  margin: 0;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 28rpx;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.card {
+  background: #101724;
+  border: 1rpx solid #1d293b;
+  border-radius: 16rpx;
+  box-shadow: 0 16rpx 42rpx rgba(0, 0, 0, 0.2);
+}
+
+.muted {
+  color: #7e8b9e;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  height: 92rpx;
+  border-radius: 14rpx;
+  color: #06131c;
+  background: #65d7ff;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.btn-pressed {
+  opacity: 0.78;
+}
+
+.btn.is-loading {
+  opacity: 0.72;
+}
+
+.btn-spinner {
+  width: 22rpx;
+  height: 22rpx;
+  border: 3rpx solid rgba(6, 19, 28, 0.24);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-secondary {
+  color: #ebf1f8;
+  background: #172131;
+}
+
+.btn-ghost {
+  color: #9ba7b8;
+  background: transparent;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.tag-positive {
+  color: #31dcac;
+  background: rgba(49, 220, 172, 0.12);
+}
+
+.tag-negative {
+  color: #fa6f84;
+  background: rgba(250, 111, 132, 0.12);
+}
+
+.tag-neutral {
+  color: #a7b3c4;
+  background: #182333;
+}
+
+.tag-mixed {
+  color: #edc46f;
+  background: rgba(237, 196, 111, 0.13);
+}

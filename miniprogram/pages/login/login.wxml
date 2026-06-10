@@ -1,0 +1,48 @@
+<view class="login-page">
+  <view class="brand">
+    <view class="brand-row">
+      <view class="logo">衡</view>
+      <view class="brand-copy">
+        <text class="title">双衡观察</text>
+        <text class="edition">黄金 · 纳指趋势观察</text>
+      </view>
+    </view>
+    <view class="status">
+      <view class="status-dot"></view>
+      <text>MARKET ONLINE</text>
+    </view>
+    <text class="headline">捕捉趋势，保持纪律</text>
+    <text class="subtitle">黄金与纳斯达克核心分析</text>
+  </view>
+
+  <view class="form card">
+    <view class="form-meta">
+      <text class="form-title">账户访问</text>
+      <text class="form-id">SECURE / 01</text>
+    </view>
+    <view class="tabs">
+      <view class="tab {{mode === 'login' ? 'active' : ''}}" bindtap="switchMode" data-mode="login">登录</view>
+      <view class="tab {{mode === 'register' ? 'active' : ''}}" bindtap="switchMode" data-mode="register">注册</view>
+    </view>
+
+    <view class="field">
+      <text class="label">邮箱</text>
+      <input class="input" value="{{email}}" type="text" placeholder="name@example.com" bindinput="onEmailInput" />
+    </view>
+
+    <view class="field">
+      <text class="label">密码</text>
+      <input class="input" value="{{password}}" type="password" placeholder="至少 6 位" bindinput="onPasswordInput" />
+    </view>
+
+    <view class="btn submit {{loading ? 'is-loading' : ''}}" hover-class="btn-pressed" aria-role="button" aria-label="{{mode === 'login' ? '登录' : '创建账号'}}" bindtap="submit">
+      <view wx:if="{{loading}}" class="btn-spinner"></view>
+      <text>{{loading ? '处理中' : (mode === 'login' ? '登录' : '创建账号')}}</text>
+    </view>
+
+    <view class="auth-meta">
+      <text>SUPABASE AUTH</text>
+      <text>ENCRYPTED SESSION</text>
+    </view>
+  </view>
+</view>

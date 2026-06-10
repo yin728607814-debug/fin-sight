@@ -1,0 +1,168 @@
+.login-page {
+  min-height: 100vh;
+  padding: 62rpx 32rpx 42rpx;
+  background:
+    linear-gradient(90deg, rgba(101, 215, 255, 0.035) 1rpx, transparent 1rpx),
+    linear-gradient(180deg, rgba(101, 215, 255, 0.035) 1rpx, transparent 1rpx),
+    linear-gradient(180deg, #090e19 0%, #070b14 100%);
+  background-size: 62rpx 62rpx, 62rpx 62rpx, 100% 100%;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  color: #f4f7fb;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 88rpx;
+  height: 88rpx;
+  border: 1rpx solid rgba(101, 215, 255, 0.4);
+  border-radius: 14rpx;
+  background: #111c2a;
+  color: #65d7ff;
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 88rpx;
+  text-align: center;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  margin-left: 22rpx;
+}
+
+.title {
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.edition {
+  margin-top: 7rpx;
+  color: #647389;
+  font-size: 18rpx;
+  font-weight: 600;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  height: 42rpx;
+  margin-top: 74rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #1d293a;
+  border-radius: 8rpx;
+  color: #8d9aad;
+  font-size: 19rpx;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  margin-right: 10rpx;
+  border-radius: 50%;
+  background: #31dcac;
+  box-shadow: 0 0 14rpx rgba(49, 220, 172, 0.7);
+}
+
+.headline {
+  margin-top: 24rpx;
+  font-size: 54rpx;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin-top: 14rpx;
+  color: #77869a;
+  font-size: 26rpx;
+}
+
+.form {
+  margin-top: 58rpx;
+  padding: 32rpx 28rpx 26rpx;
+}
+
+.form-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28rpx;
+}
+
+.form-title {
+  color: #f1f5fa;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.form-id {
+  color: #607086;
+  font-size: 19rpx;
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  padding: 6rpx;
+  border: 1rpx solid #1a2636;
+  border-radius: 12rpx;
+  background: #0b111c;
+}
+
+.tab {
+  flex: 1;
+  height: 68rpx;
+  border-radius: 9rpx;
+  color: #78879a;
+  font-weight: 700;
+  line-height: 68rpx;
+  text-align: center;
+}
+
+.tab.active {
+  background: #172333;
+  color: #65d7ff;
+}
+
+.field {
+  margin-top: 28rpx;
+}
+
+.label {
+  display: block;
+  margin-bottom: 14rpx;
+  color: #8492a6;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.input {
+  height: 92rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid #1c293a;
+  border-radius: 12rpx;
+  background: #0b111c;
+  color: #eef3f9;
+  font-size: 30rpx;
+}
+
+.submit {
+  margin-top: 38rpx;
+}
+
+.auth-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 25rpx;
+  color: #55657b;
+  font-size: 18rpx;
+  font-weight: 600;
+}

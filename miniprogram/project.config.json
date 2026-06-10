@@ -1,0 +1,29 @@
+{
+  "description": "双衡观察微信小程序适配版",
+  "miniprogramRoot": "",
+  "compileType": "miniprogram",
+  "appid": "wx61c8b51656661968",
+  "projectname": "finsight-ai-mini",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "libVersion": "3.16.0",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}

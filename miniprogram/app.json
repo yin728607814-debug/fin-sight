@@ -1,0 +1,16 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/analysis/analysis"
+  ],
+  "window": {
+    "navigationBarTitleText": "双衡观察",
+    "navigationBarBackgroundColor": "#070b14",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#070b14",
+    "backgroundTextStyle": "light"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

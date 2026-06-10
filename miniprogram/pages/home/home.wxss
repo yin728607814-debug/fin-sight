@@ -1,0 +1,265 @@
+.home-page {
+  background:
+    linear-gradient(180deg, #0b111e 0%, #070b14 360rpx),
+    #070b14;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-mark {
+  width: 58rpx;
+  height: 58rpx;
+  margin-right: 16rpx;
+  border: 1rpx solid rgba(101, 215, 255, 0.4);
+  border-radius: 10rpx;
+  background: #111c2a;
+  color: #65d7ff;
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 58rpx;
+  text-align: center;
+}
+
+.brand-title {
+  display: block;
+  color: #f1f5fa;
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.brand-meta {
+  display: block;
+  margin-top: 5rpx;
+  color: #63738a;
+  font-size: 17rpx;
+  font-weight: 600;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  height: 68rpx;
+  margin-top: 34rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #172334;
+  border-radius: 12rpx;
+  background: #0a111c;
+}
+
+.live-dot {
+  width: 10rpx;
+  height: 10rpx;
+  margin-right: 16rpx;
+  border-radius: 50%;
+  background: #31dcac;
+}
+
+.account-email {
+  flex: 1;
+  overflow: hidden;
+  color: #b9c4d4;
+  font-size: 24rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.account-status {
+  color: #31dcac;
+  font-size: 18rpx;
+  font-weight: 700;
+}
+
+.logout-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44rpx;
+  height: 44rpx;
+  border: 1rpx solid #1c2839;
+  border-radius: 8rpx;
+  color: #718198;
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.logout-icon-pressed {
+  color: #d5dde8;
+  background: #152030;
+}
+
+.hero {
+  margin-top: 28rpx;
+  padding: 34rpx 28rpx 30rpx;
+  border: 1rpx solid #1b293b;
+  border-radius: 16rpx;
+  background:
+    linear-gradient(106deg, rgba(101, 215, 255, 0.1), transparent 54%),
+    #101724;
+}
+
+.hero-label {
+  display: block;
+  color: #63748b;
+  font-size: 19rpx;
+  font-weight: 700;
+}
+
+.hero-title {
+  display: block;
+  margin-top: 20rpx;
+  color: #f1f5fa;
+  font-size: 46rpx;
+  font-weight: 700;
+}
+
+.hero-line {
+  display: flex;
+  align-items: center;
+  margin-top: 28rpx;
+}
+
+.hero-pill {
+  height: 38rpx;
+  margin-right: 12rpx;
+  padding: 0 14rpx;
+  border-radius: 7rpx;
+  font-size: 19rpx;
+  font-weight: 700;
+  line-height: 38rpx;
+}
+
+.hero-pill.gold {
+  color: #ebc474;
+  background: rgba(235, 196, 116, 0.12);
+}
+
+.hero-pill.nasdaq {
+  color: #65d7ff;
+  background: rgba(101, 215, 255, 0.12);
+}
+
+.hero-note {
+  margin-left: auto;
+  color: #77859a;
+  font-size: 21rpx;
+}
+
+.asset-card {
+  position: relative;
+  margin-top: 20rpx;
+  padding: 26rpx 26rpx 22rpx;
+  overflow: hidden;
+}
+
+.asset-card::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4rpx;
+  content: "";
+}
+
+.gold-card::before {
+  background: #ebc474;
+}
+
+.nasdaq-card::before {
+  background: #65d7ff;
+}
+
+.asset-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.asset-code {
+  display: block;
+  color: #66768b;
+  font-size: 18rpx;
+  font-weight: 700;
+}
+
+.asset-title {
+  display: block;
+  margin-top: 10rpx;
+  color: #f1f5fa;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.asset-mark {
+  min-width: 84rpx;
+  height: 50rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 50rpx;
+  text-align: center;
+}
+
+.gold-card .asset-mark {
+  color: #ebc474;
+  background: rgba(235, 196, 116, 0.12);
+}
+
+.nasdaq-card .asset-mark {
+  color: #65d7ff;
+  background: rgba(101, 215, 255, 0.12);
+}
+
+.strategy {
+  display: flex;
+  align-items: center;
+  margin-top: 24rpx;
+}
+
+.strategy-label {
+  margin-right: 16rpx;
+  color: #68778d;
+  font-size: 22rpx;
+}
+
+.asset-subtitle {
+  color: #c0cbd9;
+  font-size: 24rpx;
+}
+
+.asset-copy {
+  display: block;
+  margin-top: 20rpx;
+  color: #77869b;
+  font-size: 23rpx;
+}
+
+.asset-enter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 25rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #182536;
+  color: #a6b2c2;
+  font-size: 23rpx;
+}
+
+.arrow {
+  color: #65d7ff;
+  font-size: 38rpx;
+  line-height: 1;
+}

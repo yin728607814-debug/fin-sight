@@ -1,0 +1,64 @@
+<view class="page home-page safe-bottom">
+  <view class="topbar">
+    <view class="brand">
+      <view class="brand-mark">衡</view>
+      <view>
+        <text class="brand-title">双衡观察</text>
+        <text class="brand-meta">黄金 · 纳指观察台</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="account">
+    <view class="live-dot"></view>
+    <text class="account-email">{{user.email}}</text>
+    <view class="account-actions">
+      <text class="account-status">ONLINE</text>
+      <view class="logout-icon" hover-class="logout-icon-pressed" aria-role="button" aria-label="退出登录" bindtap="logout">
+        <text>⏻</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="hero">
+    <text class="hero-label">WATCHLIST / CORE ASSETS</text>
+    <text class="hero-title">双资产观察</text>
+    <view class="hero-line">
+      <view class="hero-pill gold">XAU</view>
+      <view class="hero-pill nasdaq">NDX</view>
+      <text class="hero-note">宏观与趋势信号</text>
+    </view>
+  </view>
+
+  <view class="asset-card gold-card card" bindtap="openAsset" data-asset="gold">
+    <view class="asset-head">
+      <view>
+        <text class="asset-code">XAU / USD</text>
+        <text class="asset-title">现货黄金</text>
+      </view>
+      <text class="asset-mark">AU</text>
+    </view>
+    <view class="strategy">
+      <text class="strategy-label">策略</text>
+      <text class="asset-subtitle">战略防守底仓</text>
+    </view>
+    <text class="asset-copy">美元 · 实际利率 · 避险情绪</text>
+    <view class="asset-enter"><text>查看分析</text><text class="arrow">›</text></view>
+  </view>
+
+  <view class="asset-card nasdaq-card card" bindtap="openAsset" data-asset="nasdaq">
+    <view class="asset-head">
+      <view>
+        <text class="asset-code">NASDAQ / NDX</text>
+        <text class="asset-title">纳斯达克100</text>
+      </view>
+      <text class="asset-mark">NDX</text>
+    </view>
+    <view class="strategy">
+      <text class="strategy-label">策略</text>
+      <text class="asset-subtitle">长期定投观察</text>
+    </view>
+    <text class="asset-copy">科技盈利 · AI 投资 · 估值变化</text>
+    <view class="asset-enter"><text>查看分析</text><text class="arrow">›</text></view>
+  </view>
+</view>

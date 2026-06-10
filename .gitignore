@@ -29,6 +29,9 @@ wrangler.toml.local
 *.swo
 *~
 
+# WeChat DevTools local config
+miniprogram/project.private.config.json
+
 # OS generated files
 .DS_Store
 .DS_Store?

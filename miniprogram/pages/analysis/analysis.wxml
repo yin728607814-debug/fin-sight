@@ -1,0 +1,110 @@
+<view class="page analysis-page {{asset}}-theme safe-bottom">
+  <view class="asset-header">
+    <view class="asset-bar">
+      <text class="asset-code">{{asset === 'gold' ? 'XAU / USD' : 'NASDAQ / NDX'}}</text>
+      <text class="market-state">{{demoMode ? 'PREVIEW DATA' : 'LIVE ANALYSIS'}}</text>
+    </view>
+    <text class="asset-title">{{meta.title}}</text>
+    <text class="asset-subtitle">{{meta.subtitle}}</text>
+    <view wx:if="{{latestPriceText}}" class="last-price">{{latestPriceText}}</view>
+    <view class="actions">
+      <view class="mini-btn" hover-class="mini-btn-pressed" aria-role="button" aria-label="返回" bindtap="goHome">
+        <text>返回</text>
+      </view>
+      <view class="mini-btn primary {{loading ? 'is-loading' : ''}}" hover-class="mini-btn-pressed" aria-role="button" aria-label="更新分析" bindtap="loadData">
+        <view wx:if="{{loading}}" class="button-spinner"></view>
+        <text>{{loading ? '更新中' : '更新分析'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{error}}" class="error-card card">
+    <text>{{error}}</text>
+  </view>
+
+  <view wx:if="{{loading && !analysis}}" class="loading-card card">
+    <view class="pulse"></view>
+    <text class="loading-title">分析正在生成</text>
+    <text class="muted">行情与新闻信号同步中</text>
+  </view>
+
+  <view wx:if="{{analysis}}" class="summary-card card">
+    <view class="summary-head">
+      <view>
+        <text class="eyebrow">SIGNAL OVERVIEW</text>
+        <text class="section-title">整体判断</text>
+        <text class="timestamp">{{updatedAt}}</text>
+      </view>
+      <text class="tag tag-{{analysis.impact}}">{{impactText}}</text>
+    </view>
+
+    <view class="sentiment">
+      <view class="sentiment-ring" style="border-color: {{meta.color}}">
+        <text class="score">{{sentiment}}</text>
+        <text class="score-label">情绪指数</text>
+      </view>
+      <view class="sentiment-copy">
+        <view class="metric"><text>置信度</text><text class="metric-value">{{confidenceText}}</text></view>
+        <view class="metric"><text>风险等级</text><text class="metric-value">{{riskText}}</text></view>
+      </view>
+    </view>
+
+    <text class="paragraph" user-select>{{analysis.summary}}</text>
+  </view>
+
+  <view wx:if="{{priceData.length}}" class="card block">
+    <view class="block-head">
+      <view>
+        <text class="eyebrow">PRICE ACTION</text>
+        <text class="section-title">近 5 日价格</text>
+      </view>
+      <text class="trend-chip {{priceTrendClass}}">{{priceTrendText}}</text>
+    </view>
+    <view class="chart-shell">
+      <canvas type="2d" id="priceChart" class="price-chart" aria-role="img" aria-label="近五日价格走势曲线图"></canvas>
+    </view>
+    <view class="chart-labels">
+      <view wx:for="{{priceLabels}}" wx:key="*this" class="chart-label">
+        <text>{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{analysis}}" class="card block">
+    <text class="eyebrow">STRATEGY</text>
+    <text class="section-title">投资建议</text>
+    <text class="paragraph strong" user-select>{{analysis.investmentAdvice}}</text>
+  </view>
+
+  <view wx:if="{{analysis}}" class="card block">
+    <text class="eyebrow">DRIVERS</text>
+    <text class="section-title">关键因素</text>
+    <view class="factor" wx:for="{{analysis.keyFactors}}" wx:key="*this">
+      <text class="factor-index">{{index + 1}}</text>
+      <text class="factor-text" user-select>{{item}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{analysis}}" class="card block">
+    <text class="eyebrow">OUTLOOK</text>
+    <text class="section-title">趋势预测</text>
+    <text class="paragraph" user-select>{{analysis.predictedTrend}}</text>
+  </view>
+
+  <view class="card block">
+    <view class="block-head">
+      <view>
+        <text class="eyebrow">NEWS FLOW</text>
+        <text class="section-title">相关新闻</text>
+      </view>
+      <text class="count">{{news.length}} 条</text>
+    </view>
+    <view wx:for="{{news}}" wx:key="id" class="news-item" bindtap="openNews" data-url="{{item.url}}">
+      <text class="news-title" user-select>{{item.title}}</text>
+      <view class="news-meta">
+        <text>{{item.source}}</text>
+        <text>{{item.publishedText}}</text>
+      </view>
+    </view>
+  </view>
+</view>
