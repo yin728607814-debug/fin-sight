@@ -33,7 +33,7 @@ function getEnvVar(key: string, defaultValue: string = ''): string {
     return import.meta.env[key] || defaultValue;
   }
   
-  // Node.js 环境（Netlify Functions）
+  // Node.js 环境（Cloudflare Pages Functions / scripts）
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key] || defaultValue;
   }

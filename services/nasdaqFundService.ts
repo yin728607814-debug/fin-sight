@@ -1,6 +1,6 @@
 /**
  * 纳斯达克基金数据服务
- * 从Netlify Function代理获取QDII基金的实时数据
+ * 从 Cloudflare Pages Function 代理获取QDII基金的实时数据
  */
 
 /**
@@ -20,7 +20,7 @@ export interface NasdaqFundRealtimeData {
  */
 class NasdaqFundService {
   private static instance: NasdaqFundService;
-  private readonly PROXY_URL = '/.netlify/functions/fund-proxy'; // Netlify Function代理
+  private readonly PROXY_URL = '/fund-proxy'; // Cloudflare Pages Function代理
   private cache: Map<string, { data: NasdaqFundRealtimeData; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 缓存5分钟（QDII基金更新较慢）
 
@@ -102,7 +102,7 @@ class NasdaqFundService {
         return cached.data;
       }
 
-      // 通过Netlify Function代理获取数据
+      // 通过 Cloudflare Pages Function 代理获取数据
       const url = `${this.PROXY_URL}?code=${fundCode}`;
       const response = await fetch(url);
       

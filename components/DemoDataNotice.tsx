@@ -177,7 +177,7 @@ export const DemoDataNotice: React.FC<DemoDataNoticeProps> = ({ onDismiss }) => 
             <div className="mt-2">
               <p className="font-medium">获取真实数据的方法：</p>
               <ul className="mt-1 list-disc list-inside space-y-1">
-                <li>部署到生产环境（如 Netlify、Vercel）</li>
+                <li>部署到 Cloudflare Pages 生产环境</li>
                 <li>使用服务器端代理</li>
                 <li>在服务器环境中运行应用</li>
               </ul>

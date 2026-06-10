@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import { config } from '../config/env';
 import { newsService } from '../services';
 
 export const DebugPanel: React.FC = () => {
@@ -20,46 +19,42 @@ export const DebugPanel: React.FC = () => {
     setApiStatus(prev => ({ ...prev, news: 'testing' }));
     
     try {
-      const query = 'gold OR "gold price" OR "precious metals"';
-      const fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      
-      // 使用代理端点
-      const response = await fetch(`/.netlify/functions/news-proxy?q=${encodeURIComponent(query)}&language=en&sortBy=publishedAt&pageSize=5&from=${fromDate}`);
+      // 使用 Cloudflare Pages Function 代理端点
+      const response = await fetch('/sina-news-proxy?category=finance&num=5');
       
       const data = await response.json();
       
-      if (data.status === 'error') {
+      if (!response.ok || data.status === 'error') {
         console.error('News API Error:', data);
-        setApiStatus(prev => ({ ...prev, news: `error: ${data.message}` }));
+        setApiStatus(prev => ({ ...prev, news: `error: ${data.message || response.status}` }));
       } else {
-        console.log('News API Success:', data.totalResults, 'articles');
-        setApiStatus(prev => ({ ...prev, news: `success: ${data.totalResults} articles` }));
+        const count = data.totalResults || data.articles?.length || 0;
+        console.log('News API Success:', count, 'articles');
+        setApiStatus(prev => ({ ...prev, news: `success: ${count} articles` }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('News API Request Failed:', error);
       setApiStatus(prev => ({ ...prev, news: `failed: ${error.message}` }));
     }
   };
 
-  const testAlphaVantageAPI = async () => {
+  const testPriceProxy = async () => {
     setApiStatus(prev => ({ ...prev, prices: 'testing' }));
     
     try {
-      const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=GLD&apikey=${config.apiKeys.alphaVantage}`);
+      const response = await fetch('/alpha-vantage-proxy?symbol=nasdaq&days=5&source=yfinance');
       const data = await response.json();
       
-      if (data['Error Message']) {
-        console.error('Alpha Vantage Error:', data);
-        setApiStatus(prev => ({ ...prev, prices: `error: ${data['Error Message']}` }));
-      } else if (data['Note']) {
-        console.error('Alpha Vantage Rate Limit:', data);
-        setApiStatus(prev => ({ ...prev, prices: `rate limit: ${data['Note']}` }));
+      if (!response.ok || data.error) {
+        console.error('Price proxy error:', data);
+        setApiStatus(prev => ({ ...prev, prices: `error: ${data.error || response.status}` }));
       } else {
-        console.log('Alpha Vantage Success:', data);
-        setApiStatus(prev => ({ ...prev, prices: 'success' }));
+        const count = data.priceData?.length || 0;
+        console.log('Price proxy success:', data);
+        setApiStatus(prev => ({ ...prev, prices: `success: ${count} points` }));
       }
-    } catch (error) {
-      console.error('Alpha Vantage Request Failed:', error);
+    } catch (error: any) {
+      console.error('Price proxy request failed:', error);
       setApiStatus(prev => ({ ...prev, prices: `failed: ${error.message}` }));
     }
   };
@@ -72,7 +67,7 @@ export const DebugPanel: React.FC = () => {
       const news = await newsService.fetchMarketNews('nasdaq', 5);
       console.log('NewsService result:', news);
       setApiStatus(prev => ({ ...prev, newsService: `success: ${news.length} items` }));
-    } catch (error) {
+    } catch (error: any) {
       console.error('NewsService failed:', error);
       setApiStatus(prev => ({ ...prev, newsService: `failed: ${error.message}` }));
     }
@@ -108,9 +103,7 @@ export const DebugPanel: React.FC = () => {
           <h4 className="font-medium text-sm text-gray-700">环境信息:</h4>
           <div className="text-xs text-gray-600">
             <div>环境: {typeof window !== 'undefined' ? '浏览器' : '服务器'}</div>
-            <div>News API: {config.apiKeys.news ? config.apiKeys.news.substring(0, 8) + '...' : '未配置'}</div>
-            <div>Alpha Vantage: {config.apiKeys.alphaVantage ? config.apiKeys.alphaVantage.substring(0, 8) + '...' : '未配置'}</div>
-            <div>Gemini: {config.apiKeys.gemini ? config.apiKeys.gemini.substring(0, 8) + '...' : '未配置'}</div>
+            <div>API 代理: Cloudflare Pages Functions</div>
             {typeof window !== 'undefined' && (
               <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                 <div className="text-yellow-800 font-medium">浏览器环境说明:</div>
@@ -145,18 +138,18 @@ export const DebugPanel: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-sm">Alpha Vantage:</span>
+              <span className="text-sm">价格代理:</span>
               <div className="flex items-center space-x-2">
                 <span className={`text-xs px-2 py-1 rounded ${
                   apiStatus.prices === 'unknown' ? 'bg-gray-100 text-gray-600' :
                   apiStatus.prices === 'testing' ? 'bg-yellow-100 text-yellow-600' :
-                  apiStatus.prices === 'success' ? 'bg-green-100 text-green-600' :
+                  apiStatus.prices.startsWith('success') ? 'bg-green-100 text-green-600' :
                   'bg-red-100 text-red-600'
                 }`}>
                   {apiStatus.prices}
                 </span>
                 <button
-                  onClick={testAlphaVantageAPI}
+                  onClick={testPriceProxy}
                   disabled={apiStatus.prices === 'testing'}
                   className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 disabled:opacity-50"
                 >

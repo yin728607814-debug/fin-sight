@@ -229,7 +229,7 @@ export class PriceService implements IPriceService {
       console.error('❌ 无法获取真实价格数据:', error);
       console.error('请检查：');
       console.error('1. 网络连接是否正常');
-      console.error('2. Netlify Functions是否正常运行');
+      console.error('2. Cloudflare Pages Functions是否正常运行');
       console.error('3. API代理服务是否可用');
       
       // 抛出错误，让上层处理，不再回退到演示数据

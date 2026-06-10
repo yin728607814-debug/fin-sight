@@ -1,6 +1,6 @@
 /**
  * A股基金数据服务
- * 从Netlify Function代理获取A股基金的实时数据
+ * 从 Cloudflare Pages Function 代理获取A股基金的实时数据
  */
 
 import { getFundCode } from '../config/aStockFunds';
@@ -22,7 +22,7 @@ export interface FundRealtimeData {
  */
 class AStockFundService {
   private static instance: AStockFundService;
-  private readonly PROXY_URL = '/.netlify/functions/fund-proxy'; // Netlify Function代理
+  private readonly PROXY_URL = '/fund-proxy'; // Cloudflare Pages Function代理
   private cache: Map<string, { data: FundRealtimeData; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 60 * 1000; // 缓存1分钟
 
@@ -53,7 +53,7 @@ class AStockFundService {
         return cached.data;
       }
 
-      // 通过Netlify Function代理获取数据
+      // 通过 Cloudflare Pages Function 代理获取数据
       const url = `${this.PROXY_URL}?code=${fundCode}`;
       const response = await fetch(url);
       

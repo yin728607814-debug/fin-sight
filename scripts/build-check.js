@@ -26,7 +26,7 @@ class BuildChecker {
     console.log('🚀 开始基本构建检查...\n');
 
     this.checkPackageJson();
-    this.checkNetlifyConfiguration();
+    this.checkCloudflareConfiguration();
     this.checkBuildConfiguration();
     this.testBasicBuild();
 
@@ -61,35 +61,35 @@ class BuildChecker {
   }
 
   /**
-   * 检查Netlify配置
+   * 检查 Cloudflare 配置
    */
-  checkNetlifyConfiguration() {
-    console.log('🌐 检查 Netlify 配置...');
+  checkCloudflareConfiguration() {
+    console.log('🌐 检查 Cloudflare 配置...');
     
-    if (!fs.existsSync('netlify.toml')) {
-      this.errors.push('缺少 netlify.toml 文件');
+    if (!fs.existsSync('wrangler.toml')) {
+      this.errors.push('缺少 wrangler.toml 文件');
       return;
     }
 
     try {
-      const netlifyConfig = fs.readFileSync('netlify.toml', 'utf8');
+      const cloudflareConfig = fs.readFileSync('wrangler.toml', 'utf8');
       
       // 检查必需的配置项
-      if (!netlifyConfig.includes('[build]')) {
-        this.errors.push('netlify.toml 缺少 [build] 配置');
+      if (!cloudflareConfig.includes('[build]')) {
+        this.errors.push('wrangler.toml 缺少 [build] 配置');
       }
       
-      if (!netlifyConfig.includes('publish = "dist"')) {
-        this.errors.push('netlify.toml 缺少正确的 publish 目录配置');
+      if (!cloudflareConfig.includes('command = "npm run build"')) {
+        this.warnings.push('wrangler.toml 未声明 npm run build 构建命令');
       }
       
-      if (!netlifyConfig.includes('[[redirects]]')) {
-        this.warnings.push('netlify.toml 缺少 SPA 重定向配置');
+      if (!fs.existsSync('functions')) {
+        this.errors.push('缺少 Cloudflare Pages Functions 目录: functions');
       }
 
-      console.log('✅ Netlify 配置检查完成\n');
+      console.log('✅ Cloudflare 配置检查完成\n');
     } catch (error) {
-      this.errors.push(`无法读取 netlify.toml: ${error.message}`);
+      this.errors.push(`无法读取 wrangler.toml: ${error.message}`);
     }
   }
 

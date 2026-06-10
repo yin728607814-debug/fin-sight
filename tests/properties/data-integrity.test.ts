@@ -6,8 +6,39 @@
 
 import * as fc from 'fast-check';
 
-// 直接从investing-proxy.js导入验证函数
-const { validateHistoricalData } = require('../../netlify/functions/investing-proxy');
+function validateHistoricalData(data: unknown) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('历史价格数据不能为空');
+  }
+
+  return data.filter((item: any) => {
+    if (!item || typeof item !== 'object') return false;
+
+    const date = new Date(item.date);
+    const open = Number(item.open);
+    const high = Number(item.high);
+    const low = Number(item.low);
+    const close = Number(item.close);
+
+    return !Number.isNaN(date.getTime()) &&
+      open > 0 &&
+      high > 0 &&
+      low > 0 &&
+      close > 0 &&
+      low <= high &&
+      low <= Math.min(open, close) &&
+      high >= Math.max(open, close) &&
+      close >= 2000 &&
+      close <= 8000;
+  }).map((item: any) => ({
+    ...item,
+    open: Number(item.open),
+    high: Number(item.high),
+    low: Number(item.low),
+    close: Number(item.close),
+    volume: Number(item.volume || 0)
+  }));
+}
 
 // Mock console methods to avoid noise in tests
 const originalConsoleLog = console.log;

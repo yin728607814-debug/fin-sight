@@ -1927,7 +1927,7 @@ export class NewsService implements INewsService {
    * 翻译新闻为中文
    */
   private async translateNews(newsItems: NewsItem[]): Promise<NewsItem[]> {
-    // 在生产环境中，总是尝试翻译（API密钥由Netlify函数处理）
+    // 在生产环境中，总是尝试翻译（API密钥由 Cloudflare Pages Function 处理）
     const isProduction = typeof window !== 'undefined' && 
                         window.location.hostname !== 'localhost' && 
                         window.location.hostname !== '127.0.0.1';
