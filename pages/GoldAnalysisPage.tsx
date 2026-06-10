@@ -33,7 +33,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
   const { news, loading: newsLoading, error: newsError } = useNews('gold');
   const { analysis, loading: analysisLoading, error: analysisError } = useAnalysis('gold');
   const { overallAnalysis } = useOverallAnalysis('gold');
-  const { priceData, loading: pricesLoading, error: pricesError } = usePriceData('gold');
+  const { priceData, setPriceData, loading: pricesLoading, error: pricesError } = usePriceData('gold');
   const { loading } = useLoading();
   const { errors } = useErrors();
   
@@ -164,8 +164,12 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
       console.log('🔄 重新获取黄金价格数据...');
       const newPriceData = await priceService.fetchFiveDayPriceHistory('gold');
       console.log('✅ 获取到新的价格数据:', newPriceData.length, '条');
+
+      // 4. 更新页面价格数据，确保图表和数据来源同步刷新
+      setPriceData([...newPriceData]);
+      console.log('✅ 页面价格数据已更新');
       
-      // 4. 显示数据详情
+      // 5. 显示数据详情
       const latestPrice = newPriceData[newPriceData.length - 1]?.close || 0;
       const dataDetails = newPriceData.map(d => 
         `${d.date.toISOString().split('T')[0]}: $${d.close}`
@@ -173,7 +177,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
       
       alert(`✅ 价格数据已更新！\n\n最新价格: $${latestPrice}\n数据点数: ${newPriceData.length}\n\n详细数据:\n${dataDetails}`);
       
-      // 5. 触发组件重新渲染（不刷新页面）
+      // 6. 触发组件重新渲染（不刷新页面）
       setLastUpdated(new Date());
     } catch (error) {
       console.error('❌ 刷新黄金价格失败:', error);

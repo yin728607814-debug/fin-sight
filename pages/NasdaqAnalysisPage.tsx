@@ -33,7 +33,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
   const { news, loading: newsLoading, error: newsError } = useNews('nasdaq');
   const { analysis, loading: analysisLoading, error: analysisError } = useAnalysis('nasdaq');
   const { overallAnalysis } = useOverallAnalysis('nasdaq');
-  const { priceData, loading: pricesLoading, error: pricesError } = usePriceData('nasdaq');
+  const { priceData, setPriceData, loading: pricesLoading, error: pricesError } = usePriceData('nasdaq');
   const { loading } = useLoading();
   const { errors } = useErrors();
   
@@ -113,8 +113,12 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
       console.log('🔄 重新获取纳斯达克价格数据...');
       const newPriceData = await priceService.fetchFiveDayPriceHistory('nasdaq');
       console.log('✅ 获取到新的价格数据:', newPriceData.length, '条');
+
+      // 4. 更新页面价格数据，确保图表和数据来源同步刷新
+      setPriceData([...newPriceData]);
+      console.log('✅ 页面价格数据已更新');
       
-      // 4. 显示数据详情
+      // 5. 显示数据详情
       const latestPrice = newPriceData[newPriceData.length - 1]?.close || 0;
       const dataDetails = newPriceData.map(d => 
         `${d.date.toISOString().split('T')[0]}: ${d.close.toFixed(2)}`
@@ -122,7 +126,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
       
       alert(`✅ 价格数据已更新！\n\n最新价格: ${latestPrice.toFixed(2)}\n数据点数: ${newPriceData.length}\n\n详细数据:\n${dataDetails}`);
       
-      // 5. 触发组件重新渲染（不刷新页面）
+      // 6. 触发组件重新渲染（不刷新页面）
       setLastUpdated(new Date());
     } catch (error) {
       console.error('❌ 刷新纳斯达克价格失败:', error);
