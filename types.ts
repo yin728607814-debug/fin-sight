@@ -74,6 +74,9 @@ export interface PriceData {
   volume?: number;
   change: number;
   changePercent: number;
+  source?: string | { name?: string };
+  isReal?: boolean;
+  lastUpdated?: Date | string;
 }
 
 /**

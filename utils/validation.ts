@@ -71,7 +71,10 @@ export const PriceDataSchema = z.object({
   close: z.number().positive('收盘价必须为正数'),
   volume: z.number().nonnegative('成交量不能为负数').optional(),
   change: z.number(),
-  changePercent: z.number()
+  changePercent: z.number(),
+  source: z.union([z.string(), z.object({ name: z.string().optional() }).passthrough()]).optional(),
+  isReal: z.boolean().optional(),
+  lastUpdated: z.date().optional()
 }).refine(
   (data) => data.low <= data.high,
   {
@@ -265,6 +268,9 @@ export function sanitizePriceData(data: unknown): PriceData | null {
       const item = { ...data } as any;
       if (typeof item.date === 'string') {
         item.date = new Date(item.date);
+      }
+      if (typeof item.lastUpdated === 'string') {
+        item.lastUpdated = new Date(item.lastUpdated);
       }
       return PriceDataSchema.parse(item);
     }

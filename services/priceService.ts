@@ -20,7 +20,6 @@ import {
 import { validatePriceData, validateAssetInfo, sanitizePriceData, sanitizeAssetInfo } from '../utils/validation';
 import { isDataExpired } from '../utils/helpers';
 import { logInfo, logError } from './logger';
-import { config } from '../config/env';
 
 /**
  * 价格API配置
@@ -444,6 +443,9 @@ export class PriceService implements IPriceService {
       return [];
     }
 
+    const source = this.getPriceSourceLabel(apiResponse, 'Alpha Vantage');
+    const lastUpdated = new Date();
+
     // Alpha Vantage 代理已经处理了数据格式，直接转换
     const allPriceData = apiResponse.priceData
       .map((item: any) => ({
@@ -454,7 +456,10 @@ export class PriceService implements IPriceService {
         close: parseFloat(item.close) || 0,
         volume: parseInt(item.volume) || 0,
         change: parseFloat(item.change) || 0,
-        changePercent: parseFloat(item.changePercent) || 0
+        changePercent: parseFloat(item.changePercent) || 0,
+        source,
+        isReal: true,
+        lastUpdated
       }))
       .filter((item: any) => item.close > 0); // 过滤无效数据
 
@@ -477,6 +482,9 @@ export class PriceService implements IPriceService {
       return [];
     }
 
+    const source = this.getPriceSourceLabel(apiResponse, 'Yahoo Finance');
+    const lastUpdated = new Date();
+
     // 先转换所有数据
     const allPriceData = apiResponse.priceData
       .map((item: any) => ({
@@ -487,7 +495,10 @@ export class PriceService implements IPriceService {
         close: parseFloat(item.close) || 0,
         volume: parseInt(item.volume) || 0,
         change: parseFloat(item.change) || 0,
-        changePercent: parseFloat(item.changePercent) || 0
+        changePercent: parseFloat(item.changePercent) || 0,
+        source,
+        isReal: true,
+        lastUpdated
       }))
       .filter((item: any) => item.close > 0); // 过滤无效数据
 
@@ -510,6 +521,9 @@ export class PriceService implements IPriceService {
       return [];
     }
 
+    const source = this.getPriceSourceLabel(apiResponse, '新浪财经');
+    const lastUpdated = new Date();
+
     // 转换数据格式
     const allPriceData = apiResponse.priceData
       .map((item: any) => ({
@@ -520,7 +534,10 @@ export class PriceService implements IPriceService {
         close: parseFloat(item.close) || 0,
         volume: parseInt(item.volume) || 0,
         change: parseFloat(item.change) || 0,
-        changePercent: parseFloat(item.changePercent) || 0
+        changePercent: parseFloat(item.changePercent) || 0,
+        source,
+        isReal: true,
+        lastUpdated
       }))
       .filter((item: any) => item.close > 0); // 过滤无效数据
 
@@ -543,6 +560,8 @@ export class PriceService implements IPriceService {
       return [];
     }
 
+    const source = this.getPriceSourceLabel(apiResponse, 'Alpha Vantage');
+    const lastUpdated = new Date();
     const timeSeries = apiResponse['Time Series (Daily)'];
     const dates = Object.keys(timeSeries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
     const targetDates = dates.slice(0, days);
@@ -564,9 +583,27 @@ export class PriceService implements IPriceService {
         close,
         volume,
         change: close - open,
-        changePercent: ((close - open) / open) * 100
+        changePercent: ((close - open) / open) * 100,
+        source,
+        isReal: true,
+        lastUpdated
       };
     }).reverse(); // 按时间正序排列
+  }
+
+  /**
+   * 获取图表展示用的数据源名称
+   */
+  private getPriceSourceLabel(apiResponse: any, fallback: string): string {
+    const rawSource = String(apiResponse?.source || apiResponse?.meta?.exchangeName || fallback);
+    const sourceLabels: Record<string, string> = {
+      'yahoo-finance-api': 'Yahoo Finance',
+      'alphavantage': 'Alpha Vantage',
+      'NASDAQ': 'Yahoo Finance',
+      'sina-finance': '新浪财经'
+    };
+
+    return sourceLabels[rawSource] || rawSource;
   }
 
   /**
@@ -780,20 +817,6 @@ export class PriceService implements IPriceService {
       priceCache: this.priceCache.size,
       assetCache: this.assetCache.size
     };
-  }
-
-  /**
-   * 将符号转换为资产类型
-   */
-  private symbolToAssetType(symbol: string): 'gold' | 'nasdaq' | 'astock' {
-    const lowerSymbol = symbol.toLowerCase();
-    if (lowerSymbol.includes('gold') || lowerSymbol.includes('xau') || lowerSymbol.includes('gld')) {
-      return 'gold';
-    }
-    if (lowerSymbol.includes('astock') || lowerSymbol.includes('sse') || lowerSymbol.includes('sh000001')) {
-      return 'astock';
-    }
-    return 'nasdaq';
   }
 
   /**

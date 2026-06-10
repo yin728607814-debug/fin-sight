@@ -282,14 +282,17 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   const dataSourceInfo = useMemo(() => {
     if (!data || data.length === 0) return null;
     
-    const sources = [...new Set(data.map(d => d.source))];
+    const sources = [...new Set(data
+      .map(d => (typeof d.source === 'string' ? d.source : d.source?.name))
+      .filter((source): source is string => Boolean(source))
+    )];
     const latestData = data[data.length - 1];
     const lastUpdated = latestData?.lastUpdated ? new Date(latestData.lastUpdated) : new Date();
     
     return {
-      sources,
+      sourceText: sources.length > 0 ? sources.join(', ') : '未知来源',
       lastUpdated,
-      isReal: latestData?.isReal || false,
+      isReal: latestData?.isReal === true,
       dataPoints: data.length
     };
   }, [data]);
@@ -369,7 +372,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({
                 <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                <span className="break-all">数据来源: {dataSourceInfo.sources.join(', ')}</span>
+                <span className="break-all">数据来源: {dataSourceInfo.sourceText}</span>
               </div>
               <div className="flex items-center space-x-1 touch-manipulation">
                 <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
