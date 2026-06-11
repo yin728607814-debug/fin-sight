@@ -3,7 +3,10 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  const env = {
+    ...loadEnv(mode, '.', ''),
+    ...process.env,
+  };
   const isProduction = mode === 'production';
   
   return {
@@ -34,6 +37,20 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
+      __APP_ENV__: JSON.stringify({
+        GEMINI_API_KEY: env.GEMINI_API_KEY || '',
+        VITE_GEMINI_API_KEY: env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '',
+        FINNHUB_API_KEY: env.FINNHUB_API_KEY || '',
+        VITE_FINNHUB_API_KEY: env.VITE_FINNHUB_API_KEY || env.FINNHUB_API_KEY || '',
+        VITE_SUPABASE_URL: env.VITE_SUPABASE_URL || '',
+        VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY || '',
+        VITE_APP_TITLE: env.VITE_APP_TITLE || 'FinSight AI',
+        VITE_APP_VERSION: env.VITE_APP_VERSION || '1.0.0',
+        NODE_ENV: env.NODE_ENV || mode,
+        VITE_API_TIMEOUT: env.VITE_API_TIMEOUT || '30000',
+        VITE_API_RETRY_ATTEMPTS: env.VITE_API_RETRY_ATTEMPTS || '3',
+        VITE_CACHE_TIMEOUT: env.VITE_CACHE_TIMEOUT || '300000',
+      }),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
       'process.env.NEWS_API_KEY': JSON.stringify(env.NEWS_API_KEY),

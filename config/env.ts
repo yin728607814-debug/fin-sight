@@ -24,19 +24,26 @@ export interface AppConfig {
   };
 }
 
+declare const __APP_ENV__: Record<string, string | undefined> | undefined;
+
 /**
  * 获取环境变量，如果未设置则返回默认值
  */
 function getEnvVar(key: string, defaultValue: string = ''): string {
-  // Node.js 环境（Cloudflare Pages Functions / scripts）；
-  // 浏览器构建时由 vite.config.ts 将 process.env.* 静态替换。
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key] || defaultValue;
+  // Vite 浏览器构建入口：vite.config.ts 会把 Cloudflare/Vite 环境变量注入到这里。
+  if (typeof __APP_ENV__ !== 'undefined' && __APP_ENV__?.[key]) {
+    return __APP_ENV__[key] || defaultValue;
   }
-  
+
   // 检查全局importMeta对象（测试环境模拟）
   if (typeof globalThis !== 'undefined' && (globalThis as any).importMeta?.env) {
     return (globalThis as any).importMeta.env[key] || defaultValue;
+  }
+
+  // Node.js 环境（Cloudflare Pages Functions / scripts）；
+  // 测试和服务端脚本可从 process.env 读取。
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key] || defaultValue;
   }
   
   // 检查全局process对象
