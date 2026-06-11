@@ -44,7 +44,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
     }
 
     // 映射符号到 Yahoo Finance 格式
-    const symbolMap = {
+    const symbolMap: Record<string, string> = {
       'nasdaq': '^NDX',
       'NDX': '^NDX',
       'gold': 'GC=F',
@@ -98,7 +98,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
     const quotes = result.indicators?.quote?.[0] || {};
     const { open, high, low, close, volume } = quotes;
 
-    const priceData = timestamps.map((timestamp, index) => {
+    const priceData = timestamps.map((timestamp: number, index: number) => {
       const date = new Date(timestamp * 1000);
       const openPrice = open?.[index];
       const closePrice = close?.[index];
@@ -126,7 +126,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
         change,
         changePercent
       };
-    }).filter(item => {
+    }).filter((item: any) => {
       // 过滤掉无效数据：null、undefined、NaN 或 0
       // 注意：0 也被视为无效，因为股票/指数价格不可能为 0
       return item.close !== null && 
@@ -154,7 +154,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
         first: priceData[0]?.date,
         last: priceData[priceData.length - 1]?.date
       } : null,
-      sampleData: priceData.slice(-2).map(item => ({
+      sampleData: priceData.slice(-2).map((item: any) => ({
         date: item.date,
         close: item.close,
         change: item.change?.toFixed(2),
@@ -172,10 +172,11 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
   } catch (error) {
     console.error('❌ Yahoo Finance 错误:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     return new Response(JSON.stringify({
       error: 'Internal server error',
-      details: error.message
+      details: message
     }), {
       status: 500,
       headers: corsHeaders

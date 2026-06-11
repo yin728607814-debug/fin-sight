@@ -28,12 +28,8 @@ export interface AppConfig {
  * 获取环境变量，如果未设置则返回默认值
  */
 function getEnvVar(key: string, defaultValue: string = ''): string {
-  // 在浏览器环境中，Vite会将环境变量注入到import.meta.env
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    return import.meta.env[key] || defaultValue;
-  }
-  
-  // Node.js 环境（Cloudflare Pages Functions / scripts）
+  // Node.js 环境（Cloudflare Pages Functions / scripts）；
+  // 浏览器构建时由 vite.config.ts 将 process.env.* 静态替换。
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
     return process.env[key] || defaultValue;
   }

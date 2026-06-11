@@ -8,7 +8,7 @@ import * as fc from 'fast-check';
 
 function validateHistoricalData(data: unknown) {
   if (!Array.isArray(data) || data.length === 0) {
-    throw new Error('历史价格数据不能为空');
+    throw new Error('Invalid historical data: data must be a non-empty array');
   }
 
   return data.filter((item: any) => {
@@ -37,7 +37,7 @@ function validateHistoricalData(data: unknown) {
     low: Number(item.low),
     close: Number(item.close),
     volume: Number(item.volume || 0)
-  }));
+  })).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 // Mock console methods to avoid noise in tests

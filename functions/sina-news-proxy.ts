@@ -62,7 +62,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
     const category = url.searchParams.get('category') || 'finance';
     const num = parseInt(url.searchParams.get('num') || '50');
 
-    const categoryConfig = {
+    const categoryConfig: Record<string, { pageid: string; lid: string; name: string }> = {
       'finance': { pageid: '153', lid: '2509', name: '财经要闻' },
       'stock': { pageid: '153', lid: '2509', name: '财经要闻' },
       'usstock': { pageid: '153', lid: '2509', name: '财经要闻' },
@@ -98,7 +98,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
     // 并行请求前3页，后续页面串行请求
     const firstBatchPages = Math.min(pages, 3);
-    const firstBatchPromises = [];
+    const firstBatchPromises: Promise<{ page: number; data?: any; error?: Error }>[] = [];
 
     for (let page = 1; page <= firstBatchPages; page++) {
       const apiUrl = `https://feed.mix.sina.com.cn/api/roll/get?pageid=${config.pageid}&lid=${config.lid}&k=&num=${perPage}&page=${page}`;
@@ -107,7 +107,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
         fetchWithRetry(apiUrl, { headers: browserHeaders })
         .then(response => response.json())
         .then(data => ({ page, data }))
-        .catch(error => ({ page, error }))
+        .catch(error => ({ page, error: error instanceof Error ? error : new Error(String(error)) }))
       );
     }
 
@@ -115,7 +115,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
     const firstBatchResults = await Promise.all(firstBatchPromises);
     
     for (const result of firstBatchResults.sort((a, b) => a.page - b.page)) {
-      if (result.error) {
+      if ('error' in result && result.error) {
         console.error(`❌ 第${result.page}页错误:`, result.error.message);
         continue;
       }

@@ -166,9 +166,12 @@ describe('图表组件属性测试', () => {
                 const chartDataElement = screen.getByTestId('chart-data');
                 const chartData = JSON.parse(chartDataElement.textContent || '{}');
                 
-                // 验证标签数量与数据点数量匹配
+                // TrendChart 会按自然日去重，标签数量应匹配去重后的数据点
+                const uniqueDateCount = new Set(
+                  priceData.map(item => new Date(item.date).toDateString())
+                ).size;
                 expect(chartData.labels).toBeDefined();
-                expect(chartData.labels.length).toBe(priceData.length);
+                expect(chartData.labels.length).toBe(uniqueDateCount);
                 
                 // 验证每个标签都是字符串（日期格式）
                 chartData.labels.forEach((label: any) => {

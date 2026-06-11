@@ -77,10 +77,11 @@ export async function onRequest(context: { request: Request; env: Env }) {
 
   } catch (error) {
     console.error('❌ Finnhub 错误:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     return new Response(JSON.stringify({
       status: 'error',
-      message: error.message,
+      message,
       articles: [],
       total: 0
     }), {

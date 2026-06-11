@@ -267,9 +267,9 @@ describe('价格数据和图表集成测试', () => {
       const chartData = screen.getByTestId('chart-data');
       const parsedData = JSON.parse(chartData.textContent || '{}');
       
-      // 验证上涨趋势使用绿色
-      expect(parsedData.datasets[0].borderColor).toBe('#10b981');
-      expect(parsedData.datasets[0].backgroundColor).toBe('rgba(16, 185, 129, 0.1)');
+      // 验证上涨趋势使用红色
+      expect(parsedData.datasets[0].borderColor).toBe('#ef4444');
+      expect(parsedData.datasets[0].backgroundColor).toBe('rgba(239, 68, 68, 0.1)');
     });
   });
 
@@ -285,7 +285,7 @@ describe('价格数据和图表集成测试', () => {
 
       // 验证价格服务被正确调用
       const { priceService } = require('../../services/priceService');
-      expect(priceService.fetchPriceHistory).toHaveBeenCalledWith('gold', 10);
+      expect(priceService.fetchFiveDayPriceHistory).toHaveBeenCalledWith('gold');
 
       // 验证价格趋势图表存在
       expect(screen.getByText(/价格趋势/)).toBeInTheDocument();

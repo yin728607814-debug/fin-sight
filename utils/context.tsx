@@ -367,19 +367,12 @@ export function AppProvider({
 
   const [state, dispatch] = useReducer(appReducer, mergedInitialState);
 
-  // 持久化状态变化（使用防抖避免频繁保存）
+  // 持久化状态变化。关键导航状态需要立即落盘，避免快速刷新时丢失。
   useEffect(() => {
     if (!enablePersistence) return;
-    
-    const timeoutId = setTimeout(() => {
-      savePersistedState(state);
-    }, 500); // 500ms 防抖
-    
-    return () => clearTimeout(timeoutId);
-  }, [
-    state,
-    enablePersistence
-  ]);
+
+    savePersistedState(state);
+  }, [state, enablePersistence]);
 
   const contextValue: AppContextType = {
     state,

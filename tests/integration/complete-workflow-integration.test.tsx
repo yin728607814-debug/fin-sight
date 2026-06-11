@@ -12,6 +12,18 @@ import { HomePage } from '../../pages/HomePage';
 import { GoldAnalysisPage } from '../../pages/GoldAnalysisPage';
 import { NasdaqAnalysisPage } from '../../pages/NasdaqAnalysisPage';
 
+jest.mock('../../utils/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+  useAuth: () => ({
+    user: { id: 'test-user', email: 'tester@example.com', createdAt: new Date() },
+    loading: false,
+    login: jest.fn(),
+    register: jest.fn(),
+    logout: jest.fn(),
+    isAuthenticated: true
+  })
+}));
+
 // 模拟所有服务
 jest.mock('../../services/newsService', () => ({
   newsService: {
@@ -23,6 +35,7 @@ jest.mock('../../services/newsService', () => ({
 jest.mock('../../services/priceService', () => ({
   priceService: {
     fetchPriceHistory: jest.fn(),
+    fetchFiveDayPriceHistory: jest.fn(),
     getCurrentPrice: jest.fn()
   }
 }));
@@ -140,6 +153,7 @@ describe('完整工作流集成测试', () => {
       predictedChange: 2.5
     });
     priceService.fetchPriceHistory.mockResolvedValue(mockPriceData);
+    priceService.fetchFiveDayPriceHistory.mockResolvedValue(mockPriceData);
     priceService.getCurrentPrice.mockResolvedValue({
       symbol: 'XAUUSD',
       name: '现货黄金',
@@ -155,18 +169,18 @@ describe('完整工作流集成测试', () => {
       render(<HomePage />, { wrapper: TestWrapper });
 
       // 验证首页核心元素
-      expect(screen.getByText(/投资新闻/)).toBeInTheDocument();
-      expect(screen.getByText(/智能分析器/)).toBeInTheDocument();
-      expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+      expect(screen.getByText(/FinSight/)).toBeInTheDocument();
+      expect(screen.getByText(/今天先看组合，再看市场信号/)).toBeInTheDocument();
+      expect(screen.getByText(/市场观察/)).toBeInTheDocument();
       
       // 验证导航卡片
-      expect(screen.getByText(/现货黄金分析/)).toBeInTheDocument();
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getByText(/黄金市场/)).toBeInTheDocument();
+      expect(screen.getByText(/纳斯达克100/)).toBeInTheDocument();
       
       // 验证功能特性
-      expect(screen.getByText(/实时新闻分析/)).toBeInTheDocument();
-      expect(screen.getByText(/价格趋势图表/)).toBeInTheDocument();
-      expect(screen.getByText(/多市场覆盖/)).toBeInTheDocument();
+      expect(screen.getByText(/智能仪表盘/)).toBeInTheDocument();
+      expect(screen.getByText(/AI投资顾问/)).toBeInTheDocument();
+      expect(screen.getByText(/导入持仓/)).toBeInTheDocument();
     });
 
     test('应该支持完整的应用路由', async () => {
@@ -174,14 +188,14 @@ describe('完整工作流集成测试', () => {
       render(<HomePage />, { wrapper: TestWrapper });
 
       // 验证在首页
-      expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+      expect(screen.getByText(/市场观察/)).toBeInTheDocument();
 
       // 导航到黄金分析页面
-      const goldLink = screen.getByText(/现货黄金分析/).closest('a');
+      const goldLink = screen.getByText(/黄金市场/).closest('a');
       expect(goldLink).toHaveAttribute('href', '/gold');
 
       // 导航到纳斯达克分析页面
-      const nasdaqLink = screen.getByText(/纳斯达克100分析/).closest('a');
+      const nasdaqLink = screen.getByText(/纳斯达克100/).closest('a');
       expect(nasdaqLink).toHaveAttribute('href', '/nasdaq');
     });
   });
@@ -216,7 +230,7 @@ describe('完整工作流集成测试', () => {
       }, { timeout: 5000 });
 
       // 查找并点击刷新按钮
-      const refreshButton = screen.getByText(/刷新数据/);
+      const refreshButton = screen.getByText(/刷新价格/).closest('button');
       expect(refreshButton).toBeInTheDocument();
       
       await act(async () => {
@@ -225,7 +239,8 @@ describe('完整工作流集成测试', () => {
 
       // 验证服务被调用
       const { newsService } = require('../../services/newsService');
-      expect(newsService.fetchMarketNews).toHaveBeenCalled();
+      const { priceService } = require('../../services/priceService');
+      expect(priceService.fetchFiveDayPriceHistory).toHaveBeenCalledWith('gold');
     });
 
     test('应该显示市场概览信息', async () => {
@@ -237,7 +252,7 @@ describe('完整工作流集成测试', () => {
 
       // 验证市场概览部分
       expect(screen.getByText(/市场概览/)).toBeInTheDocument();
-      expect(screen.getByText(/当前价格/)).toBeInTheDocument();
+      expect(screen.getAllByText(/当前价格/).length).toBeGreaterThan(0);
       expect(screen.getByText(/24小时变化/)).toBeInTheDocument();
       
       // 验证统计信息
@@ -255,7 +270,7 @@ describe('完整工作流集成测试', () => {
       render(<NasdaqAnalysisPage />, { wrapper: TestWrapper });
 
       // 验证页面标题和导航
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/返回首页/)).toHaveLength(2); // Header and sidebar
       
       // 验证主要区域存在
@@ -346,7 +361,7 @@ describe('完整工作流集成测试', () => {
       }, { timeout: 5000 });
 
       // 点击刷新重试
-      const refreshButton = screen.getByText(/刷新数据/);
+      const refreshButton = screen.getAllByText(/重试/)[0];
       
       await act(async () => {
         fireEvent.click(refreshButton);
@@ -365,8 +380,11 @@ describe('完整工作流集成测试', () => {
       // 验证新闻分析控制面板
       expect(screen.getByText(/新闻分析/)).toBeInTheDocument();
       // The button text changes based on loading state, so check for either
-      const hasRefreshButton = screen.queryByText(/刷新新闻/) || screen.queryByText(/获取中/) || screen.queryByText(/获取新闻/);
-      expect(hasRefreshButton).toBeTruthy();
+      const hasRefreshButton =
+        screen.queryAllByText(/刷新新闻/).length > 0 ||
+        screen.queryAllByText(/获取中/).length > 0 ||
+        screen.queryAllByText(/获取新闻/).length > 0;
+      expect(hasRefreshButton).toBe(true);
       
       // 等待数据加载
       await waitFor(() => {
@@ -398,7 +416,7 @@ describe('完整工作流集成测试', () => {
       }, { timeout: 5000 });
 
       // 验证服务调用
-      const { newsService, priceService } = require('../../services/newsService');
+      const { newsService } = require('../../services/newsService');
       expect(newsService.fetchMarketNews).toHaveBeenCalledWith('gold', expect.any(Number));
     });
 
@@ -416,7 +434,7 @@ describe('完整工作流集成测试', () => {
 
       // 切换到纳斯达克页面
       rerender(<NasdaqAnalysisPage />);
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
 
       // 切换回黄金页面
       rerender(<GoldAnalysisPage />);

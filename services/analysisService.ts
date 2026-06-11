@@ -484,7 +484,8 @@ export class AnalysisService implements IAnalysisService {
             overallSummary: parsed.overallSummary || '分析完成'
           };
         } catch (secondError) {
-          console.error('❌ JSON修复失败，尝试部分解析...', secondError.message);
+          const message = secondError instanceof Error ? secondError.message : String(secondError);
+          console.error('❌ JSON修复失败，尝试部分解析...', message);
           
           // 3. 部分解析策略：尝试提取analyses数组
           const analysesMatch = fixedJson.match(/"analyses"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
@@ -754,17 +755,16 @@ ${newsText}
    * 公共方法，可供外部调用
    */
   public async makeGeminiRequest(request: GeminiRequest): Promise<AxiosResponse<GeminiResponse>> {
-    // 将请求加入队列，确保串行执行
-    // 关键：使用独立的 Promise 链，避免错误传播阻塞队列
-    const currentRequest = this.executeGeminiRequest(request);
-    
-    // 更新队列：等待当前请求完成（无论成功或失败）
-    this.requestQueue = this.requestQueue
-      .then(() => currentRequest)
-      .catch(() => {}); // 捕获错误，防止队列中断
-    
-    // 返回实际的请求结果
-    return currentRequest;
+    // 将请求加入队列，确保上一项结束后才真正发起当前请求。
+    const queuedRequest = this.requestQueue.then(() => this.executeGeminiRequest(request));
+
+    // 更新队列：等待当前请求完成（无论成功或失败），防止错误中断后续任务。
+    this.requestQueue = queuedRequest.then(
+      () => undefined,
+      () => undefined
+    );
+
+    return queuedRequest;
   }
 
   /**

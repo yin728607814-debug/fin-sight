@@ -107,8 +107,9 @@ export function safeGetLocalStorage<T>(key: string, defaultValue: T): T {
  * 安全地设置 localStorage 数据
  */
 export function safeSetLocalStorage(key: string, value: any): boolean {
+  let serialized = '';
   try {
-    const serialized = JSON.stringify(value);
+    serialized = JSON.stringify(value);
     localStorage.setItem(key, serialized);
     return true;
   } catch (error) {

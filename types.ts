@@ -71,12 +71,26 @@ export interface PriceData {
   high: number;
   low: number;
   close: number;
-  volume?: number;
+  volume?: number | null;
   change: number;
   changePercent: number;
   source?: string | { name?: string };
   isReal?: boolean;
   lastUpdated?: Date | string;
+}
+
+export interface DataSource {
+  name: string;
+  type: 'primary' | 'backup';
+  endpoint: string;
+  rateLimit: number;
+  isHistoricalSupported: boolean;
+}
+
+export interface HistoricalPriceData extends PriceData {
+  source: DataSource;
+  isReal: true;
+  lastUpdated: string;
 }
 
 /**
@@ -117,22 +131,10 @@ export interface ErrorState {
  */
 export interface AppState {
   currentAsset: AssetType;
-  news: {
-    gold: NewsItem[];
-    nasdaq: NewsItem[];
-  };
-  analysis: {
-    gold: NewsAnalysis[];
-    nasdaq: NewsAnalysis[];
-  };
-  overallAnalysis: {
-    gold: OverallMarketAnalysis | null;
-    nasdaq: OverallMarketAnalysis | null;
-  };
-  priceData: {
-    gold: PriceData[];
-    nasdaq: PriceData[];
-  };
+  news: Record<AssetType, NewsItem[]>;
+  analysis: Record<AssetType, NewsAnalysis[]>;
+  overallAnalysis: Record<AssetType, OverallMarketAnalysis | null>;
+  priceData: Record<AssetType, PriceData[]>;
   loading: LoadingState;
   errors: ErrorState;
 }

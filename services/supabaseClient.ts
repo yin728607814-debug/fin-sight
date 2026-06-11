@@ -5,10 +5,11 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { logInfo, logError } from './logger';
+import { config } from '../config/env';
 
 // 从环境变量获取配置
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = config.supabase.url;
+const supabaseAnonKey = config.supabase.anonKey;
 
 /**
  * 验证 Supabase 配置
@@ -144,6 +145,13 @@ export const supabase = createSupabaseClient();
  */
 export function isSupabaseAvailable(): boolean {
   return supabase !== null;
+}
+
+export function requireSupabase(): SupabaseClient {
+  if (!supabase) {
+    throw new Error('Supabase 未配置或不可用，请检查环境变量配置');
+  }
+  return supabase;
 }
 
 /**

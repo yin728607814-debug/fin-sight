@@ -55,6 +55,7 @@ export const NasdaqAnalysisPage: React.FC<NasdaqAnalysisPageProps> = () => {
     const getCurrentUser = async () => {
       try {
         const { supabase } = await import('../services/supabaseClient');
+        if (!supabase) return;
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setCurrentUserId(user.id);

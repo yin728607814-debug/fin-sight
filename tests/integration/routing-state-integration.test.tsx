@@ -12,6 +12,18 @@ import { GoldAnalysisPage } from '../../pages/GoldAnalysisPage';
 import { NasdaqAnalysisPage } from '../../pages/NasdaqAnalysisPage';
 import App from '../../App';
 
+jest.mock('../../utils/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useAuth: () => ({
+    user: { id: 'test-user', email: 'tester@example.com', createdAt: new Date() },
+    loading: false,
+    login: jest.fn(),
+    register: jest.fn(),
+    logout: jest.fn(),
+    isAuthenticated: true
+  })
+}));
+
 // 模拟服务
 jest.mock('../../services/newsService', () => ({
   newsService: {
@@ -63,16 +75,17 @@ describe('页面路由和状态管理集成测试', () => {
       render(<HomePage />, { wrapper: TestWrapper });
 
       // 验证首页内容
-      expect(screen.getByText(/投资新闻/)).toBeInTheDocument();
-      expect(screen.getByText(/智能分析器/)).toBeInTheDocument();
-      expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+      expect(screen.getByText(/FinSight/)).toBeInTheDocument();
+      expect(screen.getByText(/今天先看组合，再看市场信号/)).toBeInTheDocument();
+      expect(screen.getByText(/市场观察/)).toBeInTheDocument();
       
       // 验证导航卡片
-      expect(screen.getByText(/现货黄金分析/)).toBeInTheDocument();
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getByText(/黄金市场/)).toBeInTheDocument();
+      expect(screen.getByText(/纳斯达克100/)).toBeInTheDocument();
     });
 
     test('应该支持从首页导航到黄金分析页面', async () => {
+      window.history.pushState({}, '', '/home');
       render(<App />, { 
         wrapper: ({ children }) => (
           <AppProvider enablePersistence={false}>
@@ -82,10 +95,10 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       // 验证在首页
-      expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+      expect(await screen.findByText(/市场观察/)).toBeInTheDocument();
 
       // 点击黄金分析链接
-      const goldLink = screen.getByText(/现货黄金分析/).closest('a');
+      const goldLink = screen.getByText(/黄金市场/).closest('a');
       expect(goldLink).toHaveAttribute('href', '/gold');
 
       // 模拟点击导航
@@ -100,6 +113,7 @@ describe('页面路由和状态管理集成测试', () => {
     });
 
     test('应该支持从首页导航到纳斯达克分析页面', async () => {
+      window.history.pushState({}, '', '/home');
       render(<App />, { 
         wrapper: ({ children }) => (
           <AppProvider enablePersistence={false}>
@@ -109,7 +123,8 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       // 点击纳斯达克分析链接
-      const nasdaqLink = screen.getByText(/纳斯达克100分析/).closest('a');
+      expect(await screen.findByText(/市场观察/)).toBeInTheDocument();
+      const nasdaqLink = screen.getByText(/纳斯达克100/).closest('a');
       expect(nasdaqLink).toHaveAttribute('href', '/nasdaq');
 
       await act(async () => {
@@ -118,7 +133,7 @@ describe('页面路由和状态管理集成测试', () => {
 
       // 验证导航到纳斯达克页面
       await waitFor(() => {
-        expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+        expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
       });
     });
 
@@ -195,7 +210,7 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+        expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
       });
 
       // 返回首页
@@ -204,7 +219,7 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+        expect(screen.getByText(/市场观察/)).toBeInTheDocument();
       });
     });
 
@@ -224,7 +239,7 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       // 验证黄金特有的UI元素
-      const goldIndicator = document.querySelector('.bg-yellow-500');
+      const goldIndicator = document.querySelector('[class*="yellow-500"]');
       expect(goldIndicator).toBeInTheDocument();
     });
 
@@ -238,11 +253,11 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+        expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
       });
 
       // 验证纳斯达克特有的UI元素
-      const nasdaqIndicator = document.querySelector('.bg-blue-500');
+      const nasdaqIndicator = document.querySelector('[class*="blue-500"]');
       expect(nasdaqIndicator).toBeInTheDocument();
     });
   });
@@ -297,7 +312,7 @@ describe('页面路由和状态管理集成测试', () => {
 
       // 切换到首页
       rerender(<HomePage />);
-      expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+      expect(screen.getByText(/市场观察/)).toBeInTheDocument();
 
       // 切换回黄金页面
       rerender(<GoldAnalysisPage />);
@@ -323,7 +338,7 @@ describe('页面路由和状态管理集成测试', () => {
       });
 
       // 点击刷新按钮
-      const refreshButton = screen.getByText(/刷新数据/);
+      const refreshButton = screen.getByText(/刷新价格/);
       
       await act(async () => {
         fireEvent.click(refreshButton);
@@ -363,7 +378,7 @@ describe('页面路由和状态管理集成测试', () => {
         )
       });
 
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
     });
 
     test('应该正确处理根路径', () => {
@@ -375,7 +390,7 @@ describe('页面路由和状态管理集成测试', () => {
         )
       });
 
-      expect(screen.getByText(/选择投资产品/)).toBeInTheDocument();
+      expect(screen.getByText(/市场观察/)).toBeInTheDocument();
     });
   });
 

@@ -4,17 +4,8 @@
  * 使用 Supabase 存储
  */
 
-import { supabase } from './supabaseClient';
+import { requireSupabase } from './supabaseClient';
 import { AssetType } from '../types';
-
-interface UserPrompt {
-  id?: number;
-  user_id: string;
-  asset_type: AssetType;
-  prompt_content: string;
-  created_at?: string;
-  updated_at?: string;
-}
 
 class PromptConfigService {
   /**
@@ -22,7 +13,8 @@ class PromptConfigService {
    */
   async getUserPrompt(userId: string, assetType: AssetType): Promise<string | null> {
     try {
-      const { data, error } = await supabase
+      const client = requireSupabase();
+      const { data, error } = await client
         .from('user_prompts')
         .select('prompt_content')
         .eq('user_id', userId)
@@ -54,11 +46,12 @@ class PromptConfigService {
       console.log('🔍 保存 Prompt - promptContent length:', promptContent.length);
       
       // 检查用户是否已登录
-      const { data: { user } } = await supabase.auth.getUser();
+      const client = requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
       console.log('🔍 当前登录用户:', user?.id);
       
       // 使用 upsert 来插入或更新
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('user_prompts')
         .upsert(
           {
@@ -90,7 +83,8 @@ class PromptConfigService {
    */
   async deleteUserPrompt(userId: string, assetType: AssetType): Promise<void> {
     try {
-      const { error } = await supabase
+      const client = requireSupabase();
+      const { error } = await client
         .from('user_prompts')
         .delete()
         .eq('user_id', userId)

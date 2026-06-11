@@ -15,6 +15,7 @@ jest.mock('../../utils/context', () => ({
   useCurrentAsset: () => ({ setCurrentAsset: jest.fn() }),
   useNews: () => ({ news: [], loading: false, error: null }),
   useAnalysis: () => ({ analysis: [], loading: false, error: null }),
+  useOverallAnalysis: () => ({ overallAnalysis: null, setOverallAnalysis: jest.fn() }),
   usePriceData: () => ({ priceData: [], loading: false, error: null }),
   useLoading: () => ({ loading: { news: false, analysis: false, prices: false } }),
   useErrors: () => ({ errors: { news: null, analysis: null, prices: null } })
@@ -160,6 +161,7 @@ describe('响应式布局属性测试', () => {
               loading: false, 
               error: hasErrors ? 'Error' : null 
             }),
+            useOverallAnalysis: () => ({ overallAnalysis: null, setOverallAnalysis: jest.fn() }),
             useLoading: () => ({ loading: { news: false, analysis: false, prices: false } }),
             useErrors: () => ({ errors: { news: null, analysis: null, prices: null } }),
             useCurrentAsset: () => ({ setCurrentAsset: jest.fn() })

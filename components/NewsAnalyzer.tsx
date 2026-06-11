@@ -22,7 +22,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
 }) => {
   const { news, setNews } = useNews(assetType);
   const { analysis, setAnalysis } = useAnalysis(assetType);
-  const { overallAnalysis, setOverallAnalysis } = useOverallAnalysis(assetType);
+  const { setOverallAnalysis } = useOverallAnalysis(assetType);
   const { priceData, setPriceData } = usePriceData(assetType);
   const { loading, setLoading } = useLoading();
   const { errors, setError, clearError } = useErrors();
@@ -278,11 +278,10 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
         fetchNews().then((fetchedNews) => {
           if (fetchedNews) {
             // 刷新后，将旧的分析结果应用到新新闻上（如果新闻ID匹配）
-            setAnalysis(prevAnalysis => {
-              return prevAnalysis.filter(a => 
-                fetchedNews.some(n => n.id === a.newsId)
-              );
-            });
+            const retainedAnalysis = analysis.filter((a: NewsAnalysis) =>
+              fetchedNews.some((n: NewsItem) => n.id === a.newsId)
+            );
+            setAnalysis(retainedAnalysis);
           }
         });
       }
@@ -306,9 +305,9 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
           dataType="news"
           fallbackLevels={createStandardFallbackLevels(
             'news',
-            fetchNews,
+            async () => (await fetchNews()) !== null,
             undefined,
-            useFallbackNews
+            async () => (await useFallbackNews()) !== null
           )}
           onSuccess={(level) => {
             console.log(`数据获取成功，使用策略: ${level.name}`);
@@ -338,7 +337,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
                 <p>由于无法获取实时新闻数据，当前显示的是演示数据用于功能展示。</p>
                 <div className="mt-2">
                   <RetryButton
-                    onRetry={fetchNews}
+                    onRetry={async () => (await fetchNews()) !== null}
                     size="sm"
                     className="mr-2"
                   />
@@ -446,13 +445,13 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
             </div>
             <div className="text-center p-2 bg-white/40 dark:bg-gray-700/40 rounded-lg">
               <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
-                {analysis.filter(a => a.impact === 'positive').length}
+                {analysis.filter((a: NewsAnalysis) => a.impact === 'positive').length}
               </p>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">利好</p>
             </div>
             <div className="text-center p-2 bg-white/40 dark:bg-gray-700/40 rounded-lg">
               <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
-                {analysis.filter(a => a.impact === 'negative').length}
+                {analysis.filter((a: NewsAnalysis) => a.impact === 'negative').length}
               </p>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">利空</p>
             </div>

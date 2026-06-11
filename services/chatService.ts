@@ -5,7 +5,7 @@
  */
 
 import { AssetType } from '../types';
-import { supabase } from './supabaseClient';
+import { requireSupabase } from './supabaseClient';
 
 /**
  * 消息角色类型
@@ -79,7 +79,8 @@ export class ChatService {
    * 获取当前用户ID
    */
   private async getCurrentUserId(): Promise<string | null> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const client = requireSupabase();
+    const { data: { user } } = await client.auth.getUser();
     return user?.id || null;
   }
 
@@ -99,7 +100,8 @@ export class ChatService {
       }
 
       // 从 Supabase 获取聊天记录
-      const { data, error } = await supabase
+      const client = requireSupabase();
+      const { data, error } = await client
         .from('chat_messages')
         .select('*')
         .eq('user_id', userId)
@@ -152,7 +154,8 @@ export class ChatService {
       }
 
       // 插入到 Supabase
-      const { error } = await supabase
+      const client = requireSupabase();
+      const { error } = await client
         .from('chat_messages')
         .insert({
           id: message.id,
@@ -184,7 +187,8 @@ export class ChatService {
         return;
       }
 
-      const { error } = await supabase
+      const client = requireSupabase();
+      const { error } = await client
         .from('chat_messages')
         .delete()
         .eq('user_id', userId)
@@ -211,7 +215,8 @@ export class ChatService {
 
       const expirationDate = new Date(Date.now() - this.HISTORY_EXPIRATION);
 
-      const { error } = await supabase
+      const client = requireSupabase();
+      const { error } = await client
         .from('chat_messages')
         .delete()
         .eq('user_id', userId)

@@ -90,12 +90,12 @@ export const TrendChart: React.FC<TrendChartProps> = ({
     const prices = uniqueData.map(item => item.close);
     // const changes = sortedData.map(item => item.changePercent);
 
-    // 确定线条颜色（基于最新日期的涨跌 - 中国股市习惯：红涨绿跌）
+    // 确定线条颜色（红涨绿跌）
     const latestChange = uniqueData.length > 1 
       ? uniqueData[uniqueData.length - 1].changePercent
       : 0;
-    
-    const lineColor = latestChange >= 0 ? '#ef4444' : '#10b981'; // 红色上涨，绿色下跌
+
+    const lineColor = latestChange >= 0 ? '#ef4444' : '#10b981';
     const fillColor = latestChange >= 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)';
 
     console.log('📊 TrendChart: 图表数据已生成', { 

@@ -34,8 +34,8 @@ export function usePositions(): UsePositionsResult {
   const [error, setError] = useState<string | null>(null);
   const [isSupabaseEnabled] = useState(isSupabaseAvailable());
 
-  // 创建稳定的 positionService 实例
-  const [positionService] = useState(() => new PositionService(UserService.getUserId()));
+  // 创建稳定的 positionService 实例；登录用户 ID 在请求前异步刷新。
+  const [positionService] = useState(() => new PositionService(UserService.getUserIdSync()));
 
   /**
    * 获取持仓列表
@@ -51,6 +51,12 @@ export function usePositions(): UsePositionsResult {
       setLoading(true);
       setError(null);
       
+      const userId = await UserService.getUserId();
+      if (!userId) {
+        throw new Error('用户未登录');
+      }
+      positionService.setUserId(userId);
+
       logInfo('开始获取持仓列表');
       const data = await positionService.getPositions();
       
@@ -75,12 +81,17 @@ export function usePositions(): UsePositionsResult {
 
     try {
       logInfo('创建新持仓', { assetType: input.asset_type });
+      const userId = await UserService.getUserId();
+      if (!userId) {
+        throw new Error('用户未登录');
+      }
+      positionService.setUserId(userId);
       
       // 乐观更新：先创建临时记录
       const tempId = `temp-${Date.now()}`;
       const tempPosition: PositionRecord = {
         id: tempId,
-        user_id: UserService.getUserId(),
+        user_id: userId,
         ...input,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => {
           target: 'https://newsapi.org/v2',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/news/, ''),
-          configure: (proxy, options) => {
-            proxy.on('proxyReq', (proxyReq, req, res) => {
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
               proxyReq.setHeader('User-Agent', 'Investment-News-Analyzer/1.0');
             });
           }
@@ -35,8 +35,18 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
       'process.env.NEWS_API_KEY': JSON.stringify(env.NEWS_API_KEY),
       'process.env.ALPHA_VANTAGE_API_KEY': JSON.stringify(env.ALPHA_VANTAGE_API_KEY),
+      'process.env.FINNHUB_API_KEY': JSON.stringify(env.FINNHUB_API_KEY || ''),
+      'process.env.VITE_FINNHUB_API_KEY': JSON.stringify(env.VITE_FINNHUB_API_KEY || env.FINNHUB_API_KEY || ''),
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || ''),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || ''),
+      'process.env.VITE_APP_TITLE': JSON.stringify(env.VITE_APP_TITLE || 'FinSight AI'),
+      'process.env.VITE_APP_VERSION': JSON.stringify(env.VITE_APP_VERSION || '1.0.0'),
+      'process.env.VITE_API_TIMEOUT': JSON.stringify(env.VITE_API_TIMEOUT || '30000'),
+      'process.env.VITE_API_RETRY_ATTEMPTS': JSON.stringify(env.VITE_API_RETRY_ATTEMPTS || '3'),
+      'process.env.VITE_CACHE_TIMEOUT': JSON.stringify(env.VITE_CACHE_TIMEOUT || '300000'),
       'process.env.VITE_NEWS_API_URL': JSON.stringify(env.VITE_NEWS_API_URL || 'https://newsapi.org/v2'),
       'process.env.VITE_ALPHA_VANTAGE_URL': JSON.stringify(env.VITE_ALPHA_VANTAGE_URL || 'https://www.alphavantage.co/query'),
       'process.env.VITE_OPENAI_API_URL': JSON.stringify(env.VITE_OPENAI_API_URL || 'https://api.openai.com/v1'),

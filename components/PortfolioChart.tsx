@@ -140,7 +140,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number | undefined, name: string, props: any) => {
+                      formatter={(value: number | undefined, name: string | undefined, props: any) => {
                         const formattedValue = value !== undefined ? formatCurrency(value) : '';
                         const assetName = props.payload?.assetName || name;
                         return [formattedValue, assetName];

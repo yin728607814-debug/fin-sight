@@ -267,7 +267,11 @@ export class DataValidationService {
     // 检测成交量异常
     if (index > 2) {
       const recentVolumes = allData.slice(Math.max(0, index - 3), index)
-        .map(d => d.volume);
+        .map(d => d.volume)
+        .filter((volume): volume is number => typeof volume === 'number');
+      if (recentVolumes.length === 0 || typeof dataPoint.volume !== 'number') {
+        return anomalies;
+      }
       const avgVolume = recentVolumes.reduce((sum, vol) => sum + vol, 0) / recentVolumes.length;
       
       if (dataPoint.volume > avgVolume * this.maxVolumeMultiplier) {
@@ -360,9 +364,14 @@ export class DataValidationService {
     anomalousDataPoints: number,
     qualityScore: number = 0
   ): ValidationResult {
+    const formatDate = (date: Date | string): string => {
+      const parsed = new Date(date);
+      return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString();
+    };
+
     const dateRange = data.length > 0 ? {
-      start: data[0].date,
-      end: data[data.length - 1].date
+      start: formatDate(data[0].date),
+      end: formatDate(data[data.length - 1].date)
     } : { start: '', end: '' };
 
     return {

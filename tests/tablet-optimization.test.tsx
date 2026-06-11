@@ -25,6 +25,7 @@ jest.mock('../utils/context', () => ({
   useCurrentAsset: () => ({ setCurrentAsset: jest.fn() }),
   useNews: () => ({ news: [], loading: false, error: null }),
   useAnalysis: () => ({ analysis: [], loading: false, error: null }),
+  useOverallAnalysis: () => ({ overallAnalysis: null, setOverallAnalysis: jest.fn() }),
   usePriceData: () => ({ priceData: mockPriceData, loading: false, error: null }),
   useLoading: () => ({ loading: { news: false, analysis: false, prices: false } }),
   useErrors: () => ({ errors: { news: null, analysis: null, prices: null } })

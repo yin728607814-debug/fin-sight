@@ -73,7 +73,10 @@ const ImportDataPage: React.FC = () => {
     setResult(null);
 
     try {
-      const userId = UserService.getUserId();
+      const userId = await UserService.getUserId();
+      if (!userId) {
+        throw new Error('用户未登录，无法导入数据');
+      }
       const fundConfigService = new FundConfigSupabaseService(userId);
       const positionService = new PositionService(userId);
       

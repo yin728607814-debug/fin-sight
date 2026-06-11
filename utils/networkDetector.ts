@@ -4,6 +4,7 @@
  */
 
 import { logInfo, logWarn } from '../services/logger';
+import { config } from '../config/env';
 
 /**
  * 网络状态接口
@@ -22,7 +23,7 @@ export interface NetworkStatus {
 async function checkLatency(url: string): Promise<number | null> {
   try {
     const startTime = Date.now();
-    const response = await fetch(url, {
+    await fetch(url, {
       method: 'HEAD',
       mode: 'no-cors',
       cache: 'no-cache'
@@ -39,10 +40,10 @@ async function checkLatency(url: string): Promise<number | null> {
  */
 async function checkSupabaseReachability(): Promise<boolean> {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseUrl = config.supabase.url;
     if (!supabaseUrl) return false;
     
-    const response = await fetch(supabaseUrl, {
+    await fetch(supabaseUrl, {
       method: 'HEAD',
       mode: 'no-cors',
       cache: 'no-cache'
@@ -58,7 +59,7 @@ async function checkSupabaseReachability(): Promise<boolean> {
  */
 async function checkGeminiReachability(): Promise<boolean> {
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com', {
+    await fetch('https://generativelanguage.googleapis.com', {
       method: 'HEAD',
       mode: 'no-cors',
       cache: 'no-cache'

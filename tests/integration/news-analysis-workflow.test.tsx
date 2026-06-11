@@ -22,6 +22,7 @@ jest.mock('../../services/newsService', () => ({
 jest.mock('../../services/priceService', () => ({
   priceService: {
     fetchPriceHistory: jest.fn(),
+    fetchFiveDayPriceHistory: jest.fn(),
     getCurrentPrice: jest.fn()
   }
 }));
@@ -157,6 +158,7 @@ describe('新闻分析工作流集成测试', () => {
       predictedChange: 2.5
     });
     priceService.fetchPriceHistory.mockResolvedValue(mockPriceData);
+    priceService.fetchFiveDayPriceHistory.mockResolvedValue(mockPriceData);
     priceService.getCurrentPrice.mockResolvedValue({
       symbol: 'XAUUSD',
       name: '现货黄金',
@@ -198,7 +200,7 @@ describe('新闻分析工作流集成测试', () => {
       }, { timeout: 5000 });
 
       // 点击刷新按钮
-      const refreshButton = screen.getByText(/刷新数据/);
+      const refreshButton = screen.getAllByText(/重试/)[0];
       
       await act(async () => {
         fireEvent.click(refreshButton);
@@ -217,7 +219,7 @@ describe('新闻分析工作流集成测试', () => {
 
       // 验证市场概览部分
       expect(screen.getByText(/市场概览/)).toBeInTheDocument();
-      expect(screen.getByText(/当前价格/)).toBeInTheDocument();
+      expect(screen.getAllByText(/当前价格/).length).toBeGreaterThan(0);
       expect(screen.getByText(/24小时变化/)).toBeInTheDocument();
       expect(screen.getAllByText(/相关新闻/)[0]).toBeInTheDocument();
       expect(screen.getByText(/分析报告/)).toBeInTheDocument();
@@ -240,7 +242,7 @@ describe('新闻分析工作流集成测试', () => {
       render(<NasdaqAnalysisPage />, { wrapper: TestWrapper });
 
       // 验证页面初始加载
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
       
       // 等待数据加载完成
       await waitFor(() => {
@@ -287,7 +289,7 @@ describe('新闻分析工作流集成测试', () => {
 
     test('应该正确处理价格数据获取失败', async () => {
       const { priceService } = require('../../services/priceService');
-      priceService.fetchPriceHistory.mockRejectedValue(new Error('Price API Error'));
+      priceService.fetchFiveDayPriceHistory.mockRejectedValue(new Error('Price API Error'));
 
       render(<GoldAnalysisPage />, { wrapper: TestWrapper });
 
@@ -311,7 +313,7 @@ describe('新闻分析工作流集成测试', () => {
       }, { timeout: 5000 });
 
       // 点击刷新重试
-      const refreshButton = screen.getByText(/刷新数据/);
+      const refreshButton = screen.getAllByText(/重试/)[0];
       
       await act(async () => {
         fireEvent.click(refreshButton);

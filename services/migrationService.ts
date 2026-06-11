@@ -155,7 +155,10 @@ export class MigrationService {
       const inputs = positions.map(pos => this.convertToInput(pos));
 
       // 批量上传到后端
-      const userId = UserService.getUserId();
+      const userId = await UserService.getUserId();
+      if (!userId) {
+        throw new Error('用户未登录，无法迁移数据');
+      }
       const positionService = new PositionService(userId);
       const result = await positionService.batchCreatePositions(inputs);
 
@@ -218,7 +221,10 @@ export class MigrationService {
    */
   static async exportData(): Promise<void> {
     try {
-      const userId = UserService.getUserId();
+      const userId = await UserService.getUserId();
+      if (!userId) {
+        throw new Error('用户未登录，无法导出数据');
+      }
       const positionService = new PositionService(userId);
       const positions = await positionService.getPositions();
 
@@ -255,7 +261,10 @@ export class MigrationService {
 
       const inputs = positions.map(pos => this.convertToInput(pos));
 
-      const userId = UserService.getUserId();
+      const userId = await UserService.getUserId();
+      if (!userId) {
+        throw new Error('用户未登录，无法导入数据');
+      }
       const positionService = new PositionService(userId);
       const result = await positionService.batchCreatePositions(inputs);
 

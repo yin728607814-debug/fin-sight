@@ -3,10 +3,13 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import GridLayout, { Layout } from 'react-grid-layout';
+import GridLayout, {
+  Layout as GridLayoutLayout,
+  LayoutItem as GridLayoutItem
+} from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import { dashboardService, LayoutItem, CardType } from '../services/dashboardService';
+import { LayoutItem, CardType } from '../services/dashboardService';
 import { NewsListCard } from './dashboard/NewsListCard';
 import { PriceChartCard } from './dashboard/PriceChartCard';
 import { SentimentCard } from './dashboard/SentimentCard';
@@ -27,16 +30,15 @@ interface DashboardGridProps {
  * 仪表盘网格布局
  */
 export const DashboardGrid: React.FC<DashboardGridProps> = ({
-  layoutId,
   items,
   isEditMode,
   onLayoutChange,
   onRemoveCard,
 }) => {
-  const [layout, setLayout] = useState<Layout[]>([]);
+  const [layout, setLayout] = useState<GridLayoutItem[]>([]);
 
   useEffect(() => {
-    setLayout(items as Layout[]);
+    setLayout(items);
   }, [items]);
 
   /**
@@ -54,10 +56,10 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
    * 布局变化处理
    */
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
+    (newLayout: GridLayoutLayout) => {
       if (!isEditMode) return;
 
-      setLayout(newLayout);
+      setLayout([...newLayout]);
 
       // 转换为 LayoutItem 格式
       const layoutItems: LayoutItem[] = newLayout.map((item) => ({
@@ -112,15 +114,19 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     <GridLayout
       className="layout"
       layout={layout}
-      cols={4}
-      rowHeight={150}
       width={1200}
-      isDraggable={isEditMode}
-      isResizable={isEditMode}
+      gridConfig={{
+        cols: 4,
+        rowHeight: 150
+      }}
+      dragConfig={{
+        enabled: isEditMode,
+        handle: '.drag-handle'
+      }}
+      resizeConfig={{
+        enabled: isEditMode
+      }}
       onLayoutChange={handleLayoutChange}
-      draggableHandle=".drag-handle"
-      compactType="vertical"
-      preventCollision={false}
     >
       {layout.map((item) => (
         <div key={item.i} className={isEditMode ? 'drag-handle cursor-move' : ''}>

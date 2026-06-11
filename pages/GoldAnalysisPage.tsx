@@ -106,6 +106,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
     const getCurrentUser = async () => {
       try {
         const { supabase } = await import('../services/supabaseClient');
+        if (!supabase) return;
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setCurrentUserId(user.id);
@@ -417,7 +418,7 @@ export const GoldAnalysisPage: React.FC<GoldAnalysisPageProps> = () => {
                   <button
                     onClick={handleRefreshPrice}
                     disabled={refreshingPrice}
-                    className="flex items-center space-x-1 px-3 py-1.5 text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/40 transition-colors disabled:opacity-50"
+                    className="flex items-center justify-center touch-manipulation space-x-1 px-3 py-1.5 text-xs text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/40 transition-colors disabled:opacity-50"
                     title="刷新黄金价格"
                   >
                     <svg className={`h-3.5 w-3.5 ${refreshingPrice ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

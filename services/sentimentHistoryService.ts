@@ -3,7 +3,7 @@
  * 负责将情绪数据持久化到 Supabase
  */
 
-import { supabase } from './supabaseClient';
+import { requireSupabase } from './supabaseClient';
 import { AssetType } from '../types';
 import { SentimentData, SentimentLevel } from './sentimentService';
 
@@ -54,7 +54,8 @@ export class SentimentHistoryService {
     data: SentimentData
   ): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const client = requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
       
       if (!user) {
         console.warn('用户未登录，无法保存情绪历史');
@@ -75,7 +76,7 @@ export class SentimentHistoryService {
       };
 
       // 使用 upsert 来插入或更新（如果今天已有记录）
-      const { error } = await supabase
+      const { error } = await client
         .from('sentiment_history')
         .upsert(record, {
           onConflict: 'user_id,asset_type,date',
@@ -99,7 +100,8 @@ export class SentimentHistoryService {
     days: number = 7
   ): Promise<SentimentHistoryRecord[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const client = requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
       
       if (!user) {
         console.warn('用户未登录，无法获取情绪历史');
@@ -111,7 +113,7 @@ export class SentimentHistoryService {
       startDate.setDate(startDate.getDate() - days);
       const startDateStr = startDate.toISOString().split('T')[0];
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('sentiment_history')
         .select('*')
         .eq('user_id', user.id)
@@ -136,14 +138,15 @@ export class SentimentHistoryService {
    */
   async clearHistory(assetType?: AssetType): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const client = requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
       
       if (!user) {
         console.warn('用户未登录，无法清除情绪历史');
         return;
       }
 
-      let query = supabase
+      let query = client
         .from('sentiment_history')
         .delete()
         .eq('user_id', user.id);
@@ -169,7 +172,8 @@ export class SentimentHistoryService {
    */
   async migrateFromLocalStorage(): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const client = requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
       
       if (!user) {
         console.warn('用户未登录，无法迁移数据');
@@ -206,7 +210,7 @@ export class SentimentHistoryService {
       }
 
       if (records.length > 0) {
-        const { error } = await supabase
+        const { error } = await client
           .from('sentiment_history')
           .upsert(records, {
             onConflict: 'user_id,asset_type,date',

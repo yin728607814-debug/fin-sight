@@ -3,29 +3,11 @@
  * 提供统一的历史价格数据获取接口，支持多数据源和故障转移
  */
 
-import axios, { AxiosResponse } from 'axios';
-import { PriceData, AssetType } from '../types';
+import axios from 'axios';
+import { HistoricalPriceData, DataSource } from '../types';
 import { logInfo, logError } from './logger';
 
-/**
- * 数据源类型
- */
-export interface DataSource {
-  name: string;
-  type: 'primary' | 'backup';
-  endpoint: string;
-  rateLimit: number;
-  isHistoricalSupported: boolean;
-}
-
-/**
- * 历史价格数据接口（扩展原有PriceData）
- */
-export interface HistoricalPriceData extends PriceData {
-  source: DataSource;
-  isReal: true; // 标识为真实数据
-  lastUpdated: string;
-}
+export type { HistoricalPriceData, DataSource };
 
 /**
  * 数据验证结果
@@ -70,7 +52,7 @@ export class AlphaVantageAdapter implements DataSourceAdapter {
     };
   }
 
-  async fetchHistoricalPrices(symbol: string, range: string): Promise<RawPriceData> {
+  async fetchHistoricalPrices(symbol: string, _range: string): Promise<RawPriceData> {
     const params = {
       function: 'TIME_SERIES_DAILY',
       symbol: this.normalizeSymbol(symbol),
@@ -249,15 +231,15 @@ export class InvestingAdapter implements DataSourceAdapter {
   constructor() {
     // Investing.com 在 Cloudflare Pages 上不可用，跳过
     this.source = {
-      name: 'Yahoo Finance (Fallback)',
-      type: 'fallback',
+      name: 'Investing.com',
+      type: 'backup',
       endpoint: '/yahoo-finance-proxy',
       rateLimit: 60,
       isHistoricalSupported: true
     };
   }
 
-  async fetchHistoricalPrices(symbol: string, range: string): Promise<RawPriceData> {
+  async fetchHistoricalPrices(_symbol: string, _range: string): Promise<RawPriceData> {
     // 直接抛出错误，让系统使用 Yahoo Finance 备选
     throw new Error('Investing.com not available on Cloudflare Pages');
   }
@@ -288,10 +270,6 @@ export class InvestingAdapter implements DataSourceAdapter {
     return false;
   }
 
-  private normalizeSymbol(symbol: string): string {
-    // Investing.com适配器主要用于黄金数据
-    return symbol === 'gold' ? 'gold' : symbol;
-  }
 }
 
 /**

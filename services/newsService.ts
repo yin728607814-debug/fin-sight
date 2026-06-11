@@ -115,6 +115,8 @@ interface NewsAPIConfig {
 interface NewsAPIResponse {
   status: string;
   totalResults: number;
+  message?: string;
+  code?: string;
   articles: Array<{
     source: { id: string; name: string };
     author: string;
@@ -1864,7 +1866,13 @@ export class NewsService implements INewsService {
   private extractKeyPoints(content: string): string[] {
     // 简化的关键点提取
     const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    return sentences.slice(0, 3).map(s => s.trim());
+    const keyPoints = sentences.slice(0, 3).map(s => s.trim());
+    if (keyPoints.length > 0) {
+      return keyPoints;
+    }
+
+    const fallback = content.trim();
+    return fallback ? [fallback.slice(0, 120)] : ['暂无可提取的关键点'];
   }
 
   /**
@@ -1988,6 +1996,19 @@ export class NewsService implements INewsService {
     
     console.log(`🎉 翻译完成，总计 ${translatedItems.length} 条新闻`);
     return translatedItems;
+  }
+
+  private async translateText(text: string): Promise<string> {
+    if (!text.trim()) return text;
+
+    const prompt = `请将以下金融新闻文本翻译成简体中文，只返回译文，不要解释：\n\n${text}`;
+    return callGeminiWithFallback(
+      config.apiKeys.gemini,
+      prompt,
+      0.2,
+      1024,
+      this.config.timeout
+    );
   }
 
   /**

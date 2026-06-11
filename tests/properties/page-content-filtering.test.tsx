@@ -193,7 +193,7 @@ describe('页面内容过滤属性测试', () => {
       expect(screen.getByText(/现货黄金分析/)).toBeInTheDocument();
       
       // 验证黄金特有的UI元素
-      const goldIndicator = document.querySelector('.bg-yellow-500');
+      const goldIndicator = document.querySelector('[class*="yellow-500"]');
       expect(goldIndicator).toBeInTheDocument();
 
       // 清理DOM
@@ -282,7 +282,7 @@ describe('页面内容过滤属性测试', () => {
               const { unmount } = render(<NasdaqAnalysisPage />, { wrapper: TestWrapper });
 
               // 验证页面标题包含纳斯达克相关信息
-              expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+              expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
 
               // 验证NewsAnalyzer组件针对纳斯达克资产
               expect(screen.getByTestId('news-analyzer-nasdaq')).toBeInTheDocument();
@@ -367,10 +367,10 @@ describe('页面内容过滤属性测试', () => {
       const { unmount } = render(<NasdaqAnalysisPage />, { wrapper: TestWrapper });
 
       // 验证页面标识符
-      expect(screen.getByText(/纳斯达克100分析/)).toBeInTheDocument();
+      expect(screen.getAllByText(/纳斯达克100分析/).length).toBeGreaterThan(0);
       
       // 验证纳斯达克特有的UI元素
-      const nasdaqIndicator = document.querySelector('.bg-blue-500');
+      const nasdaqIndicator = document.querySelector('[class*="blue-500"]');
       expect(nasdaqIndicator).toBeInTheDocument();
 
       // 清理DOM

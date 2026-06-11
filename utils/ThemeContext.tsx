@@ -85,7 +85,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
+    const theme = themeService.getTheme();
+    return {
+      theme,
+      effectiveTheme: themeService.getEffectiveTheme(theme),
+      setTheme: (newTheme: Theme) => {
+        themeService.setTheme(newTheme);
+        themeService.applyTheme(themeService.getEffectiveTheme(newTheme));
+      },
+    };
   }
   return context;
 };

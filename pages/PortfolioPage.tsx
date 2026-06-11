@@ -395,7 +395,7 @@ export const PortfolioPage: React.FC = () => {
       alert(`✅ 价格数据已更新！\n\n黄金最新价格: $${goldLatest}\n纳斯达克最新价格: ${nasdaqLatest.toFixed(2)}\n\n数据点数: ${goldData.length} 条`);
       
       // 5. 触发组件重新渲染（不刷新页面）
-      setLastUpdated(new Date());
+      setLastPriceUpdate(new Date());
     } catch (error) {
       console.error('❌ 刷新价格失败:', error);
       alert('刷新失败: ' + (error instanceof Error ? error.message : '未知错误'));

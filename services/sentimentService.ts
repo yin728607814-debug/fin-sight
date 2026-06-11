@@ -310,14 +310,7 @@ export class SentimentService {
       return {
         assetType,
         data: sortedHistory.map((snapshot) => {
-          let dateStr: string;
-          if (typeof snapshot.date === 'string') {
-            dateStr = snapshot.date;
-          } else if (snapshot.date instanceof Date) {
-            dateStr = snapshot.date.toISOString().split('T')[0];
-          } else {
-            dateStr = new Date().toISOString().split('T')[0];
-          }
+          const dateStr = snapshot.date || new Date().toISOString().split('T')[0];
           
           return {
             date: dateStr,
