@@ -31,6 +31,13 @@ async function callGeminiWithFallback(
   const maxRetries = 2;
   let lastError: unknown;
 
+  const getStatus = (error: unknown) => axios.isAxiosError(error) ? error.response?.status : undefined;
+  const getApiErrorMessage = (payload: any) =>
+    payload?.details?.error?.message ||
+    payload?.error?.message ||
+    payload?.error ||
+    'Gemini API error';
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 0) {
@@ -63,12 +70,18 @@ async function callGeminiWithFallback(
 
       // 如果是 4xx 错误，不重试
       if (response.status >= 400 && response.status < 500) {
-        throw new Error(response.data?.error || `API 错误: ${response.status}`);
+        const message = getApiErrorMessage(response.data);
+        const error = new Error(`Gemini API ${response.status}: ${message}`) as Error & {
+          response?: typeof response;
+        };
+        error.response = response;
+        throw error;
       }
 
-      throw new Error(response.data?.error || 'Analysis failed');
+      throw new Error(getApiErrorMessage(response.data));
     } catch (error: unknown) {
       lastError = error;
+      const status = getStatus(error);
       
       // 检查是否是网络错误
       const isNetworkError = 
@@ -76,6 +89,19 @@ async function callGeminiWithFallback(
         (error as any).code === 'ERR_NETWORK' ||
         (error as any).message?.includes('Network Error') ||
         (error as any).message?.includes('timeout');
+
+      // 权限、密钥、参数等 4xx 错误重试也不会恢复；429 单独按限流处理。
+      if (status && status >= 400 && status < 500 && status !== 429) {
+        console.error('❌ Gemini API 权限或请求错误，停止重试:', error);
+        throw error;
+      }
+
+      if (status === 429 && attempt < maxRetries) {
+        const delay = Math.min(10000 * Math.pow(2, attempt), 30000);
+        console.warn(`⚠️ Gemini API 触发限流，将在 ${delay}ms 后重试...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
 
       // 如果是网络错误且还有重试次数，继续重试
       if (isNetworkError && attempt < maxRetries) {
