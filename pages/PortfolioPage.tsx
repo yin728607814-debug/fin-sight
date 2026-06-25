@@ -415,7 +415,6 @@ export const PortfolioPage: React.FC = () => {
     }
     
     loadPortfolio();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nasdaq.currentPrice, gold.currentPrice, supabasePositions, aStockData, nasdaqData, isEditModalOpen]);
 
   /**
@@ -433,7 +432,6 @@ export const PortfolioPage: React.FC = () => {
 
     // 清理定时器
     return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gold.currentPrice, isSupabaseEnabled]); // 移除 portfolio 依赖，只在价格变化时重置定时器
 
   /**
@@ -503,7 +501,6 @@ export const PortfolioPage: React.FC = () => {
       }
       clearInterval(checkIntervalId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aStockData.size, isSupabaseEnabled]); // 当A股数据变化或启用状态变化时重置定时器
 
   /**

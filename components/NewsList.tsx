@@ -64,10 +64,11 @@ export const NewsList: React.FC<NewsListProps> = ({
         case 'time':
           return new Date(b.news.publishedAt).getTime() - new Date(a.news.publishedAt).getTime();
         
-        case 'impact':
+        case 'impact': {
           const scoreA = a.analysis ? a.analysis.confidence * Math.abs(a.analysis.predictedChange) : 0;
           const scoreB = b.analysis ? b.analysis.confidence * Math.abs(b.analysis.predictedChange) : 0;
           return scoreB - scoreA;
+        }
         
         case 'relevance':
           return b.news.relevanceScore - a.news.relevanceScore;

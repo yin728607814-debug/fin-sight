@@ -139,7 +139,7 @@ export const safeLocalStorage = {
 
     try {
       for (const key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
           used += localStorage[key].length + key.length;
         }
       }

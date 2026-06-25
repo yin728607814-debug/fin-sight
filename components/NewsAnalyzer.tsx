@@ -61,7 +61,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
    * 使用演示数据作为降级方案
    * 返回获取到的新闻数据
    */
-  const useFallbackNews = useCallback(async (): Promise<NewsItem[] | null> => {
+  const loadFallbackNews = useCallback(async (): Promise<NewsItem[] | null> => {
     try {
       clearError('news');
       setLoading({ news: true });
@@ -307,7 +307,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
             'news',
             async () => (await fetchNews()) !== null,
             undefined,
-            async () => (await useFallbackNews()) !== null
+            async () => (await loadFallbackNews()) !== null
           )}
           onSuccess={(level) => {
             console.log(`数据获取成功，使用策略: ${level.name}`);
@@ -467,7 +467,7 @@ export const NewsAnalyzer: React.FC<NewsAnalyzerProps> = ({
           onRetry={fetchNews}
           onDismiss={() => clearError('news')}
           showFallbackOption={true}
-          onUseFallback={useFallbackNews}
+          onUseFallback={loadFallbackNews}
         />
       )}
       

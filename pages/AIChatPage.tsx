@@ -77,7 +77,6 @@ export const AIChatPage: React.FC<AIChatPageProps> = () => {
       setChatContext(newContext);
     };
     updateContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetType, news, priceData]);
 
   /**

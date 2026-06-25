@@ -407,7 +407,7 @@ export class AnalysisService implements IAnalysisService {
       });
 
       // 移除可能的 markdown 代码块标记
-      let cleanedText = responseText
+      const cleanedText = responseText
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
@@ -419,7 +419,7 @@ export class AnalysisService implements IAnalysisService {
         throw new Error('无法从响应中提取JSON');
       }
       
-      let jsonText = jsonMatch[0];
+      const jsonText = jsonMatch[0];
       console.log('📝 提取的JSON长度:', jsonText.length);
       
       // 尝试修复常见的JSON格式问题
@@ -519,7 +519,7 @@ export class AnalysisService implements IAnalysisService {
             console.log('🔍 找到analyses数组，尝试部分解析...');
             
             try {
-              let analysesContent = analysesMatch[1];
+              const analysesContent = analysesMatch[1];
               
               // 尝试解析单个分析对象
               const analysisObjects = [];
@@ -1037,7 +1037,7 @@ ${newsText}
           const analysesMatch = jsonText.match(/"analyses"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
           if (analysesMatch) {
             try {
-              let analysesText = analysesMatch[1];
+              const analysesText = analysesMatch[1];
               
               // 移除不完整的最后一个对象（找到最后一个完整的}）
               const objects = [];
